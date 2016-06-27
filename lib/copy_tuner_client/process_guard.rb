@@ -14,9 +14,11 @@ module CopyTunerClient
 
     # Starts the poller or registers hooks
     def start
+      @logger.info("$0=#{$0}")
       if spawner?
         register_spawn_hooks
       else
+        @logger.info("No spawner")
         register_exit_hooks
         register_job_hooks
         start_polling
