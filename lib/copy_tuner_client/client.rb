@@ -81,6 +81,14 @@ module CopyTunerClient
       end
     end
 
+    def get_unpublished_blurbs
+      connect(host) do |http|
+        response = http.get(uri('unpublished_blurbs'))
+        check response
+        JSON.parse(response.body)
+      end
+    end
+
     private
 
     attr_reader :host, :port, :api_key, :http_read_timeout,

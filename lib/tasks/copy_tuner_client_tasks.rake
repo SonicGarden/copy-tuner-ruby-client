@@ -17,4 +17,14 @@ namespace :copy_tuner do
       puts "No blurbs have been cached."
     end
   end
+
+  desc "Check unpublished blurbs."
+  task :check_unpublished_blurbs => :environment do
+    puts "Checking unpublished blurbs...."
+    if CopyTunerClient.has_unpublished_blurbs?
+      puts "[Warning] There are unpublished blurbs!!!!!!"
+    else
+      puts "All blurbs published"
+    end
+  end
 end

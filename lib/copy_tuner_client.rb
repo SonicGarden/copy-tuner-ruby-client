@@ -68,6 +68,10 @@ module CopyTunerClient
       configuration.apply
     end
   end
+
+  def self.has_unpublished_blurbs?
+    client.get_unpublished_blurbs.present?
+  end
 end
 
 if defined? ::Rails
