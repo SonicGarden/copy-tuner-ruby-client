@@ -134,6 +134,9 @@ module CopyTunerClient
     # @return [Boolean] Html escape
     attr_accessor :html_escape
 
+    # @return [Boolean] Raise when invalid key
+    attr_accessor :raise_when_invalid_key
+
     alias_method :secure?, :secure
 
     def copyray_js_injection_regexp_for_debug=(value)
@@ -162,6 +165,7 @@ module CopyTunerClient
       self.s3_host = 'copy-tuner-data-prod.s3.amazonaws.com'
       self.disable_copyray_comment_injection = false
       self.html_escape = false
+      self.raise_when_invalid_key = false
 
       @applied = false
     end

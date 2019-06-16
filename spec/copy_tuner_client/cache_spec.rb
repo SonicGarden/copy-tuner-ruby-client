@@ -109,6 +109,22 @@ describe CopyTunerClient::Cache do
     expect(cache.queued).to be_empty
   end
 
+  it "set invalid key" do
+    client['en.test.key'] = 'test value'
+    cache = build_cache(raise_when_invalid_key: true)
+
+    cache.download
+
+    expect { cache['en.test.key.key2'] = 'dummy' }.to raise_error(ArgumentError, 'Scope already exists: en.test.key')
+    expect { cache['en.test'] = 'dummy' }.to raise_error(ArgumentError, 'Scope already exists: en.test')
+
+    expected = expect do
+      cache['en.test2.key'] = 'dummy'
+      cache['en.test2.key.key2'] = 'dummy'
+    end
+    expected.to raise_error(ArgumentError, 'Scope already exists: en.test2.key')
+  end
+
   it "handles connection errors when flushing" do
     failure = "server is napping"
     logger = FakeLogger.new

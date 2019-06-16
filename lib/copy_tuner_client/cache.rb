@@ -18,12 +18,15 @@ module CopyTunerClient
       @mutex = Mutex.new
       @exclude_key_regexp = options[:exclude_key_regexp]
       @locales = Array(options[:locales]).map(&:to_s)
+      @raise_when_invalid_key = options[:raise_when_invalid_key]
       # mutable states
       @blurbs = {}
       @blank_keys = Set.new
       @queued = {}
       @started = false
       @downloaded = false
+      @scopes = Set.new
+      @queued_scopes = Set.new
     end
 
     # Returns content for the given blurb.
@@ -39,9 +42,13 @@ module CopyTunerClient
     # @param value [String] the new contents of the blurb
     def []=(key, value)
       return if @exclude_key_regexp && key.match?(@exclude_key_regexp)
-      return if @blank_keys.member?(key)
       return if @locales.present? && !@locales.member?(key.split('.').first)
-      lock { @queued[key] = value }
+      lock do
+        return if @blank_keys.member?(key)
+        check_already_scope!(key)
+        @queued[key] = value
+        @queued_scopes = @queued_scopes + key_to_scopes(key)
+      end
     end
 
     # Keys for all blurbs stored on the server.
@@ -114,6 +121,7 @@ module CopyTunerClient
         lock do
           @blank_keys = Set.new(blank_blurbs.to_h.keys)
           @blurbs = blurbs.to_h
+          @scopes = key_to_scopes(@blurbs.keys)
         end
       end
 
@@ -153,6 +161,7 @@ module CopyTunerClient
         unless @queued.empty?
           changes_to_push = @queued
           @queued = {}
+          @queued_scopes.clear
         end
       end
 
@@ -170,6 +179,31 @@ module CopyTunerClient
         end
       end
       hash
+    end
+
+    def check_already_scope!(key)
+      already_scope =
+        if (@scopes + @queued_scopes).member?(key)
+          key
+        else
+          already_keys = Set.new(@blurbs.keys + @queued.keys) & key_to_scopes(key)
+          already_keys.empty? ? nil : already_keys.to_a.last
+        end
+      return if already_scope.nil?
+
+      message = "Scope already exists: #{already_scope}"
+      raise ArgumentError, message if @raise_when_invalid_key
+      logger.error message
+    end
+
+    def key_to_scopes(keys)
+      scopes =
+        Array(keys).flat_map do |key|
+          key.split('.').inject([]) do |memo, k|
+            memo << (memo.present? ? [memo.last, k].join('.') : k)
+          end
+        end
+      Set.new(scopes)
     end
 
     def lock(&block)
