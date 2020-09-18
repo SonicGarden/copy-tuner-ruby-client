@@ -33,6 +33,8 @@ module CopyTunerClient
             end
             result
           end
+          ruby2_keywords(:translate_with_copy_tuner_hook) if respond_to?(:ruby2_keywords, true)
+
           if CopyTunerClient.configuration.enable_middleware?
             alias_method :translate_without_copy_tuner_hook, :translate
             alias_method :translate, :translate_with_copy_tuner_hook
