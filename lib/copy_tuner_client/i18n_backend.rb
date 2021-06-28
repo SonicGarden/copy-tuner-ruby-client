@@ -61,6 +61,8 @@ module CopyTunerClient
     private
 
     def lookup(locale, key, scope = [], options = {})
+      return nil if !key.is_a?(String) && !key.is_a?(Symbol)
+
       parts = I18n.normalize_keys(locale, key, scope, options[:separator])
       key_with_locale = parts.join('.')
       content = cache[key_with_locale] || super
