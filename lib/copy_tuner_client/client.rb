@@ -85,6 +85,14 @@ module CopyTunerClient
       end
     end
 
+    def upload_key_acess_log(data)
+      connect(host) do |http|
+        response = http.post(uri('blurb_access_logs'), data.to_json, 'Content-Type' => 'application/json', 'User-Agent' => USER_AGENT)
+        check response
+        log 'Uploaded key access log'
+      end
+    end
+
     private
 
     attr_reader :host, :port, :api_key, :http_read_timeout,

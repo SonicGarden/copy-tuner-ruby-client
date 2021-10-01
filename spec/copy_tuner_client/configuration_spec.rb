@@ -195,6 +195,8 @@ shared_context 'stubbed configuration' do
   subject { CopyTunerClient::Configuration.new }
   let(:backend) { double('i18n-backend') }
   let(:cache) { double('cache', download: "download") }
+  let(:key_access_log) { double('key_access_log') }
+  let(:null_key_access_log) { double('null_key_access_log') }
   let(:client) { double('client') }
   let(:logger) { FakeLogger.new }
   let(:poller) { double('poller') }
@@ -204,6 +206,8 @@ shared_context 'stubbed configuration' do
     allow(CopyTunerClient::I18nBackend).to receive(:new).and_return(backend)
     allow(CopyTunerClient::Client).to receive(:new).and_return(client)
     allow(CopyTunerClient::Cache).to receive(:new).and_return(cache)
+    allow(CopyTunerClient::KeyAccessLog).to receive(:new).and_return(key_access_log)
+    allow(CopyTunerClient::KeyAccessLog::NullLog).to receive(:new).and_return(null_key_access_log)
     allow(CopyTunerClient::Poller).to receive(:new).and_return(poller)
     allow(CopyTunerClient::ProcessGuard).to receive(:new).and_return(process_guard)
     subject.logger = logger
@@ -217,12 +221,12 @@ shared_examples_for 'applied configuration' do
   it { is_expected.to be_applied }
 
   it 'builds and assigns an I18n backend' do
-    expect(CopyTunerClient::I18nBackend).to have_received(:new).with(cache)
+    expect(CopyTunerClient::I18nBackend).to have_received(:new).with(cache, null_key_access_log)
     expect(I18n.backend).to eq(backend)
   end
 
   it 'builds and assigns a poller' do
-    expect(CopyTunerClient::Poller).to have_received(:new).with(cache, subject.to_hash)
+    expect(CopyTunerClient::Poller).to have_received(:new).with(cache, null_key_access_log, subject.to_hash)
   end
 
   it 'builds a process guard' do
@@ -329,6 +333,32 @@ describe CopyTunerClient::Configuration, 'applied with locale filter' do
 
   it 'should have locales %i(en ja)' do
     expect(subject.locales).to eq %i(en ja)
+  end
+end
+
+describe CopyTunerClient::Configuration, 'applied when enable_key_access_log is true' do
+  include_context 'stubbed configuration'
+
+  def apply
+    subject.enable_key_access_log = true
+    subject.apply
+  end
+
+  it 'instanciate CopyTunerClient::KeyAccessLog' do
+    expect(subject.key_access_log).to eq key_access_log
+  end
+end
+
+describe CopyTunerClient::Configuration, 'applied when enable_key_access_log is false' do
+  include_context 'stubbed configuration'
+
+  def apply
+    subject.enable_key_access_log = false
+    subject.apply
+  end
+
+  it 'instanciate CopyTunerClient::KeyAccessLog::NullLog' do
+    expect(subject.key_access_log).to eq null_key_access_log
   end
 end
 

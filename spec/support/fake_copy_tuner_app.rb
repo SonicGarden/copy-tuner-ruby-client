@@ -66,6 +66,15 @@ class FakeCopyTunerApp < Sinatra::Base
     end
   end
 
+  post '/api/v2/projects/:api_key/blurb_access_logs' do |api_key|
+    with_project(api_key) do |project|
+      with_json_data do |data|
+        project.update 'key_access_logs' => data
+        201
+      end
+    end
+  end
+
   def with_json_data
     if request.content_type == 'application/json'
       yield JSON.parse(request.body.read)
@@ -82,11 +91,12 @@ class FakeCopyTunerApp < Sinatra::Base
   end
 
   class Project
-    attr_reader :draft, :published, :api_key
+    attr_reader :draft, :key_access_logs, :published, :api_key
 
     def initialize(attrs)
       @api_key = attrs['api_key']
       @draft = attrs['draft']  || {}
+      @key_access_logs = attrs['key_access_logs'] || {}
       @etag = attrs['etag'] || 1
       @published = attrs['published'] || {}
     end
@@ -96,6 +106,7 @@ class FakeCopyTunerApp < Sinatra::Base
         'api_key' => @api_key,
         'etag' => @etag,
         'draft' => @draft,
+        'key_access_logs' => @key_access_logs,
         'published' => @published
       }
     end
@@ -107,6 +118,11 @@ class FakeCopyTunerApp < Sinatra::Base
 
       if attrs['published']
         @published.update attrs['published']
+      end
+
+      if attrs['key_access_logs']
+        puts "Update: #{attrs['key_access_logs'].inspect}"
+        @key_access_logs.update attrs['key_access_logs']
       end
 
       @etag += 1

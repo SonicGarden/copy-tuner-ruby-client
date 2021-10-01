@@ -16,8 +16,9 @@ module CopyTunerClient
 
     # Usually instantiated when {Configuration#apply} is invoked.
     # @param cache [Cache] must act like a hash, returning and accept blurbs by key.
-    def initialize(cache)
+    def initialize(cache, key_access_log)
       @cache = cache
+      @key_access_log = key_access_log
     end
 
     # Translates the given local and key. See the I18n API documentation for details.
@@ -65,7 +66,10 @@ module CopyTunerClient
 
       parts = I18n.normalize_keys(locale, key, scope, options[:separator])
       key_with_locale = parts.join('.')
-      content = cache[key_with_locale] || super
+      if (cached_content = cache[key_with_locale])
+        key_access_log.add(key_with_locale)
+      end
+      content = cached_content || super
       cache[key_with_locale] = nil if content.nil?
       content
     end
@@ -101,6 +105,6 @@ module CopyTunerClient
       content
     end
 
-    attr_reader :cache
+    attr_reader :cache, :key_access_log
   end
 end

@@ -2,6 +2,7 @@ require 'logger'
 require 'copy_tuner_client/i18n_backend'
 require 'copy_tuner_client/client'
 require 'copy_tuner_client/cache'
+require 'copy_tuner_client/key_access_log'
 require 'copy_tuner_client/process_guard'
 require 'copy_tuner_client/poller'
 require 'copy_tuner_client/prefixed_logger'
@@ -107,6 +108,9 @@ module CopyTunerClient
 
     # @return [Cache] instance used internally to synchronize changes.
     attr_accessor :cache
+    
+    # @return [KeyAccessLog] instance used key access log.
+    attr_accessor :key_access_log
 
     # @return [Client] instance used to communicate with a CopyTuner Server.
     attr_accessor :client
@@ -131,6 +135,9 @@ module CopyTunerClient
     # @return [Boolean] Html escape
     attr_accessor :html_escape
 
+    # @return [Boolean] To enable uploading key access log to server
+    attr_accessor :enable_key_access_log
+
     alias_method :secure?, :secure
 
     # Instantiated from {CopyTunerClient.configure}. Sets defaults.
@@ -152,6 +159,7 @@ module CopyTunerClient
       self.s3_host = 'copy-tuner-data-prod.s3.amazonaws.com'
       self.disable_copyray_comment_injection = false
       self.html_escape = false
+      self.enable_key_access_log = false
 
       @applied = false
     end
@@ -233,13 +241,14 @@ module CopyTunerClient
 
       self.client ||= Client.new(to_hash)
       self.cache ||= Cache.new(client, to_hash)
-      @poller = Poller.new(cache, to_hash)
+      self.key_access_log = enable_key_access_log ? KeyAccessLog.new(client) : KeyAccessLog::NullLog.new
+      @poller = Poller.new(cache, key_access_log, to_hash)
       process_guard = ProcessGuard.new(cache, @poller, to_hash)
-      I18n.backend = I18nBackend.new(cache)
+      I18n.backend = I18nBackend.new(cache, key_access_log)
 
       if enable_middleware?
         logger.info "Using copytuner sync middleware"
-        request_sync_options = {:poller => @poller, :cache => cache, :interval => sync_interval, :ignore_regex => sync_ignore_path_regex}
+        request_sync_options = {:poller => @poller, :cache => cache, :key_access_log => key_access_log, :interval => sync_interval, :ignore_regex => sync_ignore_path_regex}
         if middleware_position.is_a?(Hash) && middleware_position[:before]
           middleware.insert_before middleware_position[:before], RequestSync, request_sync_options
           middleware.insert_before middleware_position[:before], CopyTunerClient::CopyrayMiddleware
