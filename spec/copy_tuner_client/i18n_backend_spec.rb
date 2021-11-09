@@ -2,9 +2,10 @@ require 'spec_helper'
 
 describe CopyTunerClient::I18nBackend do
   let(:cache) { {} }
+  let(:key_access_log) { double('key_access_log', add: nil, flush: nil) }
 
   def build_backend
-    backend = CopyTunerClient::I18nBackend.new(cache)
+    backend = CopyTunerClient::I18nBackend.new(cache, key_access_log)
     I18n.backend = backend
     backend
   end
@@ -35,6 +36,7 @@ describe CopyTunerClient::I18nBackend do
 
     backend = build_backend
 
+    expect(key_access_log).to receive(:add)
     expect(backend.translate('en', 'test.key', :scope => 'prefix')).to eq(value)
   end
 
@@ -53,6 +55,7 @@ describe CopyTunerClient::I18nBackend do
 
     expect(subject.translate('en', 'test.key', :default => default)).to eq(default)
 
+    expect(key_access_log).not_to receive(:add)
     expect(cache['en.test.key']).to eq(default)
   end
 

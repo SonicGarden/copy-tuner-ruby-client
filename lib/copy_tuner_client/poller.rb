@@ -9,8 +9,9 @@ module CopyTunerClient
     # @param options [Hash]
     # @option options [Logger] :logger where errors should be logged
     # @option options [Fixnum] :polling_delay how long to wait in between requests
-    def initialize(cache, options)
+    def initialize(cache, key_access_log, options)
       @cache         = cache
+      @key_access_log = key_access_log
       @polling_delay = options[:polling_delay]
       @logger        = options[:logger]
       @command_queue = CopyTunerClient::QueueWithTimeout.new
@@ -45,11 +46,12 @@ module CopyTunerClient
 
     private
 
-    attr_reader :cache, :logger, :polling_delay
+    attr_reader :cache, :key_access_log, :logger, :polling_delay
 
     def poll
       loop do
         cache.sync
+        key_access_log.flush
         logger.flush if logger.respond_to?(:flush)
         begin
           command = @command_queue.pop_with_timeout(polling_delay)

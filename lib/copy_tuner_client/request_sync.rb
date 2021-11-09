@@ -18,6 +18,7 @@ module CopyTunerClient
       @app = app
       @poller = options[:poller]
       @cache = options[:cache]
+      @key_access_log = options[:key_access_log]
       @interval = options[:interval]
       @ignore_regex = options[:ignore_regex]
       @last_synced = options[:last_synced]
@@ -71,6 +72,7 @@ module CopyTunerClient
 
     def sync
       @cache.sync
+      @key_access_log.flush
       ::Rack::Response.new{|r| r.redirect('/copytuner/')}.finish
     end
 

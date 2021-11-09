@@ -5,12 +5,13 @@ describe CopyTunerClient::Poller do
 
   let(:client) { FakeClient.new }
   let(:cache) { CopyTunerClient::Cache.new(client, :logger => FakeLogger.new) }
+  let(:key_access_log) { CopyTunerClient::KeyAccessLog.new(client) }
 
   def build_poller(config = {})
     config[:logger] ||= FakeLogger.new
     config[:polling_delay] = POLLING_DELAY
     default_config = CopyTunerClient::Configuration.new.to_hash
-    poller = CopyTunerClient::Poller.new(cache, default_config.update(config))
+    poller = CopyTunerClient::Poller.new(cache, key_access_log, default_config.update(config))
     @pollers << poller
     poller
   end
@@ -28,6 +29,8 @@ describe CopyTunerClient::Poller do
   end
 
   it "it polls after being started" do
+    key_access_log.add('some.key')
+
     poller = build_poller
     poller.start
 
@@ -35,15 +38,19 @@ describe CopyTunerClient::Poller do
     wait_for_next_sync
 
     expect(cache['test.key']).to eq('value')
+    expect(client.uploaded_key_access_logs.keys).to eq %w[key]
   end
 
   it "it doesn't poll before being started" do
+    key_access_log.add('some.key')
+
     poller = build_poller
     client['test.key'] = 'value'
 
     wait_for_next_sync
 
     expect(cache['test.key']).to be_nil
+    expect(client.uploaded_key_access_logs.keys).to be_empty
   end
 
   it "stops polling when stopped" do

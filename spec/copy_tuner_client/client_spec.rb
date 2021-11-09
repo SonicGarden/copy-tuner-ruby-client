@@ -93,6 +93,11 @@ describe CopyTunerClient do
       expect { client.upload({}) }.to raise_error(CopyTunerClient::ConnectionError)
     end
 
+    it 'handles 500 errors from key access log uploads with ConnectionError' do
+      client = build_client(:api_key => 'raise_error')
+      expect { client.upload_key_acess_log({}) }.to raise_error(CopyTunerClient::ConnectionError)
+    end
+
     it 'handles 404 errors from downloads with ConnectionError' do
       client = build_client(:api_key => 'bogus')
       expect { client.download { |ignore| } }.
@@ -103,7 +108,12 @@ describe CopyTunerClient do
       client = build_client(:api_key => 'bogus')
       expect { client.upload({}) }.to raise_error(CopyTunerClient::InvalidApiKey)
     end
-  end
+
+    it 'handles 404 errors from key access log uploads with ConnectionError' do
+      client = build_client(:api_key => 'bogus')
+      expect { client.upload_key_acess_log({}) }.to raise_error(CopyTunerClient::InvalidApiKey)
+    end
+end
 
   it 'downloads published blurbs for an existing project' do
     project = add_project
@@ -195,7 +205,21 @@ describe CopyTunerClient do
     client.upload({})
     expect(logger).to have_entry(:info, "Uploaded missing translations")
   end
+  
+  it "uploads key access logs in an existing project" do
+    project = add_project
 
+    logs = {
+      'key.one' => Time.now.to_i,
+      'key.two' => Time.now.to_i,
+    }
+
+    client = build_client(:api_key => project.api_key, :public => true)
+    client.upload_key_acess_log(logs)
+
+    expect(project.reload.key_access_logs).to eq(logs)
+  end
+        
   it "deploys from the top-level constant" do
     client = build_client
     allow(client).to receive(:download)
