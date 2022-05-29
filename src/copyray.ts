@@ -1,5 +1,5 @@
 import { CopytunerBar, type CopytunerData } from './copytuner_bar'
-import { Specimen } from './specimen'
+import { CopyraySpecimen } from './specimen'
 
 export { type CopytunerData } from './copytuner_bar'
 
@@ -43,7 +43,7 @@ export class Copyray {
   private copyTunerBar: CopytunerBar
   private boundOpen: Copyray['open']
   private overlay: HTMLDivElement
-  private specimens: Specimen[]
+  private specimens: CopyraySpecimen[]
 
   constructor(baseUrl: string, data: CopytunerData) {
     this.baseUrl = baseUrl
@@ -68,7 +68,7 @@ export class Copyray {
     this.makeSpecimens()
 
     for (const specimen of this.specimens) {
-      specimen.show()
+      document.body.append(specimen)
     }
 
     this.copyTunerBar.show()
@@ -96,7 +96,13 @@ export class Copyray {
 
   makeSpecimens() {
     for (const { element, key } of findBlurbs()) {
-      this.specimens.push(new Specimen(element, key, this.boundOpen))
+      const specimen = new CopyraySpecimen()
+      specimen.key = key
+      specimen.target = element
+      specimen.addEventListener('click', () => {
+        this.open(key)
+      })
+      this.specimens.push(specimen)
     }
   }
 
@@ -126,5 +132,7 @@ export class Copyray {
     for (const specimen of this.specimens) {
       specimen.remove()
     }
+
+    this.specimens = []
   }
 }

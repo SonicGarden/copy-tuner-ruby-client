@@ -12,7 +12,9 @@
     "build": "tsc && vite build",
     "preview": "vite preview"
   },
-  "dependencies": {},
+  "dependencies": {
+    "lit": "^2.2.5"
+  },
   "devDependencies": {
     "@sonicgarden/eslint-plugin": "^0.4.11",
     "@sonicgarden/prettier-config": "^0.0.1",

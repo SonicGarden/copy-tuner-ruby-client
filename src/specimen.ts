@@ -1,69 +1,55 @@
-import type { Copyray } from './copyray'
-import { computeBoundingBox } from './util'
+import { html, css, LitElement } from 'lit'
+import { customElement, property } from 'lit/decorators.js'
+import { StyleInfo, styleMap } from 'lit/directives/style-map.js'
 
-const ZINDEX = 2_000_000_000
-
-export class Specimen {
-  private element: HTMLElement
-  private key: string
-  private onOpen: (key: string) => void
-  private box: HTMLDivElement | undefined
-
-  constructor(element: HTMLElement, key: string, onOpen: Copyray['open']) {
-    this.element = element
-    this.key = key
-    this.onOpen = onOpen
-  }
-
-  show() {
-    this.box = this.makeBox()
-    if (!this.box) return
-
-    this.box.addEventListener('click', () => {
-      this.onOpen(this.key)
-    })
-
-    document.body.append(this.box)
-  }
-
-  remove() {
-    if (!this.box) {
-      return
+@customElement('copyray-specimen')
+export class CopyraySpecimen extends LitElement {
+  static styles = css`
+    .specimen {
+      position: fixed;
+      outline: 1px solid rgba(255, 255, 255, 0.8);
+      outline-offset: -1px;
+      outline: 1px solid rgba(255, 50, 50, 0.8);
+      background: rgba(255, 50, 50, 0.1);
+      font-family: 'Helvetica Neue', sans-serif;
+      font-size: 13px;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.7);
+      z-index: 2000000000;
     }
-    this.box.remove()
-    this.box = undefined
+    .specimen:hover {
+      cursor: pointer;
+      background: rgba(255, 50, 50, 0.4);
+    }
+    .handle {
+      position: absolute;
+      top: 0;
+      left: 0;
+      background: rgba(255, 50, 50, 0.8);
+      color: #fff;
+      padding: 0 3px;
+      font-size: 12px;
+    }
+  `
+
+  @property({ attribute: false })
+  target?: HTMLElement
+
+  @property()
+  key = ''
+
+  render() {
+    return html`
+      <div class="specimen" style=${styleMap(this.styles())}>
+        <span class="handle">${this.key}</span>
+      </div>
+    `
   }
 
-  makeBox(): HTMLDivElement | undefined {
-    const box = document.createElement('div')
-    box.classList.add('copyray-specimen')
-    box.classList.add('Specimen')
+  private styles(): StyleInfo {
+    if (!this.target) return {}
 
-    const bounds = computeBoundingBox(this.element)
-    if (!bounds) return
-
-    for (const key of ['left', 'top', 'width', 'height'] as const) {
-      const value = bounds[key]
-      box.style[key] = `${value}px`
-    }
-    box.style.zIndex = ZINDEX.toString()
-
-    const { position, top, left } = getComputedStyle(this.element)
-    if (this.box && position === 'fixed') {
-      this.box.style.position = 'fixed'
-      this.box.style.top = `${top}px`
-      this.box.style.left = `${left}px`
-    }
-
-    box.append(this.makeLabel())
-    return box
-  }
-
-  makeLabel() {
-    const div = document.createElement('div')
-    div.classList.add('copyray-specimen-handle')
-    div.classList.add('Specimen')
-    div.textContent = this.key
-    return div
+    const rect = this.target.getBoundingClientRect()
+    const styles = (['left', 'top', 'width', 'height'] as const).map((key) => [key, `${rect[key]}px`])
+    return Object.fromEntries(styles)
   }
 }
