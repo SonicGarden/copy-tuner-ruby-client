@@ -1,71 +1,57 @@
+import type { Copyray } from './copyray'
 import { computeBoundingBox } from './util'
 
 const ZINDEX = 2_000_000_000
 
-export default class Specimen {
-  // @ts-expect-error TS7006
-  constructor(element, key, callback) {
-    // @ts-expect-error TS2339
+export class Specimen {
+  private element: HTMLElement
+  private key: string
+  private onOpen: (key: string) => void
+  private box: HTMLDivElement | undefined
+
+  constructor(element: HTMLElement, key: string, onOpen: Copyray['open']) {
     this.element = element
-    // @ts-expect-error TS2339
     this.key = key
-    // @ts-expect-error TS2339
-    this.callback = callback
+    this.onOpen = onOpen
   }
 
   show() {
-    // @ts-expect-error TS2339
     this.box = this.makeBox()
-    // @ts-expect-error TS2339
-    if (this.box === null) return
+    if (!this.box) return
 
-    // @ts-expect-error TS2339
     this.box.addEventListener('click', () => {
-      // @ts-expect-error TS2339
-      this.callback(this.key)
+      this.onOpen(this.key)
     })
 
-    // @ts-expect-error TS2339
     document.body.append(this.box)
   }
 
   remove() {
-    // @ts-expect-error TS2339
     if (!this.box) {
       return
     }
-    // @ts-expect-error TS2339
     this.box.remove()
-    // @ts-expect-error TS2339
-    this.box = null
+    this.box = undefined
   }
 
-  makeBox() {
+  makeBox(): HTMLDivElement | undefined {
     const box = document.createElement('div')
     box.classList.add('copyray-specimen')
     box.classList.add('Specimen')
 
-    // @ts-expect-error TS2339
     const bounds = computeBoundingBox(this.element)
-    if (bounds === null) return null
+    if (!bounds) return
 
-    for (const key of Object.keys(bounds)) {
-      // @ts-expect-error TS7053
+    for (const key of ['left', 'top', 'width', 'height'] as const) {
       const value = bounds[key]
-      // @ts-expect-error TS7015
       box.style[key] = `${value}px`
     }
-    // @ts-expect-error TS2322
-    box.style.zIndex = ZINDEX
+    box.style.zIndex = ZINDEX.toString()
 
-    // @ts-expect-error TS2339
     const { position, top, left } = getComputedStyle(this.element)
-    if (position === 'fixed') {
-      // @ts-expect-error TS2339
+    if (this.box && position === 'fixed') {
       this.box.style.position = 'fixed'
-      // @ts-expect-error TS2339
       this.box.style.top = `${top}px`
-      // @ts-expect-error TS2339
       this.box.style.left = `${left}px`
     }
 
@@ -77,7 +63,6 @@ export default class Specimen {
     const div = document.createElement('div')
     div.classList.add('copyray-specimen-handle')
     div.classList.add('Specimen')
-    // @ts-expect-error TS2339
     div.textContent = this.key
     return div
   }

@@ -1,5 +1,5 @@
 import { CopytunerBar, type CopytunerData } from './copytuner_bar'
-import Specimen from './specimen'
+import { Specimen } from './specimen'
 
 export { type CopytunerData } from './copytuner_bar'
 

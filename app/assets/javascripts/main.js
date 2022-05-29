@@ -207,10 +207,10 @@ class CopytunerBar {
     }
   }
 }
-const isMac = navigator.platform.toUpperCase().includes("MAC");
+const isMac = navigator.userAgent.toUpperCase().includes("MAC");
 const isVisible = (element) => !!(element.offsetWidth || element.offsetHeight || element.getClientRects().length > 0);
-const getOffset = (elment) => {
-  const box = elment.getBoundingClientRect();
+const getOffset = (element) => {
+  const box = element.getBoundingClientRect();
   return {
     top: box.top + (window.pageYOffset - document.documentElement.clientTop),
     left: box.left + (window.pageXOffset - document.documentElement.clientLeft)
@@ -218,31 +218,35 @@ const getOffset = (elment) => {
 };
 const computeBoundingBox = (element) => {
   if (!isVisible(element)) {
-    return null;
+    return;
   }
   const boxFrame = getOffset(element);
-  boxFrame.right = boxFrame.left + element.offsetWidth;
-  boxFrame.bottom = boxFrame.top + element.offsetHeight;
+  const right = boxFrame.left + element.offsetWidth;
+  const bottom = boxFrame.top + element.offsetHeight;
   return {
     left: boxFrame.left,
     top: boxFrame.top,
-    width: boxFrame.right - boxFrame.left,
-    height: boxFrame.bottom - boxFrame.top
+    width: right - boxFrame.left,
+    height: bottom - boxFrame.top
   };
 };
 const ZINDEX = 2e9;
 class Specimen {
-  constructor(element, key, callback) {
+  constructor(element, key, onOpen) {
+    __publicField(this, "element");
+    __publicField(this, "key");
+    __publicField(this, "onOpen");
+    __publicField(this, "box");
     this.element = element;
     this.key = key;
-    this.callback = callback;
+    this.onOpen = onOpen;
   }
   show() {
     this.box = this.makeBox();
-    if (this.box === null)
+    if (!this.box)
       return;
     this.box.addEventListener("click", () => {
-      this.callback(this.key);
+      this.onOpen(this.key);
     });
     document.body.append(this.box);
   }
@@ -251,22 +255,22 @@ class Specimen {
       return;
     }
     this.box.remove();
-    this.box = null;
+    this.box = void 0;
   }
   makeBox() {
     const box = document.createElement("div");
     box.classList.add("copyray-specimen");
     box.classList.add("Specimen");
     const bounds = computeBoundingBox(this.element);
-    if (bounds === null)
-      return null;
-    for (const key of Object.keys(bounds)) {
+    if (!bounds)
+      return;
+    for (const key of ["left", "top", "width", "height"]) {
       const value = bounds[key];
       box.style[key] = `${value}px`;
     }
-    box.style.zIndex = ZINDEX;
+    box.style.zIndex = ZINDEX.toString();
     const { position, top, left } = getComputedStyle(this.element);
-    if (position === "fixed") {
+    if (this.box && position === "fixed") {
       this.box.style.position = "fixed";
       this.box.style.top = `${top}px`;
       this.box.style.left = `${left}px`;
