@@ -1,13 +1,12 @@
 /* eslint-disable no-console */
-import Copyray from './copyray'
+import { Copyray, type CopytunerData } from './copyray'
 import { isMac } from './util'
 
 declare global {
   interface Window {
     CopyTuner: {
       url: string
-      // TODO: type
-      data: object
+      data: CopytunerData
     }
   }
 }
@@ -35,7 +34,6 @@ const start = () => {
   const copyray = new Copyray(url, data)
 
   document.addEventListener('keydown', (event) => {
-    // @ts-expect-error TS2339
     if (copyray.isShowing && ['Escape', 'Esc'].includes(event.key)) {
       copyray.hide()
       return

@@ -1,84 +1,88 @@
-import CopyTunerBar from './copytuner_bar'
+import { CopytunerBar, type CopytunerData } from './copytuner_bar'
 import Specimen from './specimen'
 
-const findBlurbs = () => {
-  const filterNone = () => NodeFilter.FILTER_ACCEPT
+export { type CopytunerData } from './copytuner_bar'
 
-  // @ts-expect-error TS2554
-  const iterator = document.createNodeIterator(document.body, NodeFilter.SHOW_COMMENT, filterNone, false)
+const COPYRAY_PREFIX = 'COPYRAY'
 
-  const comments = []
+const findCopyrayComments = (): readonly Comment[] => {
+  const filterNone: NodeFilter = (node) => {
+    return node.nodeValue?.startsWith(COPYRAY_PREFIX) ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_REJECT
+  }
+  const iterator = document.createNodeIterator(document.body, NodeFilter.SHOW_COMMENT, filterNone)
+
+  const comments: Comment[] = []
   let curNode
 
   while ((curNode = iterator.nextNode())) {
-    comments.push(curNode)
+    comments.push(curNode as Comment)
   }
 
-  return (
-    comments
-      // @ts-expect-error TS2531
-      .filter((comment) => comment.nodeValue.startsWith('COPYRAY'))
-      .map((comment) => {
-        // @ts-expect-error TS2488
-        const [, key] = comment.nodeValue.match(/^COPYRAY (\S*)$/)
-        const element = comment.parentNode
-        return { key, element }
-      })
-  )
+  return comments
 }
 
-export default class Copyray {
-  // @ts-expect-error TS7006
-  constructor(baseUrl, data) {
-    // @ts-expect-error TS2339
-    this.baseUrl = baseUrl
-    // @ts-expect-error TS2339
-    this.data = data
-    // @ts-expect-error TS2339
-    this.isShowing = false
-    // @ts-expect-error TS2339
-    this.specimens = []
-    // @ts-expect-error TS2339
-    this.overlay = this.makeOverlay()
-    // @ts-expect-error TS2339
-    this.toggleButton = this.makeToggleButton()
-    // @ts-expect-error TS2339
-    this.boundOpen = this.open.bind(this)
+type Blurb = {
+  key: string
+  element: HTMLElement
+}
 
-    // @ts-expect-error TS2339
-    this.copyTunerBar = new CopyTunerBar(document.querySelector('#copy-tuner-bar'), this.data, this.boundOpen)
+const findBlurbs = (): readonly Blurb[] => {
+  return findCopyrayComments().map((comment) => {
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    const key = comment.nodeValue!.replace(COPYRAY_PREFIX, '').trim()
+    const element = comment.parentNode as HTMLElement
+    return { key, element }
+  })
+}
+
+export class Copyray {
+  public isShowing: boolean
+
+  private baseUrl: string
+  private data: CopytunerData
+  private copyTunerBar: CopytunerBar
+  private boundOpen: Copyray['open']
+  private overlay: HTMLDivElement
+  private specimens: Specimen[]
+
+  constructor(baseUrl: string, data: CopytunerData) {
+    this.baseUrl = baseUrl
+    this.data = data
+    this.isShowing = false
+    this.specimens = []
+    this.overlay = this.makeOverlay()
+    this.boundOpen = this.open.bind(this)
+    this.copyTunerBar = new CopytunerBar(
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+      document.querySelector<HTMLDivElement>('#copy-tuner-bar')!,
+      this.data,
+      this.boundOpen,
+    )
+
+    this.appendToggleButton()
   }
 
   show() {
     this.reset()
-
-    // @ts-expect-error TS2339
     document.body.append(this.overlay)
     this.makeSpecimens()
 
-    // @ts-expect-error TS2339
     for (const specimen of this.specimens) {
       specimen.show()
     }
 
-    // @ts-expect-error TS2339
     this.copyTunerBar.show()
-    // @ts-expect-error TS2339
     this.isShowing = true
   }
 
   hide() {
-    // @ts-expect-error TS2339
     this.overlay.remove()
     this.reset()
-    // @ts-expect-error TS2339
     this.copyTunerBar.hide()
-    // @ts-expect-error TS2339
     this.isShowing = false
   }
 
   toggle() {
-    // @ts-expect-error TS2339
     if (this.isShowing) {
       this.hide()
     } else {
@@ -86,20 +90,17 @@ export default class Copyray {
     }
   }
 
-  // @ts-expect-error TS7006
-  open(key) {
-    // @ts-expect-error TS2339
+  open(key: string) {
     window.open(`${this.baseUrl}/blurbs/${key}/edit`)
   }
 
   makeSpecimens() {
     for (const { element, key } of findBlurbs()) {
-      // @ts-expect-error TS2339
       this.specimens.push(new Specimen(element, key, this.boundOpen))
     }
   }
 
-  makeToggleButton() {
+  appendToggleButton() {
     const element = document.createElement('a')
 
     element.addEventListener('click', () => {
@@ -122,7 +123,6 @@ export default class Copyray {
   }
 
   reset() {
-    // @ts-expect-error TS2339
     for (const specimen of this.specimens) {
       specimen.remove()
     }
