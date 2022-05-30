@@ -1,7 +1,7 @@
-import { CopytunerBar, type CopytunerData } from './copytuner_bar'
+import { CopytunerBar, type CopytunerData } from './copytuner-bar'
 import { CopyraySpecimen } from './specimen'
 
-export { type CopytunerData } from './copytuner_bar'
+export { type CopytunerData } from './copytuner-bar'
 
 const COPYRAY_PREFIX = 'COPYRAY'
 
