@@ -4,7 +4,7 @@ import { createRef, Ref, ref } from 'lit/directives/ref.js'
 
 export type CopytunerData = Record<string, string>
 
-type Blurb = { key: string; content: string }
+export type Blurb = { key: string; content: string }
 
 @customElement('copytuner-bar')
 export class CopytunerBar extends LitElement {
