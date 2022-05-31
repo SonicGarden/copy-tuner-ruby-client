@@ -39,25 +39,25 @@ export class Copyray {
   public isShowing: boolean
 
   private baseUrl: string
-  private data: CopytunerData
+  // private data: CopytunerData
   private copyTunerBar: CopytunerBar
-  private boundOpen: Copyray['open']
+  // private boundOpen: Copyray['open']
   private overlay: HTMLDivElement
   private specimens: CopyraySpecimen[]
 
   constructor(baseUrl: string, data: CopytunerData) {
     this.baseUrl = baseUrl
-    this.data = data
+    // this.data = data
     this.isShowing = false
     this.specimens = []
     this.overlay = this.makeOverlay()
-    this.boundOpen = this.open.bind(this)
-    this.copyTunerBar = new CopytunerBar(
-      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-      document.querySelector<HTMLDivElement>('#copy-tuner-bar')!,
-      this.data,
-      this.boundOpen,
-    )
+    // this.boundOpen = this.open.bind(this)
+    this.copyTunerBar = new CopytunerBar()
+    this.copyTunerBar.url = this.baseUrl
+    this.copyTunerBar.blurbs = Object.entries(data).map(([key, content]) => ({
+      key,
+      content,
+    }))
 
     this.appendToggleButton()
   }
@@ -71,14 +71,14 @@ export class Copyray {
       document.body.append(specimen)
     }
 
-    this.copyTunerBar.show()
+    document.body.append(this.copyTunerBar)
     this.isShowing = true
   }
 
   hide() {
     this.overlay.remove()
     this.reset()
-    this.copyTunerBar.hide()
+    this.copyTunerBar.remove()
     this.isShowing = false
   }
 
