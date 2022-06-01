@@ -1,7 +1,6 @@
 import { html, css, LitElement } from 'lit'
 import { customElement, property, state } from 'lit/decorators.js'
-import { createRef, ref, Ref } from 'lit/directives/ref.js'
-import { Blurb, CopytunerBar } from './copytuner-bar'
+import { Blurb } from './copytuner-bar'
 import { CopyraySpecimen } from './specimen'
 import { isMac } from './util'
 
@@ -90,8 +89,6 @@ export class CopytunerInspector extends LitElement {
   @state()
   isShowing = false
 
-  barRef: Ref<CopytunerBar> = createRef()
-
   connectedCallback(): void {
     super.connectedCallback()
     if (console) {
@@ -102,17 +99,11 @@ export class CopytunerInspector extends LitElement {
     document.body.addEventListener('keydown', this._handleKeyDown)
   }
 
-  firstUpdated() {
-    if (this.barRef.value) {
-      this.barRef.value.blurbs = this.blurbs
-    }
-  }
-
   render() {
     return html`
       <button type="button" class="button" @click=${this.toggle}>Open CopyTuner</button>
       <div ?hidden=${!this.isShowing}>
-        <copytuner-bar url=${this.url} ${ref(this.barRef)}></copytuner-bar>
+        <copytuner-bar url=${this.url} .blurbs=${this.blurbs}></copytuner-bar>
         <div class="overlay" @click=${this.hide}></div>
       </div>
     `
