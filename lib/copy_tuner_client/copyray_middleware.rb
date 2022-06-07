@@ -49,7 +49,7 @@ module CopyTunerClient
           data: #{json},
         }
       SCRIPT
-      append_to_html_body(html, helpers.javascript_include_tag(:main, type: 'module'))
+      append_to_html_body(html, helpers.javascript_include_tag(:main, type: 'module', crossorigin: 'anonymous'))
     end
 
     def css_tag
@@ -65,7 +65,7 @@ module CopyTunerClient
     end
 
     def file?(headers)
-      headers["Content-Transfer-Encoding"] == "binary"
+      headers["Content-Transfer-Encoding"] == 'binary'
     end
 
     def html_headers?(status, headers)
