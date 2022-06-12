@@ -1,3 +1,11 @@
+## 0.13.2
+
+- Add `crossorigin="anonymous"` attribute to script tag
+
+## 0.13.1
+
+- Add `type="module"` attribute to script tag
+
 ## 0.13.0
 
 - Drop support for ruby 2.6
