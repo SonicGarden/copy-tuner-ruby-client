@@ -1,3 +1,7 @@
+## 0.13.3
+
+- Add `media="all"` attribute to stylesheet link tag
+
 ## 0.13.2
 
 - Add `crossorigin="anonymous"` attribute to script tag
