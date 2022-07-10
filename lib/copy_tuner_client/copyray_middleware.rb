@@ -53,7 +53,7 @@ module CopyTunerClient
     end
 
     def css_tag
-      helpers.stylesheet_link_tag :style, media: :screen
+      helpers.stylesheet_link_tag :style, media: :all
     end
 
     def append_to_html_body(html, content)
