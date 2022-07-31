@@ -52,44 +52,6 @@
   z-index: 9000;
 }
 
-.copyray-specimen {
-  position: absolute;
-  background: rgba(255, 255, 255, 0.15);
-  outline: 1px solid rgba(255, 255, 255, 0.8);
-  outline-offset: -1px;
-  color: #666;
-  font-family: 'Helvetica Neue', sans-serif;
-  font-size: 13px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.7);
-}
-
-.copyray-specimen:hover {
-  cursor: pointer;
-  background: rgba(255, 255, 255, 0.4);
-}
-
-.copyray-specimen.Specimen {
-  outline: 1px solid rgba(255, 50, 50, 0.8);
-  background: rgba(255, 50, 50, 0.1);
-}
-
-.copyray-specimen.Specimen:hover {
-  background: rgba(255, 50, 50, 0.4);
-}
-
-.copyray-specimen-handle {
-  float: left;
-  background: #fff;
-  padding: 0 3px;
-  color: #333;
-  font-size: 10px;
-}
-
-.copyray-specimen-handle.Specimen {
-  background: rgba(255, 50, 50, 0.8);
-  color: #fff;
-}
-
 a.copyray-toggle-button {
   display: block;
   position: fixed;
