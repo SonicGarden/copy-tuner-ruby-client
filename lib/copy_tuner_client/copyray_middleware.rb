@@ -10,8 +10,9 @@ module CopyTunerClient
       CopyTunerClient::TranslationLog.clear
       status, headers, response = @app.call(env)
       if html_headers?(status, headers) && body = response_body(response)
-        body = append_css(body)
-        body = append_js(body)
+        csp_nonce = env['action_dispatch.content_security_policy_nonce'] || env['secure_headers_content_security_policy_nonce']
+        body = append_css(body, csp_nonce)
+        body = append_js(body, csp_nonce)
         content_length = body.bytesize.to_s
         headers['Content-Length'] = content_length
         # maintains compatibility with other middlewares
@@ -31,11 +32,12 @@ module CopyTunerClient
       ActionController::Base.helpers
     end
 
-    def append_css(html)
+    def append_css(html, csp_nonce)
+      css_tag = helpers.stylesheet_link_tag :style, media: :all, nonce: csp_nonce
       append_to_html_body(html, css_tag)
     end
 
-    def append_js(html)
+    def append_js(html, csp_nonce)
       json =
         if CopyTunerClient::TranslationLog.initialized?
           CopyTunerClient::TranslationLog.translations.to_json
@@ -43,17 +45,13 @@ module CopyTunerClient
           '{}'
         end
 
-      append_to_html_body(html, helpers.javascript_tag(<<~SCRIPT))
+      append_to_html_body(html, helpers.javascript_tag(<<~SCRIPT, nonce: csp_nonce))
         window.CopyTuner = {
           url: '#{CopyTunerClient.configuration.project_url}',
           data: #{json},
         }
       SCRIPT
-      append_to_html_body(html, helpers.javascript_include_tag(:main, type: 'module', crossorigin: 'anonymous'))
-    end
-
-    def css_tag
-      helpers.stylesheet_link_tag :style, media: :all
+      append_to_html_body(html, helpers.javascript_include_tag(:main, type: 'module', crossorigin: 'anonymous', nonce: csp_nonce))
     end
 
     def append_to_html_body(html, content)

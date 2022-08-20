@@ -1,3 +1,7 @@
+## 0.13.4
+
+- Fix csp nonce
+
 ## 0.13.3
 
 - Add `media="all"` attribute to stylesheet link tag
