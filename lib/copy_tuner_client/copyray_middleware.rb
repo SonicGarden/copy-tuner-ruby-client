@@ -33,7 +33,7 @@ module CopyTunerClient
     end
 
     def append_css(html, csp_nonce)
-      css_tag = helpers.stylesheet_link_tag :style, media: :all, nonce: csp_nonce
+      css_tag = helpers.stylesheet_link_tag 'copytuner', media: :all, nonce: csp_nonce
       append_to_html_body(html, css_tag)
     end
 
@@ -51,7 +51,7 @@ module CopyTunerClient
           data: #{json},
         }
       SCRIPT
-      append_to_html_body(html, helpers.javascript_include_tag(:main, type: 'module', crossorigin: 'anonymous', nonce: csp_nonce))
+      append_to_html_body(html, helpers.javascript_include_tag('copytuner', type: 'module', crossorigin: 'anonymous', nonce: csp_nonce))
     end
 
     def append_to_html_body(html, content)
