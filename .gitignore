@@ -19,3 +19,5 @@ pkg
 *.gemfile.lock
 .idea/
 node_modules
+
+Gemfile.lock
