@@ -10,9 +10,9 @@ export default defineConfig({
     },
     rollupOptions: {
       output: {
-        entryFileNames: `javascripts/[name].js`,
-        assetFileNames: `stylesheets/[name].[ext]`,
-      }
-    }
+        entryFileNames: `javascripts/copytuner.js`,
+        assetFileNames: `stylesheets/copytuner.[ext]`,
+      },
+    },
   },
 })

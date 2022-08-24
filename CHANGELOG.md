@@ -1,3 +1,7 @@
+## 0.13.5
+
+- Rename assets
+
 ## 0.13.4
 
 - Fix csp nonce
