@@ -373,7 +373,7 @@ const start = () => {
       copyray2.hide();
       return;
     }
-    if ((isMac && event.metaKey || !isMac && event.ctrlKey) && event.shiftKey && event.key === "k") {
+    if ((isMac && event.metaKey || !isMac && event.ctrlKey) && event.shiftKey && event.key.toLowerCase() === "k") {
       copyray2.toggle();
     }
   });
