@@ -29,7 +29,7 @@ module CopyTunerClient
     end
 
     def spawner?
-      passenger_spawner? || unicorn_spawner? || delayed_job_spawner? || puma_spawner?
+      passenger_spawner? || unicorn_spawner? || delayed_job_spawner? || puma_spawner? || good_job_spawner?
     end
 
     def passenger_spawner?
@@ -52,6 +52,10 @@ module CopyTunerClient
       defined?(Delayed::Worker) && $0.include?('delayed_job')
     end
 
+    def good_job_spawner?
+      $0.include?('good_job') && defined?(GoodJob) && ARGV.include?('--daemonize')
+    end
+
     def register_spawn_hooks
       if passenger_spawner?
         register_passenger_hook
@@ -61,6 +65,8 @@ module CopyTunerClient
         register_puma_hook
       elsif delayed_job_spawner?
         register_delayed_hook
+      elsif good_job_spawner?
+        register_good_job_hook
       end
     end
 
@@ -93,6 +99,18 @@ module CopyTunerClient
           start_without_copy_tuner
         end
       end
+    end
+
+    def register_good_job_hook
+      @logger.info("Registered good_job start hook")
+      poller = @poller
+      hook_module = Module.new do
+        define_method :daemon do
+          super()
+          poller.start
+        end
+      end
+      ::Process.singleton_class.prepend hook_module
     end
 
     def register_puma_hook
