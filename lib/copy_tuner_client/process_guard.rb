@@ -18,7 +18,6 @@ module CopyTunerClient
         register_spawn_hooks
       else
         register_exit_hooks
-        register_job_hooks
         start_polling
       end
     end
@@ -121,21 +120,6 @@ module CopyTunerClient
     def register_exit_hooks
       at_exit do
         @cache.flush
-      end
-    end
-
-    def register_job_hooks
-      if defined?(Resque::Job)
-        @logger.info("Registered Resque after_perform hook")
-        cache = @cache
-        Resque::Job.class_eval do
-          alias_method :perform_without_copy_tuner, :perform
-          define_method :perform do
-            job_was_performed = perform_without_copy_tuner
-            cache.flush
-            job_was_performed
-          end
-        end
       end
     end
   end
