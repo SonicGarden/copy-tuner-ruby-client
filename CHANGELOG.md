@@ -1,3 +1,8 @@
+## 0.14.0
+
+- Add Support for good_job
+- Drop Support for Resque
+
 ## 0.13.5
 
 - Rename assets

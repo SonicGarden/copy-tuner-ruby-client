@@ -91,28 +91,4 @@ describe CopyTunerClient::ProcessGuard do
 
     expect(cache).to be_written
   end
-
-  it "flushes after running a resque job" do
-    logger = FakeLogger.new
-    cache = WritingCache.new
-    define_constant('Resque', Module.new)
-    job_class = define_constant('Resque::Job', FakeResqueJob)
-    job = job_class.new
-    process_guard = build_process_guard(:cache => cache, :logger => logger)
-
-    process_guard.start
-    job.fork_and_perform
-
-    expect(cache).to be_written
-    expect(logger).to have_entry(:info, "Registered Resque after_perform hook")
-  end
-
-  it "doesn't fail if only Resque is defined and not Resque::Job" do
-    logger = FakeLogger.new
-    cache = WritingCache.new
-    define_constant('Resque', Module.new)
-    process_guard = build_process_guard(:cache => cache, :logger => logger)
-
-    process_guard.start
-  end
 end

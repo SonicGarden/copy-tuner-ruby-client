@@ -18,7 +18,6 @@ module CopyTunerClient
         register_spawn_hooks
       else
         register_exit_hooks
-        register_job_hooks
         start_polling
       end
     end
@@ -30,7 +29,7 @@ module CopyTunerClient
     end
 
     def spawner?
-      passenger_spawner? || unicorn_spawner? || delayed_job_spawner? || puma_spawner?
+      passenger_spawner? || unicorn_spawner? || delayed_job_spawner? || puma_spawner? || good_job_spawner?
     end
 
     def passenger_spawner?
@@ -53,6 +52,10 @@ module CopyTunerClient
       defined?(Delayed::Worker) && $0.include?('delayed_job')
     end
 
+    def good_job_spawner?
+      $0.include?('good_job') && defined?(GoodJob) && ARGV.include?('--daemonize')
+    end
+
     def register_spawn_hooks
       if passenger_spawner?
         register_passenger_hook
@@ -62,6 +65,8 @@ module CopyTunerClient
         register_puma_hook
       elsif delayed_job_spawner?
         register_delayed_hook
+      elsif good_job_spawner?
+        register_good_job_hook
       end
     end
 
@@ -96,6 +101,18 @@ module CopyTunerClient
       end
     end
 
+    def register_good_job_hook
+      @logger.info("Registered good_job start hook")
+      poller = @poller
+      hook_module = Module.new do
+        define_method :daemon do
+          super
+          poller.start
+        end
+      end
+      ::Process.singleton_class.prepend hook_module
+    end
+
     def register_puma_hook
       # If Puma is clustered mode without preload_app, this method is called on worker process.
       # Just start poller and return.
@@ -112,7 +129,7 @@ module CopyTunerClient
       hook_module = Module.new do
         define_method :start_server do
           poller.start
-          super()
+          super
         end
       end
       Puma::Runner.prepend hook_module
@@ -121,21 +138,6 @@ module CopyTunerClient
     def register_exit_hooks
       at_exit do
         @cache.flush
-      end
-    end
-
-    def register_job_hooks
-      if defined?(Resque::Job)
-        @logger.info("Registered Resque after_perform hook")
-        cache = @cache
-        Resque::Job.class_eval do
-          alias_method :perform_without_copy_tuner, :perform
-          define_method :perform do
-            job_was_performed = perform_without_copy_tuner
-            cache.flush
-            job_was_performed
-          end
-        end
       end
     end
   end
