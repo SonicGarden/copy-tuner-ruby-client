@@ -1,3 +1,7 @@
+## 0.14.1
+
+- Fix super call in define_method
+
 ## 0.14.0
 
 - Add Support for good_job
