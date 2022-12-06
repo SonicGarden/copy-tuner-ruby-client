@@ -106,7 +106,7 @@ module CopyTunerClient
       poller = @poller
       hook_module = Module.new do
         define_method :daemon do
-          super
+          super() # NOTE: define_method 内で super を呼ぶ場合は引数を明示的に指定する必要があるので注意
           poller.start
         end
       end
@@ -129,7 +129,7 @@ module CopyTunerClient
       hook_module = Module.new do
         define_method :start_server do
           poller.start
-          super
+          super() # NOTE: define_method 内で super を呼ぶ場合は引数を明示的に指定する必要があるので注意
         end
       end
       Puma::Runner.prepend hook_module
