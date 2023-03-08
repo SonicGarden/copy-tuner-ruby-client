@@ -368,6 +368,7 @@ const start = () => {
   const { url, data } = window.CopyTuner;
   appendCopyTunerBar(url);
   const copyray2 = new Copyray(url, data);
+  window.CopyTuner.toggle = () => copyray2.toggle();
   document.addEventListener("keydown", (event) => {
     if (copyray2.isShowing && ["Escape", "Esc"].includes(event.key)) {
       copyray2.hide();
