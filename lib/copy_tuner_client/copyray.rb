@@ -5,12 +5,10 @@ module CopyTunerClient
     # Becomes:
     #   <!--COPYRAY views.home.index.message-->message
     def self.augment_template(source, key)
-      augmented = if source.present?
-                    escape = CopyTunerClient.configuration.html_escape && !source.html_safe?
-                    "<!--COPYRAY #{key}-->#{escape ? ERB::Util.html_escape(source) : source}"
-                  else
-                    source
-                  end
+      return source if source.blank? || !source.is_a?(String)
+
+      escape = CopyTunerClient.configuration.html_escape && !source.html_safe?
+      augmented = "<!--COPYRAY #{key}-->#{escape ? ERB::Util.html_escape(source) : source}"
       augmented.html_safe
     end
   end
