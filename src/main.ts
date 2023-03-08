@@ -6,6 +6,7 @@ declare global {
   interface Window {
     CopyTuner: {
       url: string
+      toggle?: () => void
       // TODO: type
       data: object
     }
@@ -33,6 +34,7 @@ const start = () => {
 
   appendCopyTunerBar(url)
   const copyray = new Copyray(url, data)
+  window.CopyTuner.toggle = () => copyray.toggle()
 
   document.addEventListener('keydown', (event) => {
     // @ts-expect-error TS2339
