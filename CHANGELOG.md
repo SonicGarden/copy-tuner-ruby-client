@@ -1,3 +1,7 @@
+## 0.15.0
+
+- Drop support for ruby 2.7
+
 ## 0.14.1
 
 - Fix super call in define_method
