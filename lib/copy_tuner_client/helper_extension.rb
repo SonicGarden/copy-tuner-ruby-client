@@ -5,6 +5,12 @@ module CopyTunerClient
         mod.class_eval do
           def translate_with_copyray_comment(key, **options)
             source = translate_without_copyray_comment(key, **options)
+
+            # TODO: test
+            # NOTE: default引数が設定されている場合は、copytunerキャッシュの値をI18n.t呼び出しにより上書きしている
+            # SEE: https://github.com/rails/rails/blob/6c43ebc220428ce9fc9569c2e5df90a38a4fc4e4/actionview/lib/action_view/helpers/translation_helper.rb#L82
+            I18n.t(key, **options) if options.key?(:default)
+
             if CopyTunerClient.configuration.disable_copyray_comment_injection
               source
             else
