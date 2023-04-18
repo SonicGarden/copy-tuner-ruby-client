@@ -7,6 +7,10 @@ describe CopyTunerClient::HelperExtension do
     def translate(key, **options)
       "Hello, #{options[:name]}"
     end
+
+    def controller
+      nil
+    end
   end
 
   class KeywordArgumentsView
