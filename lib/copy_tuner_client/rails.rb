@@ -17,11 +17,16 @@ module CopyTunerClient
         config.middleware       = ::Rails.configuration.middleware
       end
     end
+
+    def self.controller_of_rails_engine?(controller)
+      # SEE: https://github.com/rails/rails/blob/539144d2d61770dab66c8643e744441e52538e09/activesupport/lib/active_support/core_ext/module/introspection.rb#L39-L63
+      engine_namespaces.include?(controller.class.module_parents[-2])
+    end
+
+    def self.engine_namespaces
+      @engine_namespaces ||= ::Rails::Engine.subclasses.filter_map { _1.instance.railtie_namespace }
+    end
   end
 end
 
-if defined?(::Rails::Railtie)
-  require 'copy_tuner_client/engine'
-else
-  CopyTunerClient::Rails.initialize
-end
+require 'copy_tuner_client/engine'
