@@ -20,13 +20,14 @@ module CopyTunerClient
             else
               separator = options[:separator] || I18n.default_separator
               scope = options[:scope]
-              normalized_key =
+              scope_key =
                 if key.to_s.first == '.'
                   scope_key_by_partial(key)
                 else
-                  I18n.normalize_keys(nil, key, scope, separator).join(separator)
+                  # NOTE: locale prefix無しのkeyが必要のためこうしている
+                  I18n.normalize_keys(nil, key, scope, separator).compact.join(separator)
                 end
-              CopyTunerClient::Copyray.augment_template(source, normalized_key)
+              CopyTunerClient::Copyray.augment_template(source, scope_key)
             end
           end
           if middleware_enabled
