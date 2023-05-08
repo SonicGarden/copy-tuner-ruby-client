@@ -13,20 +13,23 @@ module CopyTunerClient
             # TODO: test
             # NOTE: default引数が設定されている場合は、copytunerキャッシュの値をI18n.t呼び出しにより上書きしている
             # SEE: https://github.com/rails/rails/blob/6c43ebc220428ce9fc9569c2e5df90a38a4fc4e4/actionview/lib/action_view/helpers/translation_helper.rb#L82
-            I18n.t(key, **options) if options.key?(:default)
+            if options.key?(:default)
+              I18n.t(key.to_s.first == '.' ? scope_key_by_partial(key) : key, **options)
+            end
 
             if CopyTunerClient.configuration.disable_copyray_comment_injection
               source
             else
               separator = options[:separator] || I18n.default_separator
               scope = options[:scope]
-              normalized_key =
+              scope_key =
                 if key.to_s.first == '.'
                   scope_key_by_partial(key)
                 else
-                  I18n.normalize_keys(nil, key, scope, separator).join(separator)
+                  # NOTE: locale prefix無しのkeyが必要のためこうしている
+                  I18n.normalize_keys(nil, key, scope, separator).compact.join(separator)
                 end
-              CopyTunerClient::Copyray.augment_template(source, normalized_key)
+              CopyTunerClient::Copyray.augment_template(source, scope_key)
             end
           end
           if middleware_enabled
