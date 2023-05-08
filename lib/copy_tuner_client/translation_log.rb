@@ -25,9 +25,9 @@ module CopyTunerClient
             result = translate_without_copy_tuner_hook(key, **options)
 
             if key.is_a?(Array)
-              key.zip(result).each { |k, v| CopyTunerClient::TranslationLog.add(I18n.normalize_keys(nil, k, scope).join('.'), v) unless v.is_a?(Array) }
+              key.zip(result).each { |k, v| CopyTunerClient::TranslationLog.add(I18n.normalize_keys(nil, k, scope).compact.join('.'), v) unless v.is_a?(Array) }
             else
-              CopyTunerClient::TranslationLog.add(I18n.normalize_keys(nil, key, scope).join('.'), result) unless result.is_a?(Array)
+              CopyTunerClient::TranslationLog.add(I18n.normalize_keys(nil, key, scope).compact.join('.'), result) unless result.is_a?(Array)
             end
             result
           end
