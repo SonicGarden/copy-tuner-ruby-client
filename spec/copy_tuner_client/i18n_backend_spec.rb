@@ -111,10 +111,10 @@ describe CopyTunerClient::I18nBackend do
     expect(cache['en.test.key']).to eq 'default %{interpolate}'
   end
 
-  it "marks strings as html safe" do
+  it "dose not mark strings as html safe" do
     cache['en.test.key'] = FakeHtmlSafeString.new("Hello")
     backend = build_backend
-    expect(backend.translate('en', 'test.key')).to be_html_safe
+    expect(backend.translate('en', 'test.key')).to_not be_html_safe
   end
 
   it "looks up an array of defaults" do
