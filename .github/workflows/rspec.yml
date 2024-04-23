@@ -29,6 +29,8 @@ jobs:
             gemfile: "6.1"
           - ruby: "3.2"
             gemfile: "6.1"
+          - ruby: "3.0"
+            gemfile: "main"
     steps:
       - name: Install packages
         run: |
