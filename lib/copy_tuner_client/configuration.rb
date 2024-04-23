@@ -157,11 +157,18 @@ module CopyTunerClient
       self.upload_disabled_environments = %w[production staging]
       self.s3_host = 'copy-tuner-data-prod.s3.amazonaws.com'
       self.disable_copyray_comment_injection = false
-      self.html_escape = false
+      # TODO: 0.18.0以降のバージョンで初期値をtrueにしたい
+      self.html_escape = nil
       self.ignored_keys = []
       self.ignored_key_handler = -> (e) { raise e }
 
       @applied = false
+    end
+
+    def html_escape
+      raise 'CopyTunerClient.configuration.html_escape is required' if @html_escape.nil?
+
+      @html_escape
     end
 
     # Allows config options to be read like a hash
