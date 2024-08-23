@@ -18,6 +18,8 @@ module CopyTunerClient
       @mutex = Mutex.new
       @exclude_key_regexp = options[:exclude_key_regexp]
       @upload_disabled = options[:upload_disabled]
+      @ignored_keys = options.fetch(:ignored_keys, [])
+      @ignored_key_handler = options.fetch(:ignored_key_handler, -> (e) { raise e })
       @locales = Array(options[:locales]).map(&:to_s)
       # mutable states
       @blurbs = {}
@@ -43,6 +45,12 @@ module CopyTunerClient
       return unless key.include?('.')
       return if @locales.present? && !@locales.member?(key.split('.').first)
       return if @upload_disabled
+
+      # NOTE: config/locales以下のファイルに除外キーが残っていた場合の対応
+      key_without_locale = key.split('.')[1..].join('.')
+      if @ignored_keys.include?(key_without_locale)
+        @ignored_key_handler.call(IgnoredKey.new("Ignored key: #{key_without_locale}"))
+      end
 
       lock do
         return if @blank_keys.member?(key) || @blurbs.key?(key)
