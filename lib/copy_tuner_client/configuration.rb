@@ -11,15 +11,14 @@ require 'copy_tuner_client/copyray_middleware'
 module CopyTunerClient
   # Used to set up and modify settings for the client.
   class Configuration
-
     # These options will be present in the Hash returned by {#to_hash}.
-    OPTIONS = [:api_key, :development_environments, :environment_name, :host,
-        :http_open_timeout, :http_read_timeout, :client_name, :client_url,
-        :client_version, :port, :protocol, :proxy_host, :proxy_pass,
-        :proxy_port, :proxy_user, :secure, :polling_delay, :sync_interval,
-        :sync_interval_staging, :sync_ignore_path_regex, :logger,
-        :framework, :middleware, :disable_middleware, :disable_test_translation,
-        :ca_file, :exclude_key_regexp, :s3_host, :locales, :ignored_keys, :ignored_key_handler].freeze
+    OPTIONS = %i[api_key development_environments environment_name host
+                 http_open_timeout http_read_timeout client_name client_url
+                 client_version port protocol proxy_host proxy_pass
+                 proxy_port proxy_user secure polling_delay sync_interval
+                 sync_interval_staging sync_ignore_path_regex logger
+                 framework middleware disable_middleware disable_test_translation
+                 ca_file exclude_key_regexp s3_host locales ignored_keys ignored_key_handler].freeze
 
     # @return [String] The API key for your project, found on the project edit form.
     attr_accessor :api_key
@@ -137,14 +136,14 @@ module CopyTunerClient
     # @return [Proc]
     attr_accessor :ignored_key_handler
 
-    alias_method :secure?, :secure
+    alias secure? secure
 
     # Instantiated from {CopyTunerClient.configure}. Sets defaults.
     def initialize
       self.client_name = 'CopyTuner Client'
       self.client_url = 'https://rubygems.org/gems/copy_tuner_client'
       self.client_version = VERSION
-      self.development_environments = %w(development staging)
+      self.development_environments = %w[development staging]
       self.host = 'copy-tuner.com'
       self.http_open_timeout = 5
       self.http_read_timeout = 5
@@ -153,14 +152,14 @@ module CopyTunerClient
       self.sync_interval = 60
       self.sync_interval_staging = 0
       self.secure = true
-      self.test_environments = %w(test cucumber)
+      self.test_environments = %w[test cucumber]
       self.upload_disabled_environments = %w[production staging]
-      self.s3_host = 'copy-tuner-data-prod.s3.amazonaws.com'
+      self.s3_host = 'copy-tuner.sg-apps.com' # NOTE: cloudfront host
       self.disable_copyray_comment_injection = false
       # TODO: 0.18.0以降のバージョンで初期値をtrueにしたい
       self.html_escape = nil
       self.ignored_keys = []
-      self.ignored_key_handler = -> (e) { raise e }
+      self.ignored_key_handler = ->(e) { raise e }
 
       @applied = false
     end
@@ -238,13 +237,11 @@ module CopyTunerClient
     #
     # When {#test?} returns +false+, the poller will be started.
     def apply
-      self.locales ||= begin
-        if defined?(::Rails)
-          self.locales = ::Rails.application.config.i18n.available_locales.presence || Array(::Rails.application.config.i18n.default_locale)
-        else
-          self.locales = [:en]
-        end
-      end
+      self.locales ||= self.locales = if defined?(::Rails)
+                                        ::Rails.application.config.i18n.available_locales.presence || Array(::Rails.application.config.i18n.default_locale)
+                                      else
+                                        [:en]
+                                      end
 
       self.client ||= Client.new(to_hash)
       self.cache ||= Cache.new(client, to_hash)
@@ -253,8 +250,8 @@ module CopyTunerClient
       I18n.backend = I18nBackend.new(cache)
 
       if enable_middleware?
-        logger.info "Using copytuner sync middleware"
-        request_sync_options = {:poller => @poller, :cache => cache, :interval => sync_interval, :ignore_regex => sync_ignore_path_regex}
+        logger.info 'Using copytuner sync middleware'
+        request_sync_options = { poller: @poller, cache:, interval: sync_interval, ignore_regex: sync_ignore_path_regex }
         if middleware_position.is_a?(Hash) && middleware_position[:before]
           middleware.insert_before middleware_position[:before], RequestSync, request_sync_options
           middleware.insert_before middleware_position[:before], CopyTunerClient::CopyrayMiddleware
@@ -266,7 +263,7 @@ module CopyTunerClient
           middleware.use CopyTunerClient::CopyrayMiddleware
         end
       else
-        logger.info "[[[Warn]]] Not using copytuner sync middleware" unless middleware
+        logger.info '[[[Warn]]] Not using copytuner sync middleware' unless middleware
       end
 
       @applied = true
@@ -278,8 +275,8 @@ module CopyTunerClient
         process_guard.start
       end
 
-      if !(test? && disable_test_translation)
-        logger.info "Download translation now"
+      unless test? && disable_test_translation
+        logger.info 'Download translation now'
         cache.download
       end
     end
@@ -302,19 +299,19 @@ module CopyTunerClient
     # @return [String] a description of the environment in which this configuration was built.
     def environment_info
       parts = ["Ruby: #{RUBY_VERSION}", framework, "Env: #{environment_name}"]
-      parts.compact.map { |part| "[#{part}]" }.join(" ")
+      parts.compact.map { |part| "[#{part}]" }.join(' ')
     end
 
     # Wraps the given logger in a PrefixedLogger. This way, CopyTunerClient
     # log messages are recognizable.
     # @param original_logger [Logger] the upstream logger to use, which must respond to the standard +Logger+ severity methods.
     def logger=(original_logger)
-      @logger = PrefixedLogger.new("** [CopyTuner]", original_logger)
+      @logger = PrefixedLogger.new('** [CopyTuner]', original_logger)
     end
 
     # Sync interval for Rack Middleware
     def sync_interval
-      if environment_name == "staging"
+      if environment_name == 'staging'
         @sync_interval_staging
       else
         @sync_interval
@@ -323,7 +320,7 @@ module CopyTunerClient
 
     # @return [String] current project url by api_key
     def project_url
-      URI::Generic.build(:scheme => self.protocol, :host => self.host, :port => self.port.to_i, :path => "/projects/#{self.api_key}").to_s
+      URI::Generic.build(scheme: self.protocol, host: self.host, port: self.port.to_i, path: "/projects/#{self.api_key}").to_s
     end
 
     private
