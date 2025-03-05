@@ -136,6 +136,9 @@ module CopyTunerClient
     # @return [Proc]
     attr_accessor :ignored_key_handler
 
+    # @return [Integer] The project id
+    attr_accessor :project_id
+
     alias secure? secure
 
     # Instantiated from {CopyTunerClient.configure}. Sets defaults.
@@ -160,6 +163,7 @@ module CopyTunerClient
       self.html_escape = nil
       self.ignored_keys = []
       self.ignored_key_handler = ->(e) { raise e }
+      self.project_id = nil
 
       @applied = false
     end
@@ -320,7 +324,15 @@ module CopyTunerClient
 
     # @return [String] current project url by api_key
     def project_url
-      URI::Generic.build(scheme: self.protocol, host: self.host, port: self.port.to_i, path: "/projects/#{self.api_key}").to_s
+      path =
+        if project_id
+          "/projects/#{project_id}"
+        else
+          ActiveSupport::Deprecation.new.warn('Please set project_id.')
+          "/projects/#{api_key}"
+        end
+
+      URI::Generic.build(scheme: self.protocol, host: self.host, port: self.port.to_i, path:).to_s
     end
 
     private
