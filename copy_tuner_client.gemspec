@@ -6,7 +6,7 @@ Gem::Specification.new do |s|
   s.add_dependency 'i18n', '>= 0.5.0'
   s.add_dependency 'json'
   s.add_dependency 'nokogiri'
-  s.add_development_dependency 'rails', '~> 7.0'
+  s.add_development_dependency 'rails', '~> 7.1'
   s.add_development_dependency 'rake'
   s.add_development_dependency 'rspec'
   s.add_development_dependency 'sham_rack'
