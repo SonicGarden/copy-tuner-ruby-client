@@ -16,6 +16,7 @@ Create config/initializers/copy_tuner.rb
 ```
 CopyTunerClient.configure do |config|
   config.api_key = 'YOUR-API-KEY'
+  config.project_id = 77
   config.host = 'COPY-TUNER-HOST-NAME'
   config.html_escape = true
 
