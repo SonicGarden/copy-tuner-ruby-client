@@ -54,12 +54,8 @@ module CopyTunerClient
         response = http.request(request)
         t_ms = ((Time.now - t) * 1000).to_i
         if check response
-          bytesize = response.body.bytesize
-          kb = bytesize / 1024.0
-          mb = kb / 1024.0
-          t_s = t_ms / 1000.0
-          kbs = kb / t_s
-          log "Downloaded translations (#{t_ms}ms, #{mb.round(1)}MB, #{kbs.round(1)}KB/s)"
+          # NOTE: Net::HTTPではgzipが透過的に扱われるため正確なファイルサイズや速度をログに出すのは難しい
+          log "Downloaded translations (#{t_ms}ms)"
           yield JSON.parse(response.body)
         else
           log "No new translations (#{t_ms}ms)"
