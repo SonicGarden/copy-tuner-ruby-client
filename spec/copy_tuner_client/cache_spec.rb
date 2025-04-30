@@ -3,10 +3,13 @@ require 'spec_helper'
 describe CopyTunerClient::Cache do
   let(:client) { FakeClient.new }
 
-  def build_cache(config = {})
+  def build_cache(initial_downloaded: false, **config)
+    config[:client] ||= client
     config[:logger] ||= FakeLogger.new
     default_config = CopyTunerClient::Configuration.new.to_hash
-    CopyTunerClient::Cache.new(client, default_config.update(config))
+    cache = CopyTunerClient::Cache.new(client, default_config.update(config))
+    cache.instance_variable_set(:@initial_downloaded, initial_downloaded)
+    cache
   end
 
   it 'provides access to downloaded data' do
@@ -143,7 +146,7 @@ describe CopyTunerClient::Cache do
     failure = 'server is napping'
     logger = FakeLogger.new
     expect(client).to receive(:download).and_raise(CopyTunerClient::ConnectionError.new(failure))
-    cache = build_cache(logger: logger)
+    cache = build_cache(logger: logger, initial_downloaded: true)
 
     cache.download
 

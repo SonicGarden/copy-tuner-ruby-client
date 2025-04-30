@@ -3,6 +3,7 @@ require 'spec_helper'
 describe CopyTunerClient do
   def build_client(config = {})
     config[:logger] ||= FakeLogger.new
+    config[:download_cache_dir] = Pathname.new(File.join(Dir.tmpdir, 'copy_tuner_client', SecureRandom.hex(8)))
     default_config = CopyTunerClient::Configuration.new.to_hash
     default_config[:s3_host] = 'copy-tuner.com'
     client = CopyTunerClient::Client.new(default_config.update(config))
@@ -168,7 +169,7 @@ describe CopyTunerClient do
     yields = 0
 
     2.times do
-      client.download { |ignore| yields += 1 }
+      client.download { |ignore, downloaded| yields += 1 if downloaded }
     end
 
     expect(yields).to eq(1)

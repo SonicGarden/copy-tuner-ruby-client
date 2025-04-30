@@ -26,7 +26,7 @@ module CopyTunerClient
       @blank_keys = Set.new
       @queued = {}
       @started = false
-      @downloaded = false
+      @initial_downloaded = false
     end
 
     # Returns content for the given blurb.
@@ -99,11 +99,13 @@ module CopyTunerClient
     def download
       @started = true
 
-      res = client.download do |downloaded_blurbs|
-        blank_blurbs, blurbs = downloaded_blurbs.partition { |_key, value| value == '' }
-        lock do
-          @blank_keys = Set.new(blank_blurbs.to_h.keys)
-          @blurbs = blurbs.to_h
+      res = client.download do |downloaded_blurbs, downloaded|
+        if downloaded || !@initial_downloaded
+          blank_blurbs, blurbs = downloaded_blurbs.partition { |_key, value| value == '' }
+          lock do
+            @blank_keys = Set.new(blank_blurbs.to_h.keys)
+            @blurbs = blurbs.to_h
+          end
         end
       end
 
@@ -112,8 +114,9 @@ module CopyTunerClient
       res
     rescue ConnectionError => e
       logger.error e.message
+      raise e unless @initial_downloaded
     ensure
-      @downloaded = true
+      @initial_downloaded = true
     end
 
     # Downloads and then flushes
@@ -129,7 +132,7 @@ module CopyTunerClient
     end
 
     def pending?
-      @started && !@downloaded
+      @started && !@initial_downloaded
     end
 
     private
