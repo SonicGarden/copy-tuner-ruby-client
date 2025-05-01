@@ -16,7 +16,7 @@ class FakeClient
     @data[key] = value
   end
 
-  def download
+  def download(cache_fallback: false)
     wait_for_delay
     raise_error_if_present
     @downloads += 1
@@ -62,4 +62,3 @@ class FakeClient
     end
   end
 end
-
