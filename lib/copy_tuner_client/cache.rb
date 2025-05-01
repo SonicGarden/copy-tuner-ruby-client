@@ -102,7 +102,7 @@ module CopyTunerClient
       res = client.download(cache_fallback: !@initial_downloaded) do |downloaded_blurbs|
         blank_blurbs, blurbs = downloaded_blurbs.partition { |_key, value| value == '' }
         lock do
-          @blank_keys = Set.new(blank_blurbs.to_h.keys)
+          @blank_keys = Set.new(blank_blurbs.map(&:first))
           @blurbs = blurbs.to_h
         end
       end
