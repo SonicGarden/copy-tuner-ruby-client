@@ -8,6 +8,10 @@ module CopyTunerClient
   #
   # Responsible for locking down access to data used by both threads.
   class Cache
+    STATUS_NOT_READY = :not_ready
+    STATUS_PENDING = :pending
+    STATUS_READY = :ready
+
     # Usually instantiated when {Configuration#apply} is invoked.
     # @param client [Client] the client used to fetch and upload data
     # @param options [Hash]
@@ -25,8 +29,7 @@ module CopyTunerClient
       @blurbs = {}
       @blank_keys = Set.new
       @queued = {}
-      @started = false
-      @downloaded = false
+      @status = STATUS_NOT_READY
     end
 
     # Returns content for the given blurb.
@@ -97,23 +100,23 @@ module CopyTunerClient
     end
 
     def download
-      @started = true
+      @status = STATUS_PENDING unless ready?
 
-      res = client.download do |downloaded_blurbs|
+      res = client.download(cache_fallback: pending?) do |downloaded_blurbs|
         blank_blurbs, blurbs = downloaded_blurbs.partition { |_key, value| value == '' }
         lock do
-          @blank_keys = Set.new(blank_blurbs.to_h.keys)
+          @blank_keys = Set.new(blank_blurbs.map(&:first))
           @blurbs = blurbs.to_h
         end
       end
 
       @last_downloaded_at = Time.now.utc
+      @status = STATUS_READY unless ready?
 
       res
     rescue ConnectionError => e
       logger.error e.message
-    ensure
-      @downloaded = true
+      raise e unless ready?
     end
 
     # Downloads and then flushes
@@ -129,7 +132,11 @@ module CopyTunerClient
     end
 
     def pending?
-      @started && !@downloaded
+      @status == STATUS_PENDING
+    end
+
+    def ready?
+      @status == STATUS_READY
     end
 
     private

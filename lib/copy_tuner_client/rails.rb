@@ -13,8 +13,9 @@ module CopyTunerClient
         else
           ::Rails.logger
         end
-        config.framework        = "Rails: #{::Rails::VERSION::STRING}"
-        config.middleware       = ::Rails.configuration.middleware
+        config.framework = "Rails: #{::Rails::VERSION::STRING}"
+        config.middleware = ::Rails.configuration.middleware
+        config.download_cache_dir = ::Rails.root.join('tmp', 'cache', 'copy_tuner_client')
       end
     end
 

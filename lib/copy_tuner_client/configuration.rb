@@ -18,7 +18,8 @@ module CopyTunerClient
                  proxy_port proxy_user secure polling_delay sync_interval
                  sync_interval_staging sync_ignore_path_regex logger
                  framework middleware disable_middleware disable_test_translation
-                 ca_file exclude_key_regexp s3_host locales ignored_keys ignored_key_handler].freeze
+                 ca_file exclude_key_regexp s3_host locales ignored_keys ignored_key_handler
+                 download_cache_dir].freeze
 
     # @return [String] The API key for your project, found on the project edit form.
     attr_accessor :api_key
@@ -139,6 +140,9 @@ module CopyTunerClient
     # @return [Integer] The project id
     attr_accessor :project_id
 
+    # @return [Pathname] The directory to cache downloaded files
+    attr_accessor :download_cache_dir
+
     alias secure? secure
 
     # Instantiated from {CopyTunerClient.configure}. Sets defaults.
@@ -164,6 +168,7 @@ module CopyTunerClient
       self.ignored_keys = []
       self.ignored_key_handler = ->(e) { raise e }
       self.project_id = nil
+      self.download_cache_dir = Pathname.new(Dir.pwd).join('tmp', 'cache', 'copy_tuner_client')
 
       @applied = false
     end

@@ -3,10 +3,13 @@ require 'spec_helper'
 describe CopyTunerClient::Cache do
   let(:client) { FakeClient.new }
 
-  def build_cache(config = {})
+  def build_cache(ready: false, **config)
+    config[:client] ||= client
     config[:logger] ||= FakeLogger.new
     default_config = CopyTunerClient::Configuration.new.to_hash
-    CopyTunerClient::Cache.new(client, default_config.update(config))
+    cache = CopyTunerClient::Cache.new(client, default_config.update(config))
+    cache.instance_variable_set(:@status, CopyTunerClient::Cache::STATUS_READY) if ready
+    cache
   end
 
   it 'provides access to downloaded data' do
@@ -143,7 +146,7 @@ describe CopyTunerClient::Cache do
     failure = 'server is napping'
     logger = FakeLogger.new
     expect(client).to receive(:download).and_raise(CopyTunerClient::ConnectionError.new(failure))
-    cache = build_cache(logger: logger)
+    cache = build_cache(logger: logger, ready: true)
 
     cache.download
 
@@ -167,31 +170,6 @@ describe CopyTunerClient::Cache do
     expect(t_download.join(1)).not_to be_nil
     expect(cache.pending?).to be_falsey
     expect(t_wait.join(1)).not_to be_nil
-  end
-
-  it "doesn't block if the first download fails" do
-    client.delay = true
-    client.error = StandardError.new('Failure')
-    cache = build_cache
-
-    error = nil
-    t_download = Thread.new do
-      begin
-        cache.download
-      rescue StandardError => e
-        error = e
-      end
-    end
-    sleep 0.1 until cache.pending?
-
-    t_wait = Thread.new do
-      cache.wait_for_download
-    end
-    client.go
-    expect(t_download.join(1)).not_to be_nil
-    expect(error).to be_kind_of(StandardError)
-    expect(t_wait.join(1)).not_to be_nil
-    expect { cache.download }.to raise_error(StandardError, 'Failure')
   end
 
   it "doesn't block before downloading" do

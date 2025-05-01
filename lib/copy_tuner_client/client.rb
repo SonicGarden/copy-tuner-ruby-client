@@ -29,10 +29,16 @@ module CopyTunerClient
     # @option options [Logger] :logger where to log transactions
     # @option options [String] :ca_file path to root certificate file for ssl verification
     def initialize(options)
+      @etag = nil
+      @downloaded_blurbs = {}
+
       [:api_key, :host, :port, :public, :http_read_timeout,
-        :http_open_timeout, :secure, :logger, :ca_file, :s3_host].each do |option|
+        :http_open_timeout, :secure, :logger, :ca_file, :s3_host, :download_cache_dir].each do |option|
         instance_variable_set "@#{option}", options[option]
       end
+
+      @download_cache_dir.mkpath
+      load_cachedata(last_download_path)
     end
 
     # Downloads all blurbs for the given api_key.
@@ -45,7 +51,7 @@ module CopyTunerClient
     #
     # @yield [Hash] downloaded blurbs
     # @raise [ConnectionError] if the connection fails
-    def download
+    def download(cache_fallback: false)
       connect(s3_host) do |http|
         request = Net::HTTP::Get.new(uri(download_resource))
         request['If-None-Match'] = @etag
@@ -53,15 +59,18 @@ module CopyTunerClient
         t = Time.now
         response = http.request(request)
         t_ms = ((Time.now - t) * 1000).to_i
-        if check response
+        downloaded = check(response)
+        if downloaded
           # NOTE: Net::HTTPではgzipが透過的に扱われるため正確なファイルサイズや速度をログに出すのは難しい
           log "Downloaded translations (#{t_ms}ms)"
-          yield JSON.parse(response.body)
+          @downloaded_blurbs = JSON.parse(response.body)
+          @etag = response['ETag']
+          last_download_path.write(JSON.pretty_generate(etag: @etag, downloaded_blurbs: @downloaded_blurbs))
         else
           log "No new translations (#{t_ms}ms)"
         end
 
-        @etag = response['ETag']
+        yield(@downloaded_blurbs) if downloaded || cache_fallback
       end
     end
 
@@ -105,6 +114,21 @@ module CopyTunerClient
       else
         'draft_blurbs.json'
       end
+    end
+
+    def last_download_path
+      @download_cache_dir.join("last-download-#{download_resource}")
+    end
+
+    def load_cachedata(pathname)
+      return unless pathname.exist?
+
+      cache = JSON.parse(pathname.read.to_s).transform_keys(&:to_sym)
+      @etag = cache[:etag]
+      @downloaded_blurbs = cache[:downloaded_blurbs]
+      log "Loaded cache data from #{pathname}"
+    rescue JSON::JSONError, Errno::ENOENT, Errno::ENOTDIR
+      nil
     end
 
     def connect(host)
