@@ -1,9 +1,15 @@
 require 'spec_helper'
 
 describe CopyTunerClient do
+  let(:download_cache_dir) { Pathname.new(Dir.mktmpdir('copy_tuner_client')) }
+
+  after do
+    FileUtils.rm_rf(download_cache_dir)
+  end
+
   def build_client(config = {})
     config[:logger] ||= FakeLogger.new
-    config[:download_cache_dir] = Pathname.new(File.join(Dir.tmpdir, 'copy_tuner_client', SecureRandom.hex(8)))
+    config[:download_cache_dir] = download_cache_dir
     default_config = CopyTunerClient::Configuration.new.to_hash
     default_config[:s3_host] = 'copy-tuner.com'
     client = CopyTunerClient::Client.new(default_config.update(config))
