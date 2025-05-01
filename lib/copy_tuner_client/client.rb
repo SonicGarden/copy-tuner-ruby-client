@@ -51,7 +51,7 @@ module CopyTunerClient
     #
     # @yield [Hash] downloaded blurbs
     # @raise [ConnectionError] if the connection fails
-    def download
+    def download(cache_fallback: false)
       connect(s3_host) do |http|
         request = Net::HTTP::Get.new(uri(download_resource))
         request['If-None-Match'] = @etag
@@ -70,7 +70,7 @@ module CopyTunerClient
           log "No new translations (#{t_ms}ms)"
         end
 
-        yield(@downloaded_blurbs, downloaded)
+        yield(@downloaded_blurbs) if downloaded || cache_fallback
       end
     end
 

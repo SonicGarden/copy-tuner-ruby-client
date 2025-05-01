@@ -99,13 +99,11 @@ module CopyTunerClient
     def download
       @started = true
 
-      res = client.download do |downloaded_blurbs, downloaded|
-        if downloaded || !@initial_downloaded
-          blank_blurbs, blurbs = downloaded_blurbs.partition { |_key, value| value == '' }
-          lock do
-            @blank_keys = Set.new(blank_blurbs.to_h.keys)
-            @blurbs = blurbs.to_h
-          end
+      res = client.download(cache_fallback: !@initial_downloaded) do |downloaded_blurbs|
+        blank_blurbs, blurbs = downloaded_blurbs.partition { |_key, value| value == '' }
+        lock do
+          @blank_keys = Set.new(blank_blurbs.to_h.keys)
+          @blurbs = blurbs.to_h
         end
       end
 
