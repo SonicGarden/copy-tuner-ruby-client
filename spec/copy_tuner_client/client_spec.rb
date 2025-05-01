@@ -169,7 +169,7 @@ describe CopyTunerClient do
     yields = 0
 
     2.times do
-      client.download { |ignore, downloaded| yields += 1 if downloaded }
+      client.download { |ignore| yields += 1 }
     end
 
     expect(yields).to eq(1)
