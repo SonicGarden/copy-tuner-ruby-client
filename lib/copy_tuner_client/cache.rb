@@ -108,13 +108,12 @@ module CopyTunerClient
       end
 
       @last_downloaded_at = Time.now.utc
+      @initial_downloaded = true
 
       res
     rescue ConnectionError => e
       logger.error e.message
       raise e unless @initial_downloaded
-    ensure
-      @initial_downloaded = true
     end
 
     # Downloads and then flushes
