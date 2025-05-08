@@ -22,7 +22,7 @@ module CopyTunerClient
                  download_cache_dir].freeze
 
     # @return [String] The API key for your project, found on the project edit form.
-    attr_accessor :api_key
+    attr_reader :api_key
 
     # @return [String] The host to connect to (defaults to +copy-tuner.com+).
     attr_accessor :host
@@ -316,6 +316,12 @@ module CopyTunerClient
     # @param original_logger [Logger] the upstream logger to use, which must respond to the standard +Logger+ severity methods.
     def logger=(original_logger)
       @logger = PrefixedLogger.new('** [CopyTuner]', original_logger)
+    end
+
+    def api_key=(api_key)
+      raise ArgumentError, 'api_key is required' if api_key.nil? || api_key.empty?
+
+      @api_key = api_key
     end
 
     # Sync interval for Rack Middleware
