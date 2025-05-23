@@ -163,20 +163,13 @@ module CopyTunerClient
       self.upload_disabled_environments = %w[production staging]
       self.s3_host = 'copy-tuner.sg-apps.com' # NOTE: cloudfront host
       self.disable_copyray_comment_injection = false
-      # TODO: 0.18.0以降のバージョンで初期値をtrueにしたい
-      self.html_escape = nil
+      self.html_escape = true
       self.ignored_keys = []
       self.ignored_key_handler = ->(e) { raise e }
       self.project_id = nil
       self.download_cache_dir = Pathname.new(Dir.pwd).join('tmp', 'cache', 'copy_tuner_client')
 
       @applied = false
-    end
-
-    def html_escape
-      raise 'CopyTunerClient.configuration.html_escape is required' if @html_escape.nil?
-
-      @html_escape
     end
 
     # Allows config options to be read like a hash
