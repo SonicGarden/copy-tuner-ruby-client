@@ -1,0 +1,85 @@
+#!/usr/bin/env ruby
+
+require 'mcp'
+require 'mcp/transports/stdio'
+
+require File.expand_path(File.join('config', 'environment'))
+
+class TranslateTool < MCP::Tool
+  tool_name 'translate'
+  description 'Retrieves the translated text for a given i18n key and language, based on Rails locale files.'
+  input_schema(
+    properties: {
+      key: { type: 'string' },
+      locale: { type: 'string' },
+    },
+    required: ["key"]
+  )
+
+  class << self
+    def call(key:, locale: 'ja', server_context:)
+      key_with_locale = [locale, key].join('.')
+      result = CopyTunerClient.cache.blurbs.fetch(key_with_locale, '')
+
+      MCP::Tool::Response.new([{
+        type: "text",
+        text: result,
+      }], result.blank?)
+    end
+  end
+end
+
+class TranslationsTool < MCP::Tool
+  tool_name 'translations'
+  description 'Retrieves all translations for a given locale, based on Rails locale files.'
+  input_schema(
+    properties: {
+      locale: { type: 'string' },
+    },
+    required: []
+  )
+
+  class << self
+    def call(locale: 'ja', server_context:)
+      translations = CopyTunerClient.cache.blurbs
+        .select { |key, _| key.start_with?("#{locale}.") }
+        .transform_keys { |key| key.split('.', 2).last }
+
+      MCP::Tool::Response.new([{
+        type: 'text',
+        text: translations.to_yaml,
+      }], translations.empty?)
+    end
+  end
+end
+
+# Uncomment the following lines if you want to use a resource template
+
+# resource_template = MCP::ResourceTemplate.new(
+#   uri_template: "#{CopyTunerClient.configuration.project_url}/translations/{locale}",
+#   name: "rails.i18n.translations",
+#   description: "Rails i18n translations for locale",
+#   mime_type: 'application/json',
+# )
+
+server = MCP::Server.new(
+  name: "copytuner_mcp_server",
+  tools: [TranslateTool, TranslationsTool],
+  # resource_templates: [resource_template],
+)
+
+# server.resources_read_handler do |params|
+#   locale = params[:uri].split('/').last
+#   translations = CopyTunerClient.cache.blurbs
+#     .select { |key, _| key.start_with?("#{locale}.") }
+#     .transform_keys { |key| key.split('.', 2).last }
+
+#   [{
+#     uri: params[:uri],
+#     mimeType: 'application/json',
+#     text: translations.to_json,
+#   }]
+# end
+
+transport = MCP::Transports::StdioTransport.new(server)
+transport.open
