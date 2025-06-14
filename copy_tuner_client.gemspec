@@ -2,7 +2,7 @@ $LOAD_PATH.push File.expand_path('lib', __dir__)
 require 'copy_tuner_client/version'
 
 Gem::Specification.new do |s|
-  s.required_ruby_version = '>= 3.1.0'
+  s.required_ruby_version = '>= 3.2.0'
   s.add_dependency 'i18n', '>= 0.5.0'
   s.add_dependency 'json'
   s.add_dependency 'nokogiri'
