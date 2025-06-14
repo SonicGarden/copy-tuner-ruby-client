@@ -35,6 +35,42 @@ bundle exec rake copy_tuner:export
 
 これで、`config/locales/copy_tuner.yml` に翻訳ファイルが作成されます。
 
+## MCPサーバー
+
+このgemには、Model Context Protocol (MCP) サーバーが含まれており、AI開発ツール（copilot agentなど）から翻訳データにアクセスできます。
+
+### VSCodeでの設定
+
+`.vscode/mcp.json` に以下を追加：
+
+```json
+{
+  "servers": {
+    "copy-tuner": {
+      "type": "stdio",
+      "command": "bundle",
+      "args": [
+        "exec",
+        "copy-tuner-mcp"
+      ],
+      "cwd": "${workspaceFolder}"
+    }
+  }
+}
+```
+
+### 利用可能な機能
+
+#### Tools（ツール）
+- **search_key**: i18nキーでの検索
+  - 例: `user.name` が含まれるi18nキーを検索
+- **search_translations**: 翻訳内容での検索
+  - 例: 「ユーザー」という文字列を含む翻訳を検索
+
+#### Resources（リソース）
+- **個別翻訳の取得**: `copytuner://projects/PROJECT_ID/translations/{locale}/{key}`
+  - 例: `copytuner://projects/77/translations/ja/user.name`
+
 Development
 =================
 
