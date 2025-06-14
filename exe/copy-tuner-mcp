@@ -5,30 +5,6 @@ require 'mcp/transports/stdio'
 
 require File.expand_path(File.join('config', 'environment'))
 
-class TranslateTool < MCP::Tool
-  tool_name 'translate'
-  description 'Retrieves the translated text for a given i18n key and language, based on Rails locale files.'
-  input_schema(
-    properties: {
-      key: { type: 'string' },
-      locale: { type: 'string' },
-    },
-    required: ["key"]
-  )
-
-  class << self
-    def call(key:, locale: 'ja', server_context:)
-      key_with_locale = [locale, key].join('.')
-      result = CopyTunerClient.cache.blurbs.fetch(key_with_locale, '')
-
-      MCP::Tool::Response.new([{
-        type: "text",
-        text: result,
-      }], result.blank?)
-    end
-  end
-end
-
 class SearchKeyTool < MCP::Tool
   tool_name 'search_key'
   description 'Search and retrieve Rails i18n translation keys. Optimized for finding keys used with t() or I18n.t(), checking multilingual translation content, and getting locale-specific translation values. Quickly finds accurate keys and translations from copy_tuner project translation database.'
@@ -79,10 +55,39 @@ class  SearchTranslationsTool < MCP::Tool
   end
 end
 
-server = MCP::Server.new(
-  name: "copytuner_mcp_server",
-  tools: [TranslateTool, SearchKeyTool, SearchTranslationsTool],,
+project_id = CopyTunerClient.configuration.project_id || CopyTunerClient.configuration.api_key
+translation_template = MCP::ResourceTemplate.new(
+  uri_template: "copytuner://projects/#{project_id}/translations/{locale}/{key}",
+  name: "rails.i18n.translation",
+  description: "Individual Rails i18n translation for a specific key and locale",
+  mime_type: 'text/plain',
 )
+
+server = MCP::Server.new(
+  name: "copy_tuner",
+  tools: [SearchKeyTool, SearchTranslationsTool],
+  resource_templates: [translation_template],
+)
+
+server.resources_read_handler do |params|
+  uri = params[:uri]
+  match = uri.match(%r{^copytuner://projects/#{project_id}/translations/([^/]+)/(.+)$})
+
+  if match
+    locale = match[1]
+    key = match[2]
+    key_with_locale = [locale, key].join('.')
+    result = CopyTunerClient.cache.blurbs.fetch(key_with_locale, '')
+
+    [{
+      uri: params[:uri],
+      mimeType: 'text/plain',
+      text: result,
+    }]
+  else
+    []
+  end
+end
 
 transport = MCP::Transports::StdioTransport.new(server)
 transport.open
