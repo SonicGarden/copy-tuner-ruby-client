@@ -29,57 +29,60 @@ class TranslateTool < MCP::Tool
   end
 end
 
-class TranslationsTool < MCP::Tool
-  tool_name 'translations'
-  description 'Retrieves all translations for a given locale, based on Rails locale files.'
+class SearchKeyTool < MCP::Tool
+  tool_name 'search_key'
+  description 'Search and retrieve Rails i18n translation keys. Optimized for finding keys used with t() or I18n.t(), checking multilingual translation content, and getting locale-specific translation values. Quickly finds accurate keys and translations from copy_tuner project translation database.'
   input_schema(
     properties: {
-      locale: { type: 'string' },
+      query: { type: 'string' },
+      locale: { type: 'string', default: 'ja' },
     },
-    required: []
+    required: ["query"]
   )
 
   class << self
-    def call(locale: 'ja', server_context:)
-      translations = CopyTunerClient.cache.blurbs
-        .select { |key, _| key.start_with?("#{locale}.") }
+    def call(query:, locale: 'ja', server_context:)
+      results = CopyTunerClient.cache.blurbs
+        .select { |key, _| key.start_with?("#{locale}.") && key.include?(query) }
         .transform_keys { |key| key.split('.', 2).last }
 
       MCP::Tool::Response.new([{
         type: 'text',
-        text: translations.to_yaml,
-      }], translations.empty?)
+        text: JSON.pretty_generate(results),
+      }], results.empty?)
     end
   end
 end
 
-# Uncomment the following lines if you want to use a resource template
+class  SearchTranslationsTool < MCP::Tool
+  tool_name 'search_translations'
+  description 'Search and retrieve Rails i18n translations by content. Optimized for finding translations containing specific text, checking translation values across languages, and discovering keys by their translated content. Quickly finds accurate translations and keys from copy_tuner project translation database.'
+  input_schema(
+    properties: {
+      query: { type: 'string' },
+      locale: { type: 'string', default: 'ja' },
+    },
+    required: ["query"]
+  )
 
-resource_template = MCP::ResourceTemplate.new(
-  uri_template: "#{CopyTunerClient.configuration.project_url}/translations/{locale}",
-  name: "rails.i18n.translations",
-  description: "Rails i18n translations for locale",
-  mime_type: 'application/json',
-)
+  class << self
+    def call(query:, locale: 'ja', server_context:)
+      results = CopyTunerClient.cache.blurbs
+        .select { |key, value| key.start_with?("#{locale}.") && value.include?(query) }
+        .transform_keys { |key| key.split('.', 2).last }
+
+      MCP::Tool::Response.new([{
+        type: 'text',
+        text: JSON.pretty_generate(results),
+      }], results.empty?)
+    end
+  end
+end
 
 server = MCP::Server.new(
   name: "copytuner_mcp_server",
-  tools: [TranslateTool, TranslationsTool],
-  resource_templates: [resource_template],
+  tools: [TranslateTool, SearchKeyTool, SearchTranslationsTool],,
 )
-
-server.resources_read_handler do |params|
-  locale = params[:uri].split('/').last
-  translations = CopyTunerClient.cache.blurbs
-    .select { |key, _| key.start_with?("#{locale}.") }
-    .transform_keys { |key| key.split('.', 2).last }
-
-  [{
-    uri: params[:uri],
-    mimeType: 'application/json',
-    text: translations.to_json,
-  }]
-end
 
 transport = MCP::Transports::StdioTransport.new(server)
 transport.open
