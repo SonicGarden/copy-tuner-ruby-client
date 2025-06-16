@@ -6,6 +6,7 @@ Gem::Specification.new do |s|
   s.add_dependency 'i18n', '>= 0.5.0'
   s.add_dependency 'json'
   s.add_dependency 'nokogiri'
+  # TODO: 最終的にはMCP機能は copy_tuner_client-mcp 的なgemに抽出して本番で不要な依存は消したい
   s.add_dependency 'mcp', '~> 0.1.0'
   s.add_development_dependency 'rails', '~> 7.1'
   s.add_development_dependency 'rake'
