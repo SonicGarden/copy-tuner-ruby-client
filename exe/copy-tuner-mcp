@@ -83,6 +83,22 @@ class CreateI18nKeyTool < MCP::Tool
   end
 end
 
+class GetLocalesTool < MCP::Tool
+  tool_name 'get_locales'
+  description 'Retrieve the list of Rails i18n locales currently in use in the copy_tuner project. This tool provides a quick way to see which Rails i18n locales have been registered and are actively used in translations.'
+
+  class << self
+    def call(server_context:)
+      locales = CopyTunerClient.configuration.locales
+
+      MCP::Tool::Response.new([{
+        type: 'text',
+        text: JSON.pretty_generate({ locales: }),
+      }])
+    end
+  end
+end
+
 project_id = CopyTunerClient.configuration.project_id || CopyTunerClient.configuration.api_key
 translation_template = MCP::ResourceTemplate.new(
   uri_template: "copytuner://projects/#{project_id}/translations/{locale}/{key}",
@@ -93,7 +109,7 @@ translation_template = MCP::ResourceTemplate.new(
 
 server = MCP::Server.new(
   name: "copy_tuner",
-  tools: [SearchKeyTool, SearchTranslationsTool, CreateI18nKeyTool],
+  tools: [SearchKeyTool, SearchTranslationsTool, CreateI18nKeyTool, GetLocalesTool],
   resource_templates: [translation_template],
 )
 
