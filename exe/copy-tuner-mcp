@@ -114,6 +114,29 @@ class GetLocalesTool < MCP::Tool
   end
 end
 
+# 登録済みキーの編集画面のURLを取得
+class GetEditUrlTool < MCP::Tool
+  tool_name 'get_edit_url'
+  description 'Retrieve the edit URL for a registered i18n key in the copy_tuner project.'
+  input_schema(
+    properties: {
+      key: { type: 'string', description: 'The i18n key to retrieve the edit URL for' },
+    },
+    required: ['key']
+  )
+
+  class << self
+    def call(key:, server_context:)
+      edit_url = "#{CopyTunerClient.configuration.project_url}/blurbs/#{key}/edit"
+
+      MCP::Tool::Response.new([{
+        type: 'text',
+        text: edit_url,
+      }])
+    end
+  end
+end
+
 project_id = CopyTunerClient.configuration.project_id || CopyTunerClient.configuration.api_key
 translation_template = MCP::ResourceTemplate.new(
   uri_template: "copytuner://projects/#{project_id}/translations/{locale}/{key}",
@@ -124,7 +147,7 @@ translation_template = MCP::ResourceTemplate.new(
 
 server = MCP::Server.new(
   name: "copy_tuner",
-  tools: [SearchKeyTool, SearchTranslationsTool, CreateI18nKeyTool, GetLocalesTool],
+  tools: [SearchKeyTool, SearchTranslationsTool, CreateI18nKeyTool, GetLocalesTool, GetEditUrlTool],
   resource_templates: [translation_template],
 )
 
