@@ -55,6 +55,34 @@ class  SearchTranslationsTool < MCP::Tool
   end
 end
 
+class CreateI18nKeyTool < MCP::Tool
+  MAX_RETRIES = 20
+
+  tool_name 'create_i18n_key'
+  description 'Create a new Rails i18n translation key in the copy_tuner project. This tool registers new keys to the translation database asynchronously. The registration process starts immediately, but the actual creation and availability may take some time to complete due to the asynchronous nature of the system.'
+  input_schema(
+    properties: {
+      key: { type: 'string', description: 'The i18n key to create' },
+      locale: { type: 'string', description: 'The locale for the translation' },
+      content: { type: 'string', description: 'The translation value' },
+    },
+    required: ['key']
+  )
+
+  class << self
+    def call(key:, locale:, content:, server_context:)
+      full_key = [locale, key].join('.')
+      CopyTunerClient.cache[full_key] = content
+      CopyTunerClient.cache.flush
+
+      MCP::Tool::Response.new([{
+        type: 'text',
+        text: "Started creating i18n key: #{full_key}",
+      }])
+    end
+  end
+end
+
 project_id = CopyTunerClient.configuration.project_id || CopyTunerClient.configuration.api_key
 translation_template = MCP::ResourceTemplate.new(
   uri_template: "copytuner://projects/#{project_id}/translations/{locale}/{key}",
@@ -65,7 +93,7 @@ translation_template = MCP::ResourceTemplate.new(
 
 server = MCP::Server.new(
   name: "copy_tuner",
-  tools: [SearchKeyTool, SearchTranslationsTool],
+  tools: [SearchKeyTool, SearchTranslationsTool, CreateI18nKeyTool],
   resource_templates: [translation_template],
 )
 
