@@ -55,6 +55,7 @@ class  SearchTranslationsTool < MCP::Tool
   end
 end
 
+# TODO: 最終的には同期登録可能にしたいが、まずは既存APIに変更を加えずに登録可能としている
 class CreateI18nKeyTool < MCP::Tool
   MAX_RETRIES = 20
 
@@ -83,6 +84,7 @@ class CreateI18nKeyTool < MCP::Tool
   end
 end
 
+# NOTE: Resourceとして定義するほうが適切な気がするが、MCPクライアントがうまく参照してくれないためToolとして定義している
 class GetLocalesTool < MCP::Tool
   tool_name 'get_locales'
   description 'Retrieve the list of Rails i18n locales currently in use in the copy_tuner project. This tool provides a quick way to see which Rails i18n locales have been registered and are actively used in translations.'
