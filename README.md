@@ -63,13 +63,25 @@ bundle exec rake copy_tuner:export
 
 #### Tools（ツール）
 - **search_key**: i18nキーでの検索
+  - パラメータ: `query` (必須), `locale` (デフォルト: 'ja')
   - 例: `user.name` が含まれるi18nキーを検索
 - **search_translations**: 翻訳内容での検索
+  - パラメータ: `query` (必須), `locale` (デフォルト: 'ja')
   - 例: 「ユーザー」という文字列を含む翻訳を検索
+- **create_i18n_key**: 新しいi18nキーの作成（非同期）
+  - パラメータ: `key` (必須), `translations` (ロケール・値のペア配列)
+  - 例: 新しい翻訳キーを複数の言語で同時登録
+- **get_locales**: 利用可能なロケール一覧の取得
+  - パラメータ: なし
+  - 現在設定されているロケール情報を取得
+- **get_edit_url**: 登録済みキーの編集画面URLを取得
+  - パラメータ: `key` (必須)
+  - CopyTuner管理画面での編集URLを生成
 
 #### Resources（リソース）
 - **個別翻訳の取得**: `copytuner://projects/PROJECT_ID/translations/{locale}/{key}`
   - 例: `copytuner://projects/77/translations/ja/user.name`
+  - 特定のキーとロケールに対する翻訳値を直接取得
 
 Development
 =================
