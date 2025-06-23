@@ -1,6 +1,6 @@
 require 'spec_helper'
 
-describe CopyTunerClient::Cache do
+describe 'CopyTunerClient::Cache' do
   let(:client) { FakeClient.new }
 
   def build_cache(ready: false, **config)
@@ -12,7 +12,7 @@ describe CopyTunerClient::Cache do
     cache
   end
 
-  it 'provides access to downloaded data' do
+  it 'ダウンロードしたデータにアクセスできること' do
     client['en.test.key']       = 'expected'
     client['en.test.other_key'] = 'expected'
 
@@ -24,7 +24,7 @@ describe CopyTunerClient::Cache do
     expect(cache.keys).to match_array(%w[en.test.key en.test.other_key])
   end
 
-  it 'exclude data if exclude_key_regexp is set' do
+  it 'exclude_key_regexpが設定されている場合、該当データを除外すること' do
     cache = build_cache(exclude_key_regexp: /^en\.test\.other_key$/)
     cache['en.test.key']       = 'expected'
     cache['en.test.other_key'] = 'expected'
@@ -34,13 +34,13 @@ describe CopyTunerClient::Cache do
     expect(cache.queued.keys).to match_array(%w[en.test.key])
   end
 
-  it "doesn't upload without changes" do
+  it '変更がない場合はアップロードしないこと' do
     cache = build_cache
     cache.flush
     expect(client).not_to be_uploaded
   end
 
-  it "Don't upload incorrect key" do
+  it '不正なキーはアップロードしないこと' do
     cache = build_cache
     cache['ja'] = 'incorrect key'
 
@@ -48,7 +48,7 @@ describe CopyTunerClient::Cache do
     expect(client).not_to be_uploaded
   end
 
-  it 'uploads changes when flushed' do
+  it '変更があればflush時にアップロードすること' do
     cache = build_cache
     cache['test.key'] = 'test value'
 
@@ -57,7 +57,7 @@ describe CopyTunerClient::Cache do
     expect(client.uploaded).to eq({ 'test.key' => 'test value' })
   end
 
-  it 'uploads empties when nil is assigned' do
+  it 'nilを代入した場合は空文字でアップロードすること' do
     cache = build_cache
     cache['test.key'] = nil
 
@@ -66,7 +66,7 @@ describe CopyTunerClient::Cache do
     expect(client.uploaded).to eq({ 'test.key' => '' })
   end
 
-  it 'upload without locale filter' do
+  it 'ロケールフィルタなしでアップロードできること' do
     cache = build_cache
     cache['en.test.key'] = 'uploaded en'
     cache['ja.test.key'] = 'uploaded ja'
@@ -76,7 +76,7 @@ describe CopyTunerClient::Cache do
     expect(client.uploaded).to eq({ 'en.test.key' => 'uploaded en', 'ja.test.key' => 'uploaded ja' })
   end
 
-  it 'upload with locale filter' do
+  it 'ロケールフィルタありでアップロードできること' do
     cache = build_cache(locales: %(en))
     cache['en.test.key'] = 'uploaded'
     cache['ja.test.key'] = 'not uploaded'
@@ -86,7 +86,7 @@ describe CopyTunerClient::Cache do
     expect(client.uploaded).to eq({ 'en.test.key' => 'uploaded' })
   end
 
-  it 'downloads changes' do
+  it 'ダウンロードで値を取得できること' do
     client['test.key'] = 'test value'
     cache = build_cache
 
@@ -95,7 +95,7 @@ describe CopyTunerClient::Cache do
     expect(cache['test.key']).to eq('test value')
   end
 
-  it 'downloads and uploads when synced' do
+  it 'syncでダウンロードとアップロードが両方行われること' do
     cache = build_cache
     client['test.key'] = 'test value'
     cache['other.key'] = 'other value'
@@ -106,7 +106,7 @@ describe CopyTunerClient::Cache do
     expect(cache['test.key']).to eq('test value')
   end
 
-  it 'download included empty keys' do
+  it '空文字のキーはダウンロード時にnilになること' do
     client['en.test.key'] = 'test value'
     client['en.test.empty'] = ''
     cache = build_cache
@@ -120,7 +120,7 @@ describe CopyTunerClient::Cache do
     expect(cache.queued).to be_empty
   end
 
-  it 'Do not upload downloaded keys' do
+  it 'ダウンロードしたキーはアップロード対象にならないこと' do
     client['en.test.key'] = 'test value'
     cache = build_cache
 
@@ -130,7 +130,7 @@ describe CopyTunerClient::Cache do
     expect(cache.queued).to be_empty
   end
 
-  it 'handles connection errors when flushing' do
+  it 'flush時に接続エラーが発生した場合はエラーログを出力すること' do
     failure = 'server is napping'
     logger = FakeLogger.new
     expect(client).to receive(:upload).and_raise(CopyTunerClient::ConnectionError.new(failure))
@@ -142,7 +142,7 @@ describe CopyTunerClient::Cache do
     expect(logger).to have_entry(:error, failure)
   end
 
-  it 'handles connection errors when downloading' do
+  it 'download時に接続エラーが発生した場合はエラーログを出力すること' do
     failure = 'server is napping'
     logger = FakeLogger.new
     expect(client).to receive(:download).and_raise(CopyTunerClient::ConnectionError.new(failure))
@@ -153,7 +153,7 @@ describe CopyTunerClient::Cache do
     expect(logger).to have_entry(:error, failure)
   end
 
-  it 'blocks until the first download is complete' do
+  it '最初のダウンロードが完了するまでブロックすること' do
     logger = FakeLogger.new
     expect(logger).to receive(:flush)
     client.delay = true
@@ -172,7 +172,7 @@ describe CopyTunerClient::Cache do
     expect(t_wait.join(1)).not_to be_nil
   end
 
-  it "doesn't block before downloading" do
+  it 'ダウンロード前はブロックしないこと' do
     logger = FakeLogger.new
     cache = build_cache(logger: logger)
 
@@ -188,7 +188,7 @@ describe CopyTunerClient::Cache do
     expect(logger).not_to have_entry(:info, 'Waiting for first download')
   end
 
-  it "doesn't return blank copy" do
+  it '空文字のコピーは返さないこと' do
     client['en.test.key'] = ''
     cache = build_cache
 
@@ -197,13 +197,13 @@ describe CopyTunerClient::Cache do
     expect(cache['en.test.key']).to be_nil
   end
 
-  describe 'given locked mutex' do
+  describe 'ミューテックスがロックされている場合' do
     RSpec::Matchers.define :finish_after_unlocking do |mutex|
       match do |thread|
         sleep(0.1)
 
         if thread.status === false
-          violated('finished before unlocking')
+          violated('アンロック前に終了してしまった')
         else
           mutex.unlock
           sleep(0.1)
@@ -211,7 +211,7 @@ describe CopyTunerClient::Cache do
           if thread.status === false
             true
           else
-            violated('still running after unlocking')
+            violated('アンロック後もスレッドが終了しない')
           end
         end
       end
@@ -234,20 +234,20 @@ describe CopyTunerClient::Cache do
       allow(Mutex).to receive(:new).and_return(mutex)
     end
 
-    it 'synchronizes read access to keys between threads' do
+    it 'スレッド間でキーの読み取りアクセスが同期されること' do
       expect(Thread.new { cache['test.key'] }).to finish_after_unlocking(mutex)
     end
 
-    it 'synchronizes read access to the key list between threads' do
+    it 'スレッド間でキーリストの読み取りアクセスが同期されること' do
       expect(Thread.new { cache.keys }).to finish_after_unlocking(mutex)
     end
 
-    it 'synchronizes write access to keys between threads' do
+    it 'スレッド間でキーの書き込みアクセスが同期されること' do
       expect(Thread.new { cache['test.key'] = 'value' }).to finish_after_unlocking(mutex)
     end
   end
 
-  it 'flushes from the top level' do
+  it 'トップレベルからflushできること' do
     cache = build_cache
     CopyTunerClient.configure do |config|
       config.cache = cache
@@ -257,7 +257,7 @@ describe CopyTunerClient::Cache do
     CopyTunerClient.flush
   end
 
-  describe "#to_tree_hash" do
+  describe '#to_tree_hash' do
     subject { cache.to_tree_hash }
 
     let(:cache) do
@@ -266,18 +266,18 @@ describe CopyTunerClient::Cache do
       cache
     end
 
-    it "returns empty hash when no blurbs" do
+    it 'データがない場合は空ハッシュを返すこと' do
       is_expected.to eq({})
     end
 
-    context "with flat keys" do
+    context 'フラットなキーの場合' do
       before do
         client['ja.views.hoge'] = 'test'
         client['ja.views.fuga'] = 'test2'
         client['en.hello'] = 'world'
       end
 
-      it "converts to tree structure" do
+      it 'ツリー構造に変換されること' do
         is_expected.to eq({
           'ja' => {
             'views' => {
@@ -292,7 +292,7 @@ describe CopyTunerClient::Cache do
       end
     end
 
-    context "with complex nested structure" do
+    context '複雑なネスト構造の場合' do
       before do
         client['ja.views.users.index'] = 'user index'
         client['ja.views.users.show'] = 'user show'
@@ -300,7 +300,7 @@ describe CopyTunerClient::Cache do
         client['en.common.buttons.save'] = 'Save'
       end
 
-      it "builds proper tree structure" do
+      it '正しいツリー構造になること' do
         is_expected.to eq({
           'ja' => {
             'views' => {
@@ -325,8 +325,8 @@ describe CopyTunerClient::Cache do
     end
   end
 
-  describe "#version" do
-    it "returns client etag for efficient version checking" do
+  describe '#version' do
+    it 'クライアントのetagを返すこと（効率的なバージョンチェック）' do
       cache = build_cache
       client_instance = cache.send(:client)
 
@@ -339,7 +339,7 @@ describe CopyTunerClient::Cache do
       expect(cache.version).to eq('"def456"')
     end
 
-    it "handles nil etag gracefully" do
+    it 'etagがnilの場合も正常に動作すること' do
       cache = build_cache
       client_instance = cache.send(:client)
       client_instance.etag = nil
@@ -347,7 +347,7 @@ describe CopyTunerClient::Cache do
       expect(cache.version).to be_nil
     end
 
-    it "is more efficient than key-based hashing for large caches" do
+    it '大量のキャッシュでも高速にバージョン取得できること（keyのhashではなくetagを使うため）' do
       cache = build_cache
 
       # 大量のキーを追加
@@ -355,9 +355,9 @@ describe CopyTunerClient::Cache do
         cache.instance_variable_get(:@blurbs)["ja.category#{i % 10}.item#{i}"] = "value#{i}"
       end
 
-      # version メソッドが etag を使用しているため高速
+      # version メソッドが etag を使用しているため高速（keys.hashだと低速）
       start_time = Time.now
-      100.times { cache.version }
+      1000.times { cache.version }
       end_time = Time.now
 
       # 10ms 以下で完了することを確認
@@ -374,7 +374,7 @@ describe CopyTunerClient::Cache do
       cache
     end
 
-    it 'can be invoked from the top-level constant' do
+    it 'トップレベル定数から呼び出せること' do
       CopyTunerClient.configure do |config|
         config.cache = cache
       end
@@ -382,11 +382,11 @@ describe CopyTunerClient::Cache do
       CopyTunerClient.export
     end
 
-    it 'returns no yaml with no blurb keys' do
+    it 'blurbキーがない場合はyamlを返さないこと' do
       is_expected.to eq nil
     end
 
-    context 'with single-level blurb keys' do
+    context '1階層のblurbキーがある場合' do
       before do
         client['key']       = 'test value'
         client['other_key'] = 'other test value'
