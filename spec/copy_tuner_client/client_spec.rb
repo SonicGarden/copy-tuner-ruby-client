@@ -223,7 +223,7 @@ describe 'CopyTunerClient' do
       },
       'published' => {
         'key.one'   => "unexpected one",
-        'key.two'   => "expected one",
+        'key.two'   => "unexpected one",
       }
     })
     logger = FakeLogger.new
