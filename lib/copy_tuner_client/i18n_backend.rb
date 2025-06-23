@@ -75,19 +75,19 @@ module CopyTunerClient
         CopyTunerClient::configuration.ignored_key_handler.call(IgnoredKey.new("Ignored key: #{key_without_locale}"))
       end
 
-      # 1. 最初に完全一致をチェック（現在の動作を維持）
+      # NOTE: ハッシュ化した場合に削除されるキーに対応するため、最初に完全一致をチェック（旧クライアントの動作を維持）
+      # 例: `en.test.key` が `en.test.key.conflict` のように別のキーで上書きされている場合の対応
       exact_match = cache[key_with_locale]
       if exact_match
         return exact_match
       end
 
-      # 2. 完全一致がない場合のみツリー構造をチェック
       ensure_tree_cache_current
       tree_result = lookup_in_tree_cache(parts)
-      return tree_result if tree_result      # 3. ツリー構造にもない場合は親クラスのlookupを呼び出し
+      return tree_result if tree_result
+
       content = super
 
-      # 4. 既存のnil値処理 - contentがnilの場合のみ設定
       if content.nil?
         cache[key_with_locale] = nil
       end
@@ -100,35 +100,18 @@ module CopyTunerClient
       # ETag が nil の場合（初回ダウンロード前）や変更があった場合のみ更新
       # 初回は @cache_version が nil なので、必ず更新される
       if @cache_version != current_version || @tree_cache.nil?
-        tree_hash = cache.to_tree_hash
-        # DottedHash.to_hは文字列キーを返すので、シンボルキーに変換
-        @tree_cache = tree_hash.deep_symbolize_keys
+        @tree_cache = cache.to_tree_hash.deep_symbolize_keys
         @cache_version = current_version
       end
     end
 
     def lookup_in_tree_cache(keys)
-      # ツリーキャッシュが未初期化の場合は nil を返す
       return nil if @tree_cache.nil?
 
-      current_level = @tree_cache
-      keys.each do |key|
-        return nil unless current_level.is_a?(Hash)
+      symbol_keys = keys.map(&:to_sym)
+      result = @tree_cache.dig(*symbol_keys)
 
-        # シンボルキーを優先して検索
-        if current_level.has_key?(key.to_sym)
-          current_level = current_level[key.to_sym]
-        elsif current_level.has_key?(key)
-          current_level = current_level[key]
-        elsif current_level.has_key?(key.to_s)
-          current_level = current_level[key.to_s]
-        else
-          return nil
-        end
-      end
-
-      # 最終結果がHashの場合は返す（部分ツリー）、そうでなければnil
-      current_level.is_a?(Hash) ? current_level : nil
+      result.is_a?(Hash) ? result : nil
     end
 
     def store_item(locale, data, scope = [])
