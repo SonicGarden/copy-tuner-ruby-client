@@ -1,5 +1,6 @@
 require 'i18n'
 require 'copy_tuner_client/configuration'
+require 'active_support/core_ext/hash/keys'
 
 module CopyTunerClient
   # I18n implementation designed to synchronize with CopyTuner.
@@ -101,18 +102,8 @@ module CopyTunerClient
       if @cache_version != current_version || @tree_cache.nil?
         tree_hash = cache.to_tree_hash
         # DottedHash.to_hは文字列キーを返すので、シンボルキーに変換
-        @tree_cache = deep_symbolize_keys(tree_hash)
+        @tree_cache = tree_hash.deep_symbolize_keys
         @cache_version = current_version
-      end
-    end
-
-    def deep_symbolize_keys(hash)
-      return hash unless hash.is_a?(Hash)
-
-      hash.each_with_object({}) do |(key, value), result|
-        new_key = key.to_sym
-        new_value = value.is_a?(Hash) ? deep_symbolize_keys(value) : value
-        result[new_key] = new_value
       end
     end
 
