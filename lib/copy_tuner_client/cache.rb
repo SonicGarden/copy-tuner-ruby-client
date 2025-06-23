@@ -71,7 +71,20 @@ module CopyTunerClient
     # Yaml representation of all blurbs
     # @return [String] yaml
     def export
-      lock { @blurbs.present? ? DottedHash.to_h(@blurbs).to_yaml : nil }
+      to_tree_hash.present? ? to_tree_hash.to_yaml : nil
+    end
+
+    # ツリー構造のハッシュを返す（I18nBackend用）
+    # @return [Hash] ツリー構造に変換されたblurbs
+    def to_tree_hash
+      lock { @blurbs.present? ? DottedHash.to_h(@blurbs) : {} }
+    end
+
+    # キャッシュの更新バージョンを返す（ツリーキャッシュの無効化判定用）
+    # ETags を使用してサーバーサイドの更新を検知
+    # @return [String, nil] 現在のETag値
+    def version
+      client.etag
     end
 
     # Waits until the first download has finished.

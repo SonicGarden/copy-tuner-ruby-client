@@ -223,7 +223,7 @@ describe CopyTunerClient do
       },
       'published' => {
         'key.one'   => "unexpected one",
-        'key.two'   => "unexpected one",
+        'key.two'   => "expected one",
       }
     })
     logger = FakeLogger.new
@@ -240,5 +240,39 @@ describe CopyTunerClient do
 
   it "handles deploy errors" do
     expect { build_client.deploy }.to raise_error(CopyTunerClient::InvalidApiKey)
+  end
+
+  describe "#etag" do
+    it "exposes etag as readable attribute" do
+      client = build_client
+      expect(client).to respond_to(:etag)
+    end
+
+    it "returns nil initially" do
+      client = build_client
+      expect(client.etag).to be_nil
+    end
+
+    it "updates etag after successful download" do
+      project = add_project
+      client = build_client(:api_key => project.api_key)
+
+      # モックでETagを設定
+      response = Net::HTTPSuccess.new('1.1', '200', 'OK')
+      allow(response).to receive(:body).and_return('{}')
+      allow(response).to receive(:[]).with('ETag').and_return('"abc123"')
+
+      http = double('http')
+      allow(Net::HTTP).to receive(:new).and_return(http)
+      allow(http).to receive(:open_timeout=)
+      allow(http).to receive(:read_timeout=)
+      allow(http).to receive(:use_ssl=)
+      allow(http).to receive(:verify_mode=)
+      allow(http).to receive(:ca_file=)
+      allow(http).to receive(:request).and_return(response)
+
+      client.download { |blurbs| }
+      expect(client.etag).to eq('"abc123"')
+    end
   end
 end

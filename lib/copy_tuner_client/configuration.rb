@@ -113,9 +113,6 @@ module CopyTunerClient
 
     attr_accessor :poller
 
-    # @return [Boolean] To enable inline-translation-mode, set true.
-    attr_accessor :inline_translation
-
     # @return [Regexp] Regular expression to exclude keys.
     attr_accessor :exclude_key_regexp
 

@@ -257,6 +257,114 @@ describe CopyTunerClient::Cache do
     CopyTunerClient.flush
   end
 
+  describe "#to_tree_hash" do
+    subject { cache.to_tree_hash }
+
+    let(:cache) do
+      cache = build_cache
+      cache.download
+      cache
+    end
+
+    it "returns empty hash when no blurbs" do
+      is_expected.to eq({})
+    end
+
+    context "with flat keys" do
+      before do
+        client['ja.views.hoge'] = 'test'
+        client['ja.views.fuga'] = 'test2'
+        client['en.hello'] = 'world'
+      end
+
+      it "converts to tree structure" do
+        is_expected.to eq({
+          'ja' => {
+            'views' => {
+              'hoge' => 'test',
+              'fuga' => 'test2'
+            }
+          },
+          'en' => {
+            'hello' => 'world'
+          }
+        })
+      end
+    end
+
+    context "with complex nested structure" do
+      before do
+        client['ja.views.users.index'] = 'user index'
+        client['ja.views.users.show'] = 'user show'
+        client['ja.views.posts.index'] = 'post index'
+        client['en.common.buttons.save'] = 'Save'
+      end
+
+      it "builds proper tree structure" do
+        is_expected.to eq({
+          'ja' => {
+            'views' => {
+              'users' => {
+                'index' => 'user index',
+                'show' => 'user show'
+              },
+              'posts' => {
+                'index' => 'post index'
+              }
+            }
+          },
+          'en' => {
+            'common' => {
+              'buttons' => {
+                'save' => 'Save'
+              }
+            }
+          }
+        })
+      end
+    end
+  end
+
+  describe "#version" do
+    it "returns client etag for efficient version checking" do
+      cache = build_cache
+      client_instance = cache.send(:client)
+
+      # ETag が設定されている場合
+      client_instance.etag = '"abc123"'
+      expect(cache.version).to eq('"abc123"')
+
+      # ETag が変更された場合
+      client_instance.etag = '"def456"'
+      expect(cache.version).to eq('"def456"')
+    end
+
+    it "handles nil etag gracefully" do
+      cache = build_cache
+      client_instance = cache.send(:client)
+      client_instance.etag = nil
+
+      expect(cache.version).to be_nil
+    end
+
+    it "is more efficient than key-based hashing for large caches" do
+      cache = build_cache
+
+      # 大量のキーを追加
+      1000.times do |i|
+        cache.instance_variable_get(:@blurbs)["ja.category#{i % 10}.item#{i}"] = "value#{i}"
+      end
+
+      # version メソッドが etag を使用しているため高速
+      start_time = Time.now
+      100.times { cache.version }
+      end_time = Time.now
+
+      # 10ms 以下で完了することを確認
+      expect((end_time - start_time) * 1000).to be < 10
+    end
+  end
+
   describe '#export' do
     subject { cache.export }
 

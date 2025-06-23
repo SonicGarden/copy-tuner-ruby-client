@@ -18,23 +18,26 @@ module CopyTunerClient
     # @param cache [Cache] must act like a hash, returning and accept blurbs by key.
     def initialize(cache)
       @cache = cache
-    end
-
-    # Translates the given local and key. See the I18n API documentation for details.
+      @tree_cache = nil
+      @cache_version = nil
+    end    # Translates the given local and key. See the I18n API documentation for details.
     #
     # @return [Object] the translated key (usually a String)
     def translate(locale, key, options = {})
+      # I18nの標準処理に任せる（内部でlookupが呼ばれる）
       content = super(locale, key, options)
-      if CopyTunerClient.configuration.inline_translation
-        content = (content.is_a?(Array) ? content : key.to_s)
+
+      # HTML escapeの処理（ツリー構造のHashは除く）
+      if content && !content.is_a?(Hash)
+        content = unless CopyTunerClient.configuration.html_escape
+          # Backward compatible
+          content.respond_to?(:html_safe) ? content.html_safe : content
+        else
+          content
+        end
       end
 
-      if !CopyTunerClient.configuration.html_escape
-        # Backward compatible
-        content.respond_to?(:html_safe) ? content.html_safe : content
-      else
-        content
-      end
+      content
     end
 
     # Returns locales availabile for this CopyTuner project.
@@ -71,9 +74,70 @@ module CopyTunerClient
         CopyTunerClient::configuration.ignored_key_handler.call(IgnoredKey.new("Ignored key: #{key_without_locale}"))
       end
 
-      content = cache[key_with_locale] || super
-      cache[key_with_locale] = nil if content.nil?
+      # 1. 最初に完全一致をチェック（現在の動作を維持）
+      exact_match = cache[key_with_locale]
+      if exact_match
+        return exact_match
+      end
+
+      # 2. 完全一致がない場合のみツリー構造をチェック
+      ensure_tree_cache_current
+      tree_result = lookup_in_tree_cache(parts)
+      return tree_result if tree_result      # 3. ツリー構造にもない場合は親クラスのlookupを呼び出し
+      content = super
+
+      # 4. 既存のnil値処理 - contentがnilの場合のみ設定
+      if content.nil?
+        cache[key_with_locale] = nil
+      end
+
       content
+    end
+
+    def ensure_tree_cache_current
+      current_version = cache.version
+      # ETag が nil の場合（初回ダウンロード前）や変更があった場合のみ更新
+      # 初回は @cache_version が nil なので、必ず更新される
+      if @cache_version != current_version || @tree_cache.nil?
+        tree_hash = cache.to_tree_hash
+        # DottedHash.to_hは文字列キーを返すので、シンボルキーに変換
+        @tree_cache = deep_symbolize_keys(tree_hash)
+        @cache_version = current_version
+      end
+    end
+
+    def deep_symbolize_keys(hash)
+      return hash unless hash.is_a?(Hash)
+
+      hash.each_with_object({}) do |(key, value), result|
+        new_key = key.to_sym
+        new_value = value.is_a?(Hash) ? deep_symbolize_keys(value) : value
+        result[new_key] = new_value
+      end
+    end
+
+    def lookup_in_tree_cache(keys)
+      # ツリーキャッシュが未初期化の場合は nil を返す
+      return nil if @tree_cache.nil?
+
+      current_level = @tree_cache
+      keys.each do |key|
+        return nil unless current_level.is_a?(Hash)
+
+        # シンボルキーを優先して検索
+        if current_level.has_key?(key.to_sym)
+          current_level = current_level[key.to_sym]
+        elsif current_level.has_key?(key)
+          current_level = current_level[key]
+        elsif current_level.has_key?(key.to_s)
+          current_level = current_level[key.to_s]
+        else
+          return nil
+        end
+      end
+
+      # 最終結果がHashの場合は返す（部分ツリー）、そうでなければnil
+      current_level.is_a?(Hash) ? current_level : nil
     end
 
     def store_item(locale, data, scope = [])
