@@ -28,20 +28,18 @@ module CopyTunerClient
       # I18nの標準処理に任せる（内部でlookupが呼ばれる）
       content = super(locale, key, options)
 
-      # HTML escapeの処理（ツリー構造のHashは除く）
-      if content && !content.is_a?(Hash)
-        content = unless CopyTunerClient.configuration.html_escape
-          # Backward compatible
-          content.respond_to?(:html_safe) ? content.html_safe : content
-        else
-          content
-        end
-      end
+      return content if content.nil? || content.is_a?(Hash)
 
-      content
+      # HTML escapeの処理（ツリー構造のHashは除く）
+      if CopyTunerClient.configuration.html_escape
+        content
+      else
+        # Backward compatible
+        content.respond_to?(:html_safe) ? content.html_safe : content
+      end
     end
 
-    # Returns locales availabile for this CopyTuner project.
+    # Returns locales available for this CopyTuner project.
     # @return [Array<String>] available locales
     def available_locales
       return @available_locales if defined?(@available_locales)
