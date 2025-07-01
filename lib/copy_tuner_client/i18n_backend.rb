@@ -1,5 +1,6 @@
 require 'i18n'
 require 'copy_tuner_client/configuration'
+require 'active_support/core_ext/hash/keys'
 
 module CopyTunerClient
   # I18n implementation designed to synchronize with CopyTuner.
@@ -18,26 +19,27 @@ module CopyTunerClient
     # @param cache [Cache] must act like a hash, returning and accept blurbs by key.
     def initialize(cache)
       @cache = cache
-    end
-
-    # Translates the given local and key. See the I18n API documentation for details.
+      @tree_cache = nil
+      @cache_version = nil
+    end    # Translates the given local and key. See the I18n API documentation for details.
     #
     # @return [Object] the translated key (usually a String)
     def translate(locale, key, options = {})
+      # I18nの標準処理に任せる（内部でlookupが呼ばれる）
       content = super(locale, key, options)
-      if CopyTunerClient.configuration.inline_translation
-        content = (content.is_a?(Array) ? content : key.to_s)
-      end
 
-      if !CopyTunerClient.configuration.html_escape
+      return content if content.nil? || content.is_a?(Hash)
+
+      # HTML escapeの処理（ツリー構造のHashは除く）
+      if CopyTunerClient.configuration.html_escape
+        content
+      else
         # Backward compatible
         content.respond_to?(:html_safe) ? content.html_safe : content
-      else
-        content
       end
     end
 
-    # Returns locales availabile for this CopyTuner project.
+    # Returns locales available for this CopyTuner project.
     # @return [Array<String>] available locales
     def available_locales
       return @available_locales if defined?(@available_locales)
@@ -71,9 +73,43 @@ module CopyTunerClient
         CopyTunerClient::configuration.ignored_key_handler.call(IgnoredKey.new("Ignored key: #{key_without_locale}"))
       end
 
-      content = cache[key_with_locale] || super
-      cache[key_with_locale] = nil if content.nil?
+      # NOTE: ハッシュ化した場合に削除されるキーに対応するため、最初に完全一致をチェック（旧クライアントの動作を維持）
+      # 例: `en.test.key` が `en.test.key.conflict` のように別のキーで上書きされている場合の対応
+      exact_match = cache[key_with_locale]
+      if exact_match
+        return exact_match
+      end
+
+      ensure_tree_cache_current
+      tree_result = lookup_in_tree_cache(parts)
+      return tree_result if tree_result
+
+      content = super
+
+      if content.nil?
+        cache[key_with_locale] = nil
+      end
+
       content
+    end
+
+    def ensure_tree_cache_current
+      current_version = cache.version
+      # ETag が nil の場合（初回ダウンロード前）や変更があった場合のみ更新
+      # 初回は @cache_version が nil なので、必ず更新される
+      if @cache_version != current_version || @tree_cache.nil?
+        @tree_cache = cache.to_tree_hash.deep_symbolize_keys
+        @cache_version = current_version
+      end
+    end
+
+    def lookup_in_tree_cache(keys)
+      return nil if @tree_cache.nil?
+
+      symbol_keys = keys.map(&:to_sym)
+      result = @tree_cache.dig(*symbol_keys)
+
+      result.is_a?(Hash) ? result : nil
     end
 
     def store_item(locale, data, scope = [])

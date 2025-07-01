@@ -7,10 +7,11 @@ class FakeClient
     @mutex = Mutex.new
     @cond = ConditionVariable.new
     @go = false
+    @etag = nil
   end
 
   attr_reader :uploaded, :uploads, :downloads
-  attr_accessor :delay, :error
+  attr_accessor :delay, :error, :etag
 
   def []=(key, value)
     @data[key] = value

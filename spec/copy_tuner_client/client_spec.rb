@@ -1,6 +1,6 @@
 require 'spec_helper'
 
-describe CopyTunerClient do
+describe 'CopyTunerClient' do
   let(:download_cache_dir) { Pathname.new(Dir.mktmpdir('copy_tuner_client')) }
 
   after do
@@ -27,7 +27,7 @@ describe CopyTunerClient do
     build_client(config)
   end
 
-  describe 'opening a connection' do
+  describe 'コネクションのオープン' do
     let(:config) { CopyTunerClient::Configuration.new }
     let(:http) { Net::HTTP.new(config.host, config.port) }
 
@@ -35,21 +35,21 @@ describe CopyTunerClient do
       allow(Net::HTTP).to receive(:new).and_return(http)
     end
 
-    it 'should timeout when connecting' do
+    it '接続時のタイムアウトが設定されていること' do
       project = add_project
       client = build_client(:api_key => project.api_key, :http_open_timeout => 4)
       client.download { |ignore| }
       expect(http.open_timeout).to eq(4)
     end
 
-    it 'should timeout when reading' do
+    it '読み込み時のタイムアウトが設定されていること' do
       project = add_project
       client = build_client(:api_key => project.api_key, :http_read_timeout => 4)
       client.download { |ignore| }
       expect(http.read_timeout).to eq(4)
     end
 
-    it 'uses verified ssl when secure' do
+    it 'secureがtrueの場合はSSL検証付きで接続すること' do
       project = add_project
       client = build_client(:api_key => project.api_key, :secure => true)
       client.download { |ignore| }
@@ -57,14 +57,14 @@ describe CopyTunerClient do
       expect(http.verify_mode).to eq(OpenSSL::SSL::VERIFY_PEER)
     end
 
-    it 'does not use ssl when insecure' do
+    it 'secureがfalseの場合はSSLを使用しないこと' do
       project = add_project
       client = build_client(:api_key => project.api_key, :secure => false)
       client.download { |ignore| }
       expect(http.use_ssl?).to eq(false)
     end
 
-    it 'wraps HTTP errors with ConnectionError' do
+    it 'HTTPエラーをConnectionErrorでラップすること' do
       errors = [
         Timeout::Error.new,
         Errno::EINVAL.new,
@@ -89,30 +89,30 @@ describe CopyTunerClient do
       end
     end
 
-    it 'handles 500 errors from downloads with ConnectionError' do
+    it 'ダウンロード時に500エラーが発生した場合はConnectionErrorになること' do
       client = build_client(:api_key => 'raise_error')
       expect { client.download { |ignore| } }.
         to raise_error(CopyTunerClient::ConnectionError)
     end
 
-    it 'handles 500 errors from uploads with ConnectionError' do
+    it 'アップロード時に500エラーが発生した場合はConnectionErrorになること' do
       client = build_client(:api_key => 'raise_error')
       expect { client.upload({}) }.to raise_error(CopyTunerClient::ConnectionError)
     end
 
-    it 'handles 404 errors from downloads with ConnectionError' do
+    it 'ダウンロード時に404エラーが発生した場合はInvalidApiKeyになること' do
       client = build_client(:api_key => 'bogus')
       expect { client.download { |ignore| } }.
         to raise_error(CopyTunerClient::InvalidApiKey)
     end
 
-    it 'handles 404 errors from uploads with ConnectionError' do
+    it 'アップロード時に404エラーが発生した場合はInvalidApiKeyになること' do
       client = build_client(:api_key => 'bogus')
       expect { client.upload({}) }.to raise_error(CopyTunerClient::InvalidApiKey)
     end
   end
 
-  it 'downloads published blurbs for an existing project' do
+  it '既存プロジェクトのpublishedなblurbをダウンロードできること' do
     project = add_project
     project.update({
       'draft' => {
@@ -135,14 +135,14 @@ describe CopyTunerClient do
     })
   end
 
-  it 'logs that it performed a download' do
+  it 'ダウンロードを実行したことをログに出力すること' do
     logger = FakeLogger.new
     client = build_client_with_project(:logger => logger)
     client.download { |ignore| }
     expect(logger).to have_entry(:info, 'Downloaded translations')
   end
 
-  it 'downloads draft blurbs for an existing project' do
+  it '既存プロジェクトのdraftなblurbをダウンロードできること' do
     project = add_project
     project.update({
       'draft' => {
@@ -165,7 +165,7 @@ describe CopyTunerClient do
     })
   end
 
-  it "handles a 304 response when downloading" do
+  it '304レスポンス時は2回目以降yieldされないこと' do
     project = add_project
     project.update('draft' => { 'key.one' => "expected one" })
     logger = FakeLogger.new
@@ -182,7 +182,7 @@ describe CopyTunerClient do
     expect(logger).to have_entry(:info, "No new translations")
   end
 
-  it "uploads defaults for missing blurbs in an existing project" do
+  it '既存プロジェクトに存在しないblurbはアップロードされること' do
     project = add_project
 
     blurbs = {
@@ -196,14 +196,14 @@ describe CopyTunerClient do
     expect(project.reload.draft).to eq(blurbs)
   end
 
-  it "logs that it performed an upload" do
+  it 'アップロードを実行したことをログに出力すること' do
     logger = FakeLogger.new
     client = build_client_with_project(:logger => logger)
     client.upload({})
     expect(logger).to have_entry(:info, "Uploaded missing translations")
   end
 
-  it "deploys from the top-level constant" do
+  it 'トップレベル定数からdeployできること' do
     client = build_client
     allow(client).to receive(:download)
     CopyTunerClient.configure do |config|
@@ -214,7 +214,7 @@ describe CopyTunerClient do
     CopyTunerClient.deploy
   end
 
-  it "deploys" do
+  it 'deployが実行できること' do
     project = add_project
     project.update({
       'draft' => {
@@ -238,7 +238,41 @@ describe CopyTunerClient do
     expect(logger).to have_entry(:info, "Deployed")
   end
 
-  it "handles deploy errors" do
+  it 'deploy時にエラーが発生した場合は例外が発生すること' do
     expect { build_client.deploy }.to raise_error(CopyTunerClient::InvalidApiKey)
+  end
+
+  describe '#etag' do
+    it 'etagが読み取り可能な属性として公開されていること' do
+      client = build_client
+      expect(client).to respond_to(:etag)
+    end
+
+    it '初期状態ではetagがnilであること' do
+      client = build_client
+      expect(client.etag).to be_nil
+    end
+
+    it 'ダウンロード成功時にetagが更新されること' do
+      project = add_project
+      client = build_client(:api_key => project.api_key)
+
+      # モックでETagを設定
+      response = Net::HTTPSuccess.new('1.1', '200', 'OK')
+      allow(response).to receive(:body).and_return('{}')
+      allow(response).to receive(:[]).with('ETag').and_return('"abc123"')
+
+      http = double('http')
+      allow(Net::HTTP).to receive(:new).and_return(http)
+      allow(http).to receive(:open_timeout=)
+      allow(http).to receive(:read_timeout=)
+      allow(http).to receive(:use_ssl=)
+      allow(http).to receive(:verify_mode=)
+      allow(http).to receive(:ca_file=)
+      allow(http).to receive(:request).and_return(response)
+
+      client.download { |blurbs| }
+      expect(client.etag).to eq('"abc123"')
+    end
   end
 end

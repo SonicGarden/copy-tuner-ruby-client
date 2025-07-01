@@ -18,6 +18,10 @@ module CopyTunerClient
 
     USER_AGENT = "copy_tuner_client #{CopyTunerClient::VERSION}"
 
+    # ETags を外部から取得可能にする
+    # @return [String, nil] 現在のETag値
+    attr_reader :etag
+
     # Usually instantiated from {Configuration#apply}. Copies options.
     # @param options [Hash]
     # @option options [String] :api_key API key of the project to connect to
