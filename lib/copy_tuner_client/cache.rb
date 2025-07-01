@@ -71,7 +71,8 @@ module CopyTunerClient
     # Yaml representation of all blurbs
     # @return [String] yaml
     def export
-      to_tree_hash.present? ? to_tree_hash.to_yaml : nil
+      tree_hash = to_tree_hash
+      tree_hash.present? ? tree_hash.to_yaml : nil
     end
 
     # ツリー構造のハッシュを返す（I18nBackend用）
