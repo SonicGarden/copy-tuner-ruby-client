@@ -20,10 +20,15 @@ Gem::Specification.new do |s|
   s.executables = `git ls-files -- bin/*`.split("\n").map { |f| File.basename(f) }
   s.files = `git ls-files`.split("\n")
   s.homepage = 'https://github.com/SonicGarden/copy-tuner-ruby-client'
+
+  s.metadata["homepage_uri"] = s.homepage
+  s.metadata["source_code_uri"] = "https://github.com/SonicGarden/copy-tuner-ruby-client"
+  s.metadata["changelog_uri"] = "https://github.com/SonicGarden/copy-tuner-ruby-client/releases"
+  s.metadata['rubygems_mfa_required'] = 'true'
+
   s.name = 'copy_tuner_client'
   s.platform = Gem::Platform::RUBY
   s.require_paths = ['lib']
   s.summary = 'Client for the CopyTuner copy management service'
   s.version = CopyTunerClient::VERSION
-  s.metadata['rubygems_mfa_required'] = 'true'
 end
