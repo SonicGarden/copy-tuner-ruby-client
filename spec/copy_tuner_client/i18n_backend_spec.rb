@@ -417,6 +417,13 @@ describe 'CopyTunerClient::I18nBackend' do
         # ignored_keys が動作することを確認
         subject.translate('ja', 'views.secret')
       end
+
+      it 'stringキーが存在する場合のsub-keyアクセスでエラーが発生しないこと' do
+        cache['ja.hoge'] = 'hoge value'
+
+        result = subject.translate('ja', 'hoge.hello', default: nil)
+        expect(result).to be_nil
+      end
     end
   end
 end
