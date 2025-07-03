@@ -107,9 +107,14 @@ module CopyTunerClient
       return nil if @tree_cache.nil?
 
       symbol_keys = keys.map(&:to_sym)
-      result = @tree_cache.dig(*symbol_keys)
-
-      result.is_a?(Hash) ? result : nil
+      begin
+        result = @tree_cache.dig(*symbol_keys)
+        result.is_a?(Hash) ? result : nil
+      rescue TypeError
+        # Handle the case where dig encounters a non-Hash value
+        # (e.g., when ja.hoge exists as a string and ja.hoge.hello is searched)
+        nil
+      end
     end
 
     def store_item(locale, data, scope = [])
