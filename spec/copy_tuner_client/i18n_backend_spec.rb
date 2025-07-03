@@ -420,7 +420,6 @@ describe 'CopyTunerClient::I18nBackend' do
 
       it 'stringキーが存在する場合のsub-keyアクセスでエラーが発生しないこと' do
         cache['ja.hoge'] = 'hoge value'
-        expect { subject.translate('ja', 'hoge.hello', default: nil) }.not_to raise_error
 
         result = subject.translate('ja', 'hoge.hello', default: nil)
         expect(result).to be_nil
