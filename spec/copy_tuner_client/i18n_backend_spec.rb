@@ -243,7 +243,8 @@ describe 'CopyTunerClient::I18nBackend' do
     end
   end
 
-  describe 'ツリー構造のlookup' do
+  # NOTE: 色々考慮する必要があることが分かったため暫定対応として、ツリーキャッシュを使用しないようにしている
+  xdescribe 'ツリー構造のlookup' do # rubocop:disable Metrics/BlockLength
     subject { build_backend }
 
     context '完全一致が存在する場合' do
