@@ -58,6 +58,80 @@ describe CopyTunerClient::DottedHash do
 
       it { is_expected.to eq({ 'en' => { 'test' => { 'key' => 'en test value' } } }) }
     end
+
+    context "with Rails i18n numeric precision keys" do
+      let(:dotted_hash) do
+        {
+          'en.number.currency.format.precision' => '2',
+          'en.number.format.precision' => '3',
+        }
+      end
+
+      it "converts precision values to integers" do
+        is_expected.to eq({
+          'en' => {
+            'number' => {
+              'currency' => {
+                'format' => {
+                  'precision' => 2,
+                },
+              },
+              'format' => {
+                'precision' => 3,
+              },
+            },
+          },
+        })
+      end
+    end
+
+    context "with Rails i18n boolean keys" do
+      let(:dotted_hash) do
+        {
+          'en.number.currency.format.significant' => 'false',
+          'en.number.format.strip_insignificant_zeros' => 'true',
+        }
+      end
+
+      it "converts boolean values to actual booleans" do
+        is_expected.to eq({
+          'en' => {
+            'number' => {
+              'currency' => {
+                'format' => {
+                  'significant' => false,
+                },
+              },
+              'format' => {
+                'strip_insignificant_zeros' => true,
+              },
+            },
+          },
+        })
+      end
+    end
+
+    context "with non-Rails i18n keys containing similar patterns" do
+      let(:dotted_hash) do
+        {
+          'en.custom.precision' => 'custom_value',
+          'en.other.significant_value' => 'true',
+        }
+      end
+
+      it "converts only keys ending with Rails i18n patterns" do
+        is_expected.to eq({
+          'en' => {
+            'custom' => {
+              'precision' => 0, # .precision suffix triggers conversion
+            },
+            'other' => {
+              'significant_value' => 'true', # no conversion for non-exact match
+            },
+          },
+        })
+      end
+    end
   end
 
   describe ".conflict_keys" do

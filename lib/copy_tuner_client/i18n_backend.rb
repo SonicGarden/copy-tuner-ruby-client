@@ -80,10 +80,9 @@ module CopyTunerClient
         return exact_match
       end
 
-      # NOTE: 色々考慮する必要があることが分かったため暫定対応として、ツリーキャッシュを使用しないようにしている
-      # ensure_tree_cache_current
-      # tree_result = lookup_in_tree_cache(parts)
-      # return tree_result if tree_result
+      ensure_tree_cache_current
+      tree_result = lookup_in_tree_cache(parts)
+      return tree_result if tree_result
 
       content = super
 
