@@ -5,7 +5,7 @@ module CopyTunerClient
       dotted_hash.to_h.transform_keys(&:to_s).sort.each do |key, value|
         # Rails i18n標準との互換性のため、特定のキーを適切な型に変換
         converted_value = convert_value_type(key, value)
-        _hash = key.split('.').reverse.inject(converted_value) { |memo, key| { key => memo } }
+        _hash = key.split('.').reverse.inject(converted_value) { |memo, _key| { _key => memo } }
         hash.deep_merge!(_hash)
       end
       hash
@@ -18,8 +18,8 @@ module CopyTunerClient
       all_keys.each_with_index do |key, index|
         prefix = "#{key}."
         conflict_keys = ((index + 1)..Float::INFINITY)
-          .take_while { |i| all_keys[i]&.start_with?(prefix) }
-          .map { |i| all_keys[i] }
+                        .take_while { |i| all_keys[i]&.start_with?(prefix) }
+                        .map { |i| all_keys[i] }
 
         if conflict_keys.present?
           results[key] = conflict_keys
