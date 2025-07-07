@@ -29,6 +29,8 @@ module CopyTunerClient
       results
     end
 
+    module_function :to_h, :conflict_keys # rubocop:disable Style/AccessModifierDeclarations
+
     private
 
     def convert_value_type(key, value)
@@ -44,7 +46,5 @@ module CopyTunerClient
         value
       end
     end
-
-    module_function :to_h, :conflict_keys, :convert_value_type
   end
 end
