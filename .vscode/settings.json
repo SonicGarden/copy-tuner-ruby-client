@@ -8,4 +8,7 @@
   "cSpell.words": [
     "mkpath"
   ],
+  "[ruby]": {
+    "editor.defaultFormatter": "rubocop.vscode-rubocop",
+  }
 }
