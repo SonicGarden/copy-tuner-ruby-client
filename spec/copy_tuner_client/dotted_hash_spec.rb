@@ -4,25 +4,25 @@ describe CopyTunerClient::DottedHash do
   describe ".to_h" do
     subject { CopyTunerClient::DottedHash.to_h(dotted_hash) }
 
-    context 'empty keys' do
+    context '空のキーの場合' do
       let(:dotted_hash) { {} }
 
       it { is_expected.to eq({}) }
     end
 
-    context 'with single-level keys' do
+    context '1階層のキーの場合' do
       let(:dotted_hash) { { 'key' => 'test value', other_key: 'other value' } }
 
       it { is_expected.to eq({ 'key' => 'test value', 'other_key' => 'other value' }) }
     end
 
-    context 'array of key value pairs' do
+    context 'キーと値の配列の場合' do
       let(:dotted_hash) { [['key', 'test value'], ['other_key', 'other value']] }
 
       it { is_expected.to eq({ 'key' => 'test value', 'other_key' => 'other value' }) }
     end
 
-    context "with multi-level blurb keys" do
+    context "複数階層のblurbキーの場合" do
       let(:dotted_hash) do
         {
           'en.test.key' => 'en test value',
@@ -31,7 +31,7 @@ describe CopyTunerClient::DottedHash do
         }
       end
 
-      it do
+      it "正しくネストされたハッシュに変換されること" do
         is_expected.to eq({
           'en' => {
             'test' => {
@@ -48,7 +48,7 @@ describe CopyTunerClient::DottedHash do
       end
     end
 
-    context "with conflicting keys" do
+    context "キーの競合がある場合" do
       let(:dotted_hash) do
         {
           'en.test' => 'invalid value',
@@ -59,7 +59,7 @@ describe CopyTunerClient::DottedHash do
       it { is_expected.to eq({ 'en' => { 'test' => { 'key' => 'en test value' } } }) }
     end
 
-    context "with Rails i18n numeric precision keys" do
+    context "Rails i18nの数値precisionキーの場合" do
       let(:dotted_hash) do
         {
           'en.number.currency.format.precision' => '2',
@@ -67,7 +67,7 @@ describe CopyTunerClient::DottedHash do
         }
       end
 
-      it "converts precision values to integers" do
+      it "precision値を整数に変換する" do
         is_expected.to eq({
           'en' => {
             'number' => {
@@ -85,7 +85,7 @@ describe CopyTunerClient::DottedHash do
       end
     end
 
-    context "with Rails i18n boolean keys" do
+    context "Rails i18nのbooleanキーの場合" do
       let(:dotted_hash) do
         {
           'en.number.currency.format.significant' => 'false',
@@ -93,7 +93,7 @@ describe CopyTunerClient::DottedHash do
         }
       end
 
-      it "converts boolean values to actual booleans" do
+      it "boolean値を実際の真偽値に変換する" do
         is_expected.to eq({
           'en' => {
             'number' => {
@@ -111,7 +111,7 @@ describe CopyTunerClient::DottedHash do
       end
     end
 
-    context "with non-Rails i18n keys containing similar patterns" do
+    context "Rails i18n以外で似たパターンを含むキーの場合" do
       let(:dotted_hash) do
         {
           'en.custom.precision' => 'custom_value',
@@ -119,7 +119,7 @@ describe CopyTunerClient::DottedHash do
         }
       end
 
-      it "converts only keys ending with Rails i18n patterns" do
+      it "Rails i18nパターンで終わるキーのみ変換する" do
         is_expected.to eq({
           'en' => {
             'custom' => {
@@ -137,7 +137,7 @@ describe CopyTunerClient::DottedHash do
   describe ".conflict_keys" do
     subject { CopyTunerClient::DottedHash.conflict_keys(dotted_hash) }
 
-    context 'valid keys' do
+    context '有効なキーの場合' do
       let(:dotted_hash) do
         {
           'ja.hoge.test' => 'test',
@@ -148,7 +148,7 @@ describe CopyTunerClient::DottedHash do
       it { is_expected.to eq({}) }
     end
 
-    context 'invalid keys' do
+    context '無効なキーの場合' do
       let(:dotted_hash) do
         {
           'ja.hoge.test' => 'test',
@@ -159,7 +159,7 @@ describe CopyTunerClient::DottedHash do
         }
       end
 
-      it do
+      it "競合するキーが正しく検出されること" do
         is_expected.to eq({
           'ja.fuga.test' => %w[ja.fuga.test.hoge],
           'ja.hoge.test' => %w[ja.hoge.test.fuga ja.hoge.test.hoge],
