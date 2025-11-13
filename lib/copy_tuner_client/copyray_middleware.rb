@@ -74,7 +74,7 @@ module CopyTunerClient
     end
 
     def response_body(response)
-      body = ''
+      body = +''
       response.each { |s| body << s.to_s }
       body
     end
