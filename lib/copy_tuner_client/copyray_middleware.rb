@@ -67,7 +67,7 @@ module CopyTunerClient
     end
 
     def html_headers?(status, headers)
-      status == 200 &&
+      [200, 422].include?(status) &&
       headers['Content-Type'] &&
       headers['Content-Type'].include?('text/html') &&
       !file?(headers)
