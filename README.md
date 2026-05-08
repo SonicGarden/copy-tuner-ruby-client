@@ -35,6 +35,20 @@ bundle exec rake copy_tuner:export
 
 これで、`config/locales/copy_tuner.yml` に翻訳ファイルが作成されます。
 
+## Claude Code スキル
+
+`skills/copy-tuner/` に Claude Code 向けのスキルが含まれています。
+
+### copy-tuner スキル
+
+i18n キーの操作を支援するスキルです。翻訳キーの検索・登録・確認などの依頼に自動的に使用されます。
+
+```
+gh skill install SonicGarden/copy-tuner-ruby-client copy-tuner --scope project
+```
+
+詳細: [skills/copy-tuner/SKILL.md](skills/copy-tuner/SKILL.md)
+
 Development
 =================
 
