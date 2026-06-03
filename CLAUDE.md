@@ -25,6 +25,8 @@ Rails 統合は engine.rb のイニシャライザ経由（ヘルパー/SimpleFo
   - `exclude_key_regexp` — locale 付きキー対象・アップロード時に作用
   - `local_first_key_regexp` — locale を除いたキー対象・lookup 時に作用（ローカル YAML 優先）
   local_first キーのアップロード抑止は `Cache#[]=` に集約されている。
+- **アップロード抑止の新ルールは `Cache#[]=` に足す。`I18nBackend` の書き込み経路（`lookup` / `default` / `store_item`）ごとに個別ガードを足さない**
+  （理由: cache への書き込みは全経路が最終的に `Cache#[]=` を通る単一の関門。経路ごとにガードを足すと付け忘れの穴が生まれ、同じチェックが分散して保守負担になる。実際 local_first の抑止は当初 `default` 個別に足したが穴が残り、`Cache#[]=` への集約に作り直した）。
 
 ## Claude Code スキル
 `skills/copy-tuner/` に i18n キー操作支援スキルがある（SKILL.md 参照）。
