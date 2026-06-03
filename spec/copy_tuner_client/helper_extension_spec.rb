@@ -23,4 +23,10 @@ describe CopyTunerClient::HelperExtension do
     view = KeywordArgumentsView.new
     expect(view.translate('some.key', name: 'World')).to eq '<!--COPYRAY some.key-->Hello, World'
   end
+
+  it 'does not inject the overlay marker for a local_first key' do
+    CopyTunerClient.configuration.local_first_key_regexp = /\Aviews\./
+    view = KeywordArgumentsView.new
+    expect(view.translate('views.foo', name: 'World')).to eq 'Hello, World'
+  end
 end

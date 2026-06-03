@@ -190,6 +190,34 @@ describe CopyTunerClient::Configuration do
     expect(prefixed_logger).to be_a(CopyTunerClient::PrefixedLogger)
     expect(prefixed_logger.original_logger).to eq(logger)
   end
+
+  describe '#local_first_key?' do
+    let(:config) { CopyTunerClient::Configuration.new }
+
+    it 'returns false when local_first_key_regexp is nil (default)' do
+      expect(config.local_first_key?('views.foo.bar')).to eq false
+    end
+
+    context 'when local_first_key_regexp is set' do
+      before { config.local_first_key_regexp = /\Aviews\./ }
+
+      it 'returns true for a matching key' do
+        expect(config.local_first_key?('views.foo.bar')).to eq true
+      end
+
+      it 'returns false for a non-matching key' do
+        expect(config.local_first_key?('models.foo.bar')).to eq false
+      end
+
+      it 'returns false for a nil key' do
+        expect(config.local_first_key?(nil)).to eq false
+      end
+
+      it 'coerces a Symbol key before matching' do
+        expect(config.local_first_key?(:'views.foo')).to eq true
+      end
+    end
+  end
 end
 
 shared_context 'stubbed configuration' do

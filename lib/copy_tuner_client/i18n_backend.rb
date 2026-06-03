@@ -142,8 +142,7 @@ module CopyTunerClient
     end
 
     def local_first_key?(key_without_locale)
-      regexp = CopyTunerClient.configuration.local_first_key_regexp
-      regexp && key_without_locale.match?(regexp)
+      CopyTunerClient.configuration.local_first_key?(key_without_locale)
     end
 
     def default(locale, object, subject, options = {})

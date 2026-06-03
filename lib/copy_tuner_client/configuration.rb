@@ -343,6 +343,18 @@ module CopyTunerClient
       URI::Generic.build(scheme: self.protocol, host: self.host, port: self.port.to_i, path:).to_s
     end
 
+    # locale を除いたキーが local_first_key_regexp にマッチするかを返す。
+    # マッチするキーはローカル config/locales（CopyTuner 管理外）で管理されるため、
+    # オーバーレイマーカー注入やキャッシュ参照をスキップする必要がある。
+    #
+    # @param key_without_locale [String, Symbol, nil] locale prefix を除いたキー（例: "views.foo.bar"）
+    # @return [Boolean]
+    def local_first_key?(key_without_locale)
+      return false if local_first_key_regexp.nil? || key_without_locale.nil?
+
+      key_without_locale.to_s.match?(local_first_key_regexp)
+    end
+
     private
 
     def default_port

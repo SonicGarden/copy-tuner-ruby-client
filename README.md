@@ -51,6 +51,7 @@ CopyTuner で一元管理している翻訳を、`views.*` のような単位で
 
 - マッチしたキーは CopyTuner キャッシュを一切参照せず、ローカル YAML のみを引きます（完全分離）。
 - ローカル YAML にも存在しない場合は未訳（`nil` / MissingTranslation）となります。CopyTuner へのフォールバックや新規キーのアップロードは行いません。これにより移行漏れを未訳として検知できます。
+- マッチしたキーには、ビューヘルパー（`t` / `translate`）および SimpleForm のラベルで CopyRay オーバーレイマーカー（`<!--COPYRAY key-->`）を注入しません。これらのキーは CopyTuner 上で編集できないため、編集可能だと誤認させないためです。
 
 `exclude_key_regexp` との違い:
 
