@@ -218,6 +218,30 @@ describe CopyTunerClient::Configuration do
       end
     end
   end
+
+  describe '#exclude_key_regexp= (deprecated)' do
+    let(:config) { CopyTunerClient::Configuration.new }
+    let(:deprecator) { instance_double(ActiveSupport::Deprecation, warn: nil) }
+
+    before { allow(ActiveSupport::Deprecation).to receive(:new).and_return(deprecator) }
+
+    it 'warns when a value is set' do
+      expect(deprecator).to receive(:warn).with(/exclude_key_regexp is deprecated/)
+
+      config.exclude_key_regexp = /\Aja\.views\./
+    end
+
+    it 'stores the assigned value' do
+      config.exclude_key_regexp = /\Aja\.views\./
+      expect(config.exclude_key_regexp).to eq(/\Aja\.views\./)
+    end
+
+    it 'does not warn when set to nil' do
+      expect(deprecator).not_to receive(:warn)
+
+      config.exclude_key_regexp = nil
+    end
+  end
 end
 
 shared_context 'stubbed configuration' do

@@ -114,7 +114,8 @@ module CopyTunerClient
     attr_accessor :poller
 
     # @return [Regexp] Regular expression to exclude keys.
-    attr_accessor :exclude_key_regexp
+    # @deprecated Use {#local_first_key_regexp} instead.
+    attr_reader :exclude_key_regexp
 
     # @return [Regexp] Keys (without locale) matching this regexp bypass the
     #   copy_tuner cache and are looked up from local config/locales
@@ -319,6 +320,18 @@ module CopyTunerClient
       raise ArgumentError, 'api_key is required' if api_key.nil? || api_key.empty?
 
       @api_key = api_key
+    end
+
+    # @deprecated Use {#local_first_key_regexp} instead.
+    def exclude_key_regexp=(value)
+      unless value.nil?
+        ActiveSupport::Deprecation.new.warn(
+          'exclude_key_regexp is deprecated and will be removed in a future release. ' \
+          'Use local_first_key_regexp instead (note: it matches keys WITHOUT the locale prefix, ' \
+          'e.g. /\Aviews\./ instead of /\Aja\.views\./).'
+        )
+      end
+      @exclude_key_regexp = value
     end
 
     # Sync interval for Rack Middleware
