@@ -438,6 +438,11 @@ describe 'CopyTunerClient::I18nBackend' do
       I18n::Backend::Simple.instance_method(:store_translations).bind(backend).call(locale, data)
     end
 
+    # アップロード抑止（Cache#[]=）の検証用に、現在の configuration を反映した実 Cache を作る。
+    def build_real_cache
+      CopyTunerClient::Cache.new(FakeClient.new, CopyTunerClient.configuration.to_hash)
+    end
+
     context 'local_first_key_regexp が nil（デフォルト）のとき' do
       it 'views.* でも従来どおり copy_tuner（cache）を優先すること' do
         CopyTunerClient.configuration.local_first_key_regexp = nil
@@ -478,17 +483,28 @@ describe 'CopyTunerClient::I18nBackend' do
         expect(spy_cache).not_to have_received(:[]=).with('ja.views.missing', nil)
       end
 
-      it 'views.* を default: 付きで翻訳しても cache(copy_tuner) に書き込まないこと' do
-        spy_cache = TestCache.new
-        allow(spy_cache).to receive(:[]=).and_call_original
-        backend = CopyTunerClient::I18nBackend.new(spy_cache)
+      it 'views.* を default: 付きで翻訳しても copy_tuner へアップロードしないこと' do
+        real_cache = build_real_cache
+        backend = CopyTunerClient::I18nBackend.new(real_cache)
         I18n.backend = backend
 
         result = backend.translate('ja', 'views.bar', default: 'literal default')
 
         expect(result).to eq('literal default')
-        # 完全分離: local_first キーは default: 経由でも copy_tuner へ書き込まない
-        expect(spy_cache).not_to have_received(:[]=).with('ja.views.bar', anything)
+        # 完全分離: local_first キーは default: 経由でもアップロードキューに入らない（Cache#[]= が弾く）
+        expect(real_cache.queued.keys).not_to include('ja.views.bar')
+      end
+
+      it 'store_translations 経由でも local_first キーはアップロードキューに入らないこと' do
+        real_cache = build_real_cache
+        backend = CopyTunerClient::I18nBackend.new(real_cache)
+        I18n.backend = backend
+
+        backend.store_translations(:ja, views: { foo: 'local value' }, messages: { bar: 'msg value' })
+
+        # 完全分離: views.* はキューに入らず、それ以外（messages.*）は従来どおり入る
+        expect(real_cache.queued.keys).not_to include('ja.views.foo')
+        expect(real_cache.queued.keys).to include('ja.messages.bar')
       end
     end
   end
