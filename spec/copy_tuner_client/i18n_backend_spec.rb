@@ -427,4 +427,56 @@ describe 'CopyTunerClient::I18nBackend' do
       end
     end
   end
+
+  describe 'local_first_key_regexp（ローカル優先キー）' do
+    after { CopyTunerClient.configuration.local_first_key_regexp = nil }
+
+    # ローカル config/locales 相当のデータを I18n::Backend::Simple 側だけに格納する。
+    # I18nBackend#store_translations は cache にも書き込んでしまうため、
+    # Simple の store_translations を直接呼んでローカル YAML のみを再現する。
+    def store_local(backend, locale, data)
+      I18n::Backend::Simple.instance_method(:store_translations).bind(backend).call(locale, data)
+    end
+
+    context 'local_first_key_regexp が nil（デフォルト）のとき' do
+      it 'views.* でも従来どおり copy_tuner（cache）を優先すること' do
+        CopyTunerClient.configuration.local_first_key_regexp = nil
+        cache['ja.views.foo'] = 'copy tuner value'
+        store_local(subject, :ja, views: { foo: 'local value' })
+
+        expect(subject.translate('ja', 'views.foo')).to eq('copy tuner value')
+      end
+    end
+
+    context 'local_first_key_regexp = /\Aviews\./ のとき' do
+      before { CopyTunerClient.configuration.local_first_key_regexp = /\Aviews\./ }
+
+      it 'views.* は cache に値があってもローカル YAML を優先すること' do
+        cache['ja.views.foo'] = 'copy tuner value'
+        store_local(subject, :ja, views: { foo: 'local value' })
+
+        expect(subject.translate('ja', 'views.foo')).to eq('local value')
+      end
+
+      it 'views.* 以外のキーは従来どおり copy_tuner を優先すること' do
+        cache['ja.messages.foo'] = 'copy tuner value'
+        store_local(subject, :ja, messages: { foo: 'local value' })
+
+        expect(subject.translate('ja', 'messages.foo')).to eq('copy tuner value')
+      end
+
+      it 'views.* がローカルにも cache にも無いとき nil を返し、空キー登録（アップロード）をしないこと' do
+        spy_cache = TestCache.new
+        allow(spy_cache).to receive(:[]=).and_call_original
+        backend = CopyTunerClient::I18nBackend.new(spy_cache)
+        I18n.backend = backend
+
+        result = backend.translate('ja', 'views.missing', default: nil)
+
+        expect(result).to be_nil
+        # 案1（完全分離）: local_first キーは空キー登録（アップロードキュー投入）を行わない
+        expect(spy_cache).not_to have_received(:[]=).with('ja.views.missing', nil)
+      end
+    end
+  end
 end

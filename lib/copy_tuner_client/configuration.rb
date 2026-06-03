@@ -18,7 +18,7 @@ module CopyTunerClient
                  proxy_port proxy_user secure polling_delay sync_interval
                  sync_interval_staging sync_ignore_path_regex logger
                  framework middleware disable_middleware disable_test_translation
-                 ca_file exclude_key_regexp s3_host locales ignored_keys ignored_key_handler
+                 ca_file exclude_key_regexp local_first_key_regexp s3_host locales ignored_keys ignored_key_handler
                  download_cache_dir].freeze
 
     # @return [String] The API key for your project, found on the project edit form.
@@ -116,6 +116,12 @@ module CopyTunerClient
     # @return [Regexp] Regular expression to exclude keys.
     attr_accessor :exclude_key_regexp
 
+    # @return [Regexp] Keys (without locale) matching this regexp bypass the
+    #   copy_tuner cache and are looked up from local config/locales
+    #   (I18n::Backend::Simple) first. Used for gradual migration from
+    #   copy_tuner to local YAML.
+    attr_accessor :local_first_key_regexp
+
     # @return [String] The S3 host to connect to (defaults to +copy-tuner-us.s3.amazonaws.com+).
     attr_accessor :s3_host
 
@@ -163,6 +169,7 @@ module CopyTunerClient
       self.html_escape = true
       self.ignored_keys = []
       self.ignored_key_handler = ->(e) { raise e }
+      self.local_first_key_regexp = nil
       self.project_id = nil
       self.download_cache_dir = Pathname.new(Dir.pwd).join('tmp', 'cache', 'copy_tuner_client')
 

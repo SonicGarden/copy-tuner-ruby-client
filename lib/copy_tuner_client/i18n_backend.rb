@@ -73,6 +73,13 @@ module CopyTunerClient
         CopyTunerClient::configuration.ignored_key_handler.call(IgnoredKey.new("Ignored key: #{key_without_locale}"))
       end
 
+      # NOTE: local_first_key_regexp にマッチするキーは copy_tuner キャッシュをスキップし、
+      # ローカル config/locales（I18n::Backend::Simple）を優先する。段階的にローカルへ移行するための仕組み。
+      # ローカルに無い場合は nil（未訳）のまま返し、copy_tuner へのフォールバックも空キー登録も行わない（完全分離）。
+      if local_first_key?(key_without_locale)
+        return super
+      end
+
       # NOTE: ハッシュ化した場合に削除されるキーに対応するため、最初に完全一致をチェック（旧クライアントの動作を維持）
       # 例: `en.test.key` が `en.test.key.conflict` のように別のキーで上書きされている場合の対応
       exact_match = cache[key_with_locale]
@@ -132,6 +139,11 @@ module CopyTunerClient
     def load_translations(*filenames)
       super
       cache.wait_for_download
+    end
+
+    def local_first_key?(key_without_locale)
+      regexp = CopyTunerClient.configuration.local_first_key_regexp
+      regexp && key_without_locale.match?(regexp)
     end
 
     def default(locale, object, subject, options = {})

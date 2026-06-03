@@ -45,6 +45,7 @@ describe CopyTunerClient::Configuration do
   it { is_expected.to have_config_option(:middleware).overridable }
   it { is_expected.to have_config_option(:client).overridable }
   it { is_expected.to have_config_option(:cache).overridable }
+  it { is_expected.to have_config_option(:local_first_key_regexp).overridable.default(nil) }
 
   it 'should provide default values for secure connections' do
     config = CopyTunerClient::Configuration.new

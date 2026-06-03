@@ -35,6 +35,30 @@ bundle exec rake copy_tuner:export
 
 これで、`config/locales/copy_tuner.yml` に翻訳ファイルが作成されます。
 
+## 特定のキーをローカル YAML 優先にする（段階移行）
+
+`config.local_first_key_regexp` を設定すると、**locale を除いたキー**（例 `views.foo.bar`）がその正規表現にマッチした場合、CopyTuner サーバのキャッシュをスキップして、ローカルの `config/locales/*.yml`（`I18n::Backend::Simple`）を優先的に参照します。
+
+```ruby
+CopyTunerClient.configure do |config|
+  # ...
+  # views.* で始まるキーはローカル YAML を優先する
+  config.local_first_key_regexp = /\Aviews\./
+end
+```
+
+CopyTuner で一元管理している翻訳を、`views.*` のような単位で段階的にローカル YAML へ移行するためのオプションです。
+
+- マッチしたキーは CopyTuner キャッシュを一切参照せず、ローカル YAML のみを引きます（完全分離）。
+- ローカル YAML にも存在しない場合は未訳（`nil` / MissingTranslation）となります。CopyTuner へのフォールバックや新規キーのアップロードは行いません。これにより移行漏れを未訳として検知できます。
+
+`exclude_key_regexp` との違い:
+
+| オプション | 対象 | 作用するタイミング |
+| --- | --- | --- |
+| `exclude_key_regexp` | locale 付きキー（例 `ja.views.foo`） | アップロード時（CopyTuner への送信を抑止） |
+| `local_first_key_regexp` | locale を除いたキー（例 `views.foo`） | 読み込み時（lookup の優先順位） |
+
 ## Claude Code スキル
 
 `skills/copy-tuner/` に Claude Code 向けのスキルが含まれています。
