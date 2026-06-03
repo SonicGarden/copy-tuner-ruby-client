@@ -477,6 +477,19 @@ describe 'CopyTunerClient::I18nBackend' do
         # 案1（完全分離）: local_first キーは空キー登録（アップロードキュー投入）を行わない
         expect(spy_cache).not_to have_received(:[]=).with('ja.views.missing', nil)
       end
+
+      it 'views.* を default: 付きで翻訳しても cache(copy_tuner) に書き込まないこと' do
+        spy_cache = TestCache.new
+        allow(spy_cache).to receive(:[]=).and_call_original
+        backend = CopyTunerClient::I18nBackend.new(spy_cache)
+        I18n.backend = backend
+
+        result = backend.translate('ja', 'views.bar', default: 'literal default')
+
+        expect(result).to eq('literal default')
+        # 完全分離: local_first キーは default: 経由でも copy_tuner へ書き込まない
+        expect(spy_cache).not_to have_received(:[]=).with('ja.views.bar', anything)
+      end
     end
   end
 end

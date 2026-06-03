@@ -149,10 +149,12 @@ module CopyTunerClient
       content = super(locale, object, subject, options)
       return content if !object.is_a?(String) && !object.is_a?(Symbol)
 
-      if content.respond_to?(:to_str)
+      # NOTE: ActionView::Helpers::TranslationHelper#translate wraps default String in an Array
+      if content.respond_to?(:to_str) &&
+         (subject.is_a?(String) || (subject.is_a?(Array) && subject.size == 1 && subject.first.is_a?(String)))
         parts = I18n.normalize_keys(locale, object, options[:scope], options[:separator])
-        # NOTE: ActionView::Helpers::TranslationHelper#translate wraps default String in an Array
-        if subject.is_a?(String) || (subject.is_a?(Array) && subject.size == 1 && subject.first.is_a?(String))
+        # NOTE: local_first_key_regexp にマッチするキーは copy_tuner と完全分離するため cache へ書き込まない（lookup と同じ方針）
+        unless local_first_key?(parts[1..].join('.'))
           key = parts.join('.')
           cache[key] = content.to_str
         end
