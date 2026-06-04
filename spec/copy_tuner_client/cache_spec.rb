@@ -34,6 +34,27 @@ describe 'CopyTunerClient::Cache' do
     expect(cache.queued.keys).to match_array(%w[en.test.key])
   end
 
+  it 'local_first_key_regexpにマッチするキー（locale除く）はアップロードキューに入れないこと' do
+    cache = build_cache(local_first_key_regexp: /\Aviews\./)
+    cache['ja.views.foo']    = 'local value'
+    cache['ja.messages.bar'] = 'copy tuner value'
+
+    cache.download
+
+    # 完全分離: views.* は copy_tuner へアップロードしない
+    expect(cache.queued.keys).to match_array(%w[ja.messages.bar])
+  end
+
+  it 'local_first_key_regexpがnil（デフォルト）の場合は全キーをアップロードすること' do
+    cache = build_cache(local_first_key_regexp: nil)
+    cache['ja.views.foo']    = 'local value'
+    cache['ja.messages.bar'] = 'copy tuner value'
+
+    cache.download
+
+    expect(cache.queued.keys).to match_array(%w[ja.views.foo ja.messages.bar])
+  end
+
   it '変更がない場合はアップロードしないこと' do
     cache = build_cache
     cache.flush

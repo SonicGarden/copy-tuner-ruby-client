@@ -73,6 +73,13 @@ module CopyTunerClient
         CopyTunerClient::configuration.ignored_key_handler.call(IgnoredKey.new("Ignored key: #{key_without_locale}"))
       end
 
+      # NOTE: local_first_key_regexp にマッチするキーは copy_tuner キャッシュをスキップし、
+      # ローカル config/locales（I18n::Backend::Simple）を優先する。段階的にローカルへ移行するための仕組み。
+      # ローカルに無い場合は nil（未訳）のまま返し、copy_tuner へのフォールバックも空キー登録も行わない（完全分離）。
+      if local_first_key?(key_without_locale)
+        return super
+      end
+
       # NOTE: ハッシュ化した場合に削除されるキーに対応するため、最初に完全一致をチェック（旧クライアントの動作を維持）
       # 例: `en.test.key` が `en.test.key.conflict` のように別のキーで上書きされている場合の対応
       exact_match = cache[key_with_locale]
@@ -134,6 +141,10 @@ module CopyTunerClient
       cache.wait_for_download
     end
 
+    def local_first_key?(key_without_locale)
+      CopyTunerClient.configuration.local_first_key?(key_without_locale)
+    end
+
     def default(locale, object, subject, options = {})
       content = super(locale, object, subject, options)
       return content if !object.is_a?(String) && !object.is_a?(Symbol)
@@ -141,6 +152,7 @@ module CopyTunerClient
       if content.respond_to?(:to_str)
         parts = I18n.normalize_keys(locale, object, options[:scope], options[:separator])
         # NOTE: ActionView::Helpers::TranslationHelper#translate wraps default String in an Array
+        # NOTE: local_first キーのアップロード抑止は Cache#[]= 側に集約している
         if subject.is_a?(String) || (subject.is_a?(Array) && subject.size == 1 && subject.first.is_a?(String))
           key = parts.join('.')
           cache[key] = content.to_str

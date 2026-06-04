@@ -54,5 +54,16 @@ describe CopyTunerClient::Copyray do
         it_behaves_like 'Not escaped'
       end
     end
+
+    context 'when the key matches local_first_key_regexp' do
+      let(:source) { 'Hello' }
+      let(:key) { 'views.foo' }
+
+      before { CopyTunerClient.configuration.local_first_key_regexp = /\Aviews\./ }
+
+      it 'does not inject the overlay marker' do
+        is_expected.to eq 'Hello'
+      end
+    end
   end
 end
