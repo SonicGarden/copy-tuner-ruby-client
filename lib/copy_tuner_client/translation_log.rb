@@ -13,6 +13,11 @@ module CopyTunerClient
     end
 
     def self.add(key, result)
+      # local_first（CopyTuner 管理外でローカル config/locales 優先）のキーは記録しない。
+      # ここに集約することで、Copyray オーバーレイの JSON（window.CopyTuner.data）にも
+      # local_first キーが混入しない。key は I18n.normalize_keys(nil, ...) 由来の locale なし形式。
+      return if CopyTunerClient.configuration.local_first_key?(key)
+
       translations[key] = result if initialized? && !translations.key?(key)
     end
 

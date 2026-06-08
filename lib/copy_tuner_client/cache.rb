@@ -21,6 +21,7 @@ module CopyTunerClient
       @logger = options[:logger]
       @mutex = Mutex.new
       @exclude_key_regexp = options[:exclude_key_regexp]
+      @local_first_key_regexp = options[:local_first_key_regexp]
       @upload_disabled = options[:upload_disabled]
       @ignored_keys = options.fetch(:ignored_keys, [])
       @ignored_key_handler = options.fetch(:ignored_key_handler, -> (e) { raise e })
@@ -51,6 +52,9 @@ module CopyTunerClient
 
       # NOTE: config/locales以下のファイルに除外キーが残っていた場合の対応
       key_without_locale = key.split('.')[1..].join('.')
+      # NOTE: local_first_key_regexp にマッチするキーは copy_tuner と完全分離するためアップロードしない
+      return if @local_first_key_regexp && key_without_locale.match?(@local_first_key_regexp)
+
       if @ignored_keys.include?(key_without_locale)
         @ignored_key_handler.call(IgnoredKey.new("Ignored key: #{key_without_locale}"))
       end

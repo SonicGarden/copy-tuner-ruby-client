@@ -45,6 +45,7 @@ describe CopyTunerClient::Configuration do
   it { is_expected.to have_config_option(:middleware).overridable }
   it { is_expected.to have_config_option(:client).overridable }
   it { is_expected.to have_config_option(:cache).overridable }
+  it { is_expected.to have_config_option(:local_first_key_regexp).overridable.default(nil) }
 
   it 'should provide default values for secure connections' do
     config = CopyTunerClient::Configuration.new
@@ -188,6 +189,58 @@ describe CopyTunerClient::Configuration do
     prefixed_logger = config.logger
     expect(prefixed_logger).to be_a(CopyTunerClient::PrefixedLogger)
     expect(prefixed_logger.original_logger).to eq(logger)
+  end
+
+  describe '#local_first_key?' do
+    let(:config) { CopyTunerClient::Configuration.new }
+
+    it 'returns false when local_first_key_regexp is nil (default)' do
+      expect(config.local_first_key?('views.foo.bar')).to eq false
+    end
+
+    context 'when local_first_key_regexp is set' do
+      before { config.local_first_key_regexp = /\Aviews\./ }
+
+      it 'returns true for a matching key' do
+        expect(config.local_first_key?('views.foo.bar')).to eq true
+      end
+
+      it 'returns false for a non-matching key' do
+        expect(config.local_first_key?('models.foo.bar')).to eq false
+      end
+
+      it 'returns false for a nil key' do
+        expect(config.local_first_key?(nil)).to eq false
+      end
+
+      it 'coerces a Symbol key before matching' do
+        expect(config.local_first_key?(:'views.foo')).to eq true
+      end
+    end
+  end
+
+  describe '#exclude_key_regexp= (deprecated)' do
+    let(:config) { CopyTunerClient::Configuration.new }
+    let(:deprecator) { instance_double(ActiveSupport::Deprecation, warn: nil) }
+
+    before { allow(ActiveSupport::Deprecation).to receive(:new).and_return(deprecator) }
+
+    it 'warns when a value is set' do
+      expect(deprecator).to receive(:warn).with(/exclude_key_regexp is deprecated/)
+
+      config.exclude_key_regexp = /\Aja\.views\./
+    end
+
+    it 'stores the assigned value' do
+      config.exclude_key_regexp = /\Aja\.views\./
+      expect(config.exclude_key_regexp).to eq(/\Aja\.views\./)
+    end
+
+    it 'does not warn when set to nil' do
+      expect(deprecator).not_to receive(:warn)
+
+      config.exclude_key_regexp = nil
+    end
   end
 end
 

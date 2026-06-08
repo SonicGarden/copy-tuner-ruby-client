@@ -427,4 +427,85 @@ describe 'CopyTunerClient::I18nBackend' do
       end
     end
   end
+
+  describe 'local_first_key_regexp（ローカル優先キー）' do
+    after { CopyTunerClient.configuration.local_first_key_regexp = nil }
+
+    # ローカル config/locales 相当のデータを I18n::Backend::Simple 側だけに格納する。
+    # I18nBackend#store_translations は cache にも書き込んでしまうため、
+    # Simple の store_translations を直接呼んでローカル YAML のみを再現する。
+    def store_local(backend, locale, data)
+      I18n::Backend::Simple.instance_method(:store_translations).bind(backend).call(locale, data)
+    end
+
+    # アップロード抑止（Cache#[]=）の検証用に、現在の configuration を反映した実 Cache を作る。
+    def build_real_cache
+      CopyTunerClient::Cache.new(FakeClient.new, CopyTunerClient.configuration.to_hash)
+    end
+
+    context 'local_first_key_regexp が nil（デフォルト）のとき' do
+      it 'views.* でも従来どおり copy_tuner（cache）を優先すること' do
+        CopyTunerClient.configuration.local_first_key_regexp = nil
+        cache['ja.views.foo'] = 'copy tuner value'
+        store_local(subject, :ja, views: { foo: 'local value' })
+
+        expect(subject.translate('ja', 'views.foo')).to eq('copy tuner value')
+      end
+    end
+
+    context 'local_first_key_regexp = /\Aviews\./ のとき' do
+      before { CopyTunerClient.configuration.local_first_key_regexp = /\Aviews\./ }
+
+      it 'views.* は cache に値があってもローカル YAML を優先すること' do
+        cache['ja.views.foo'] = 'copy tuner value'
+        store_local(subject, :ja, views: { foo: 'local value' })
+
+        expect(subject.translate('ja', 'views.foo')).to eq('local value')
+      end
+
+      it 'views.* 以外のキーは従来どおり copy_tuner を優先すること' do
+        cache['ja.messages.foo'] = 'copy tuner value'
+        store_local(subject, :ja, messages: { foo: 'local value' })
+
+        expect(subject.translate('ja', 'messages.foo')).to eq('copy tuner value')
+      end
+
+      it 'views.* がローカルにも cache にも無いとき nil を返し、空キー登録（アップロード）をしないこと' do
+        spy_cache = TestCache.new
+        allow(spy_cache).to receive(:[]=).and_call_original
+        backend = CopyTunerClient::I18nBackend.new(spy_cache)
+        I18n.backend = backend
+
+        result = backend.translate('ja', 'views.missing', default: nil)
+
+        expect(result).to be_nil
+        # 案1（完全分離）: local_first キーは空キー登録（アップロードキュー投入）を行わない
+        expect(spy_cache).not_to have_received(:[]=).with('ja.views.missing', nil)
+      end
+
+      it 'views.* を default: 付きで翻訳しても copy_tuner へアップロードしないこと' do
+        real_cache = build_real_cache
+        backend = CopyTunerClient::I18nBackend.new(real_cache)
+        I18n.backend = backend
+
+        result = backend.translate('ja', 'views.bar', default: 'literal default')
+
+        expect(result).to eq('literal default')
+        # 完全分離: local_first キーは default: 経由でもアップロードキューに入らない（Cache#[]= が弾く）
+        expect(real_cache.queued.keys).not_to include('ja.views.bar')
+      end
+
+      it 'store_translations 経由でも local_first キーはアップロードキューに入らないこと' do
+        real_cache = build_real_cache
+        backend = CopyTunerClient::I18nBackend.new(real_cache)
+        I18n.backend = backend
+
+        backend.store_translations(:ja, views: { foo: 'local value' }, messages: { bar: 'msg value' })
+
+        # 完全分離: views.* はキューに入らず、それ以外（messages.*）は従来どおり入る
+        expect(real_cache.queued.keys).not_to include('ja.views.foo')
+        expect(real_cache.queued.keys).to include('ja.messages.bar')
+      end
+    end
+  end
 end
