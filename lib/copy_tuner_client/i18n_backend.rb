@@ -69,15 +69,16 @@ module CopyTunerClient
       key_with_locale = parts.join('.')
       key_without_locale = parts[1..].join('.')
 
-      if CopyTunerClient::configuration.ignored_keys.include?(key_without_locale)
-        CopyTunerClient::configuration.ignored_key_handler.call(IgnoredKey.new("Ignored key: #{key_without_locale}"))
-      end
-
       # NOTE: local_first_key_regexp にマッチするキーは copy_tuner キャッシュをスキップし、
       # ローカル config/locales（I18n::Backend::Simple）を優先する。段階的にローカルへ移行するための仕組み。
       # ローカルに無い場合は nil（未訳）のまま返し、copy_tuner へのフォールバックも空キー登録も行わない（完全分離）。
+      # ignored_keys より先に評価することで、両方にマッチするキーでも確実にローカルへ委譲する。
       if local_first_key?(key_without_locale)
         return super
+      end
+
+      if CopyTunerClient::configuration.ignored_keys.include?(key_without_locale)
+        CopyTunerClient::configuration.ignored_key_handler.call(IgnoredKey.new("Ignored key: #{key_without_locale}"))
       end
 
       # NOTE: ハッシュ化した場合に削除されるキーに対応するため、最初に完全一致をチェック（旧クライアントの動作を維持）
