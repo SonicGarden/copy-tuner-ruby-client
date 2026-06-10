@@ -1,54 +1,54 @@
-var y = typeof globalThis < "u" ? globalThis : typeof window < "u" ? window : typeof global < "u" ? global : typeof self < "u" ? self : {}, A = "Expected a function", C = 0 / 0, _ = "[object Symbol]", $ = /^\s+|\s+$/g, R = /^[-+]0x[0-9a-f]+$/i, H = /^0b[01]+$/i, W = /^0o[0-7]+$/i, F = parseInt, D = typeof y == "object" && y && y.Object === Object && y, P = typeof self == "object" && self && self.Object === Object && self, q = D || P || Function("return this")(), K = Object.prototype, U = K.toString, Y = Math.max, V = Math.min, v = function() {
-  return q.Date.now();
+var y = typeof globalThis < "u" ? globalThis : typeof window < "u" ? window : typeof global < "u" ? global : typeof self < "u" ? self : {}, A = "Expected a function", C = 0 / 0, _ = "[object Symbol]", F = /^\s+|\s+$/g, $ = /^[-+]0x[0-9a-f]+$/i, R = /^0b[01]+$/i, H = /^0o[0-7]+$/i, W = parseInt, D = typeof y == "object" && y && y.Object === Object && y, P = typeof self == "object" && self && self.Object === Object && self, U = D || P || Function("return this")(), V = Object.prototype, q = V.toString, K = Math.max, Y = Math.min, E = function() {
+  return U.Date.now();
 };
 function X(t, e, n) {
-  var o, s, d, r, a, c, u = 0, x = !1, f = !1, b = !0;
+  var o, s, a, i, c, l, u = 0, x = !1, f = !1, b = !0;
   if (typeof t != "function")
     throw new TypeError(A);
-  e = O(e) || 0, E(n) && (x = !!n.leading, f = "maxWait" in n, d = f ? Y(O(n.maxWait) || 0, e) : d, b = "trailing" in n ? !!n.trailing : b);
-  function g(i) {
-    var l = o, p = s;
-    return o = s = void 0, u = i, r = t.apply(p, l), r;
+  e = O(e) || 0, v(n) && (x = !!n.leading, f = "maxWait" in n, a = f ? K(O(n.maxWait) || 0, e) : a, b = "trailing" in n ? !!n.trailing : b);
+  function g(r) {
+    var d = o, m = s;
+    return o = s = void 0, u = r, i = t.apply(m, d), i;
   }
-  function B(i) {
-    return u = i, a = setTimeout(m, e), x ? g(i) : r;
+  function I(r) {
+    return u = r, c = setTimeout(p, e), x ? g(r) : i;
   }
-  function M(i) {
-    var l = i - c, p = i - u, T = e - l;
-    return f ? V(T, d - p) : T;
+  function N(r) {
+    var d = r - l, m = r - u, S = e - d;
+    return f ? Y(S, a - m) : S;
   }
-  function w(i) {
-    var l = i - c, p = i - u;
-    return c === void 0 || l >= e || l < 0 || f && p >= d;
+  function w(r) {
+    var d = r - l, m = r - u;
+    return l === void 0 || d >= e || d < 0 || f && m >= a;
   }
-  function m() {
-    var i = v();
-    if (w(i))
-      return S(i);
-    a = setTimeout(m, M(i));
+  function p() {
+    var r = E();
+    if (w(r))
+      return T(r);
+    c = setTimeout(p, N(r));
   }
-  function S(i) {
-    return a = void 0, b && o ? g(i) : (o = s = void 0, r);
+  function T(r) {
+    return c = void 0, b && o ? g(r) : (o = s = void 0, i);
   }
-  function I() {
-    a !== void 0 && clearTimeout(a), u = 0, o = c = s = a = void 0;
+  function j() {
+    c !== void 0 && clearTimeout(c), u = 0, o = l = s = c = void 0;
   }
-  function N() {
-    return a === void 0 ? r : S(v());
+  function M() {
+    return c === void 0 ? i : T(E());
   }
   function k() {
-    var i = v(), l = w(i);
-    if (o = arguments, s = this, c = i, l) {
-      if (a === void 0)
-        return B(c);
+    var r = E(), d = w(r);
+    if (o = arguments, s = this, l = r, d) {
+      if (c === void 0)
+        return I(l);
       if (f)
-        return a = setTimeout(m, e), g(c);
+        return c = setTimeout(p, e), g(l);
     }
-    return a === void 0 && (a = setTimeout(m, e)), r;
+    return c === void 0 && (c = setTimeout(p, e)), i;
   }
-  return k.cancel = I, k.flush = N, k;
+  return k.cancel = j, k.flush = M, k;
 }
-function E(t) {
+function v(t) {
   var e = typeof t;
   return !!t && (e == "object" || e == "function");
 }
@@ -56,22 +56,22 @@ function z(t) {
   return !!t && typeof t == "object";
 }
 function G(t) {
-  return typeof t == "symbol" || z(t) && U.call(t) == _;
+  return typeof t == "symbol" || z(t) && q.call(t) == _;
 }
 function O(t) {
   if (typeof t == "number")
     return t;
   if (G(t))
     return C;
-  if (E(t)) {
+  if (v(t)) {
     var e = typeof t.valueOf == "function" ? t.valueOf() : t;
-    t = E(e) ? e + "" : e;
+    t = v(e) ? e + "" : e;
   }
   if (typeof t != "string")
     return t === 0 ? t : +t;
-  t = t.replace($, "");
-  var n = H.test(t);
-  return n || W.test(t) ? F(t.slice(2), n ? 2 : 8) : R.test(t) ? C : +t;
+  t = t.replace(F, "");
+  var n = R.test(t);
+  return n || H.test(t) ? W(t.slice(2), n ? 2 : 8) : $.test(t) ? C : +t;
 }
 var Z = X;
 const h = "copy-tuner-hidden";
@@ -103,17 +103,17 @@ class J {
     const n = document.createElement("table"), o = document.createElement("tbody");
     o.classList.remove("is-not-initialized");
     for (const s of Object.keys(this.data).sort()) {
-      const d = this.data[s];
-      if (d === "")
+      const a = this.data[s];
+      if (a === "")
         continue;
-      const r = document.createElement("td");
-      r.textContent = s;
-      const a = document.createElement("td");
-      a.textContent = d;
-      const c = document.createElement("tr");
-      c.classList.add("copy-tuner-bar-log-menu__row"), c.dataset.key = s, c.addEventListener("click", ({ currentTarget: u }) => {
+      const i = document.createElement("td");
+      i.textContent = s;
+      const c = document.createElement("td");
+      c.textContent = a;
+      const l = document.createElement("tr");
+      l.classList.add("copy-tuner-bar-log-menu__row"), l.dataset.key = s, l.addEventListener("click", ({ currentTarget: u }) => {
         this.callback(u.dataset.key);
-      }), c.append(r), c.append(a), o.append(c);
+      }), l.append(i), l.append(c), o.append(l);
     }
     return n.append(o), e.append(n), e;
   }
@@ -123,8 +123,8 @@ class J {
     this.showLogMenu();
     const o = [...this.logMenuElement.querySelectorAll("tr")];
     for (const s of o) {
-      const d = n === "" || [...s.querySelectorAll("td")].some((r) => r.textContent.includes(n));
-      s.classList.toggle(h, !d);
+      const a = n === "" || [...s.querySelectorAll("td")].some((i) => i.textContent.includes(n));
+      s.classList.toggle(h, !a);
     }
   }
 }
@@ -166,13 +166,13 @@ class oe {
     const n = te(this.element);
     if (n === null)
       return null;
-    for (const r of Object.keys(n)) {
-      const a = n[r];
-      e.style[r] = `${a}px`;
+    for (const i of Object.keys(n)) {
+      const c = n[i];
+      e.style[i] = `${c}px`;
     }
     e.style.zIndex = ne;
-    const { position: o, top: s, left: d } = getComputedStyle(this.element);
-    return o === "fixed" && (this.box.style.position = "fixed", this.box.style.top = `${s}px`, this.box.style.left = `${d}px`), e.append(this.makeLabel()), e;
+    const { position: o, top: s, left: a } = getComputedStyle(this.element);
+    return o === "fixed" && (this.box.style.position = "fixed", this.box.style.top = `${s}px`, this.box.style.left = `${a}px`), e.append(this.makeLabel()), e;
   }
   makeLabel() {
     const e = document.createElement("div");
@@ -185,14 +185,31 @@ const se = () => {
   for (; o = e.nextNode(); )
     n.push(o);
   return n.filter((s) => s.nodeValue.startsWith("COPYRAY")).map((s) => {
-    const [, d] = s.nodeValue.match(/^COPYRAY (\S*)$/), r = s.parentNode;
-    return { key: d, element: r };
+    const [, a] = s.nodeValue.match(/^COPYRAY (\S*)$/), i = s.parentNode;
+    return { key: a, element: i };
   });
-};
-class ie {
+}, ie = ["‌", "‍"], re = /[‌‍]+/g, ae = (t) => {
+  const n = (Array.from(t).map((o) => ie.indexOf(o)).join("").match(/.{9}/g) ?? []).map((o) => parseInt(o.slice(0, 8), 2));
+  return new TextDecoder().decode(new Uint8Array(n));
+}, ce = () => {
+  const t = () => NodeFilter.FILTER_ACCEPT, e = document.createNodeIterator(document.body, NodeFilter.SHOW_TEXT, t, !1), n = [];
+  let o;
+  for (; o = e.nextNode(); ) {
+    const s = (o.nodeValue ?? "").match(re);
+    if (s)
+      for (const a of s) {
+        if (a.length % 9 !== 0)
+          continue;
+        const i = ae(a);
+        i && n.push({ key: i, element: o.parentNode });
+      }
+  }
+  return n;
+}, le = (t) => t === "subliminal" ? ce() : se();
+class de {
   // @ts-expect-error TS7006
-  constructor(e, n) {
-    this.baseUrl = e, this.data = n, this.isShowing = !1, this.specimens = [], this.overlay = this.makeOverlay(), this.toggleButton = this.makeToggleButton(), this.boundOpen = this.open.bind(this), this.copyTunerBar = new J(document.querySelector("#copy-tuner-bar"), this.data, this.boundOpen);
+  constructor(e, n, o) {
+    this.baseUrl = e, this.data = n, this.markerType = o, this.isShowing = !1, this.specimens = [], this.overlay = this.makeOverlay(), this.toggleButton = this.makeToggleButton(), this.boundOpen = this.open.bind(this), this.copyTunerBar = new J(document.querySelector("#copy-tuner-bar"), this.data, this.boundOpen);
   }
   show() {
     this.reset(), document.body.append(this.overlay), this.makeSpecimens();
@@ -211,7 +228,7 @@ class ie {
     window.open(`${this.baseUrl}/blurbs/${e}/edit`);
   }
   makeSpecimens() {
-    for (const { element: e, key: n } of se())
+    for (const { element: e, key: n } of le(this.markerType))
       this.specimens.push(new oe(e, n, this.boundOpen));
   }
   makeToggleButton() {
@@ -229,7 +246,7 @@ class ie {
       e.remove();
   }
 }
-const re = (t) => {
+const ue = (t) => {
   const e = document.createElement("div");
   e.id = "copy-tuner-bar", e.classList.add("copy-tuner-hidden"), e.innerHTML = `
     <a class="copy-tuner-bar-button" target="_blank" href="${t}">CopyTuner</a>
@@ -237,16 +254,16 @@ const re = (t) => {
     <a href="javascript:void(0)" class="copy-tuner-bar-open-log copy-tuner-bar-button js-copy-tuner-bar-open-log">Translations in this page</a>
     <input type="text" class="copy-tuner-bar__search js-copy-tuner-bar-search" placeholder="search">
   `, document.body.append(e);
-}, j = () => {
-  const { url: t, data: e } = window.CopyTuner;
-  re(t);
-  const n = new ie(t, e);
-  window.CopyTuner.toggle = () => n.toggle(), document.addEventListener("keydown", (o) => {
-    if (n.isShowing && ["Escape", "Esc"].includes(o.key)) {
-      n.hide();
+}, B = () => {
+  const { url: t, data: e, markerType: n } = window.CopyTuner;
+  ue(t);
+  const o = new de(t, e, n);
+  window.CopyTuner.toggle = () => o.toggle(), document.addEventListener("keydown", (s) => {
+    if (o.isShowing && ["Escape", "Esc"].includes(s.key)) {
+      o.hide();
       return;
     }
-    (L && o.metaKey || !L && o.ctrlKey) && o.shiftKey && o.key.toLowerCase() === "k" && n.toggle();
+    (L && s.metaKey || !L && s.ctrlKey) && s.shiftKey && s.key.toLowerCase() === "k" && o.toggle();
   }), console && console.log(`Ready to Copyray. Press ${L ? "cmd+shift+k" : "ctrl+shift+k"} to scan your UI.`);
 };
-document.readyState === "complete" || document.readyState !== "loading" ? j() : document.addEventListener("DOMContentLoaded", () => j());
+document.readyState === "complete" || document.readyState !== "loading" ? B() : document.addEventListener("DOMContentLoaded", () => B());

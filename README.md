@@ -51,7 +51,7 @@ CopyTuner で一元管理している翻訳を、`views.*` のような単位で
 
 - マッチしたキーは CopyTuner キャッシュを一切参照せず、ローカル YAML のみを引きます（完全分離）。
 - ローカル YAML にも存在しない場合は未訳（`nil` / MissingTranslation）となります。CopyTuner へのフォールバックや新規キーのアップロードは行いません。これにより移行漏れを未訳として検知できます。
-- マッチしたキーには、ビューヘルパー（`t` / `translate`）および SimpleForm のラベルで CopyRay オーバーレイマーカー（`<!--COPYRAY key-->`）を注入しません。これらのキーは CopyTuner 上で編集できないため、編集可能だと誤認させないためです。
+- マッチしたキーには、ビューヘルパー（`t` / `translate`）および SimpleForm のラベルで CopyRay オーバーレイマーカー（[後述](#copyray-オーバーレイマーカー方式copyray_marker_type)）を注入しません。これらのキーは CopyTuner 上で編集できないため、編集可能だと誤認させないためです。
 
 `exclude_key_regexp` との違い:
 
@@ -76,6 +76,47 @@ config.local_first_key_regexp = /\Aviews\./
 
 - 対象キーの形式が異なります。`exclude_key_regexp` は **locale 付き**（`ja.views.foo`）、`local_first_key_regexp` は **locale を除いた**形式（`views.foo`）でマッチします。正規表現から locale プレフィックスを外してください。
 - 挙動も少し変わります。`exclude_key_regexp` はアップロードを抑止するだけで lookup 時は CopyTuner キャッシュを参照し続けますが、`local_first_key_regexp` は lookup 時に CopyTuner キャッシュをスキップしてローカル YAML を優先します（完全分離）。ローカル管理へ移行する用途では `local_first_key_regexp` のほうが適切です。
+
+## CopyRay オーバーレイマーカー方式（`copyray_marker_type`）
+
+開発環境では、ブラウザ上で翻訳テキストにオーバーレイを表示し、クリックで CopyTuner の編集画面を開けます（`Ctrl`/`Cmd` + `Shift` + `K`）。このとき、ビューヘルパー（`t` / `translate`）および SimpleForm のラベルの出力に、ブラウザ側がキーを特定するためのマーカーを埋め込みます。
+
+`config.copyray_marker_type` でマーカーの方式を選べます。
+
+```ruby
+CopyTunerClient.configure do |config|
+  # :comment（デフォルト） … HTML コメント方式
+  # :subliminal           … 不可視 Unicode 文字方式
+  config.copyray_marker_type = :comment
+end
+```
+
+| 方式 | マーカー | 出力の `html_safe` |
+| --- | --- | --- |
+| `:comment`（デフォルト） | `<!--COPYRAY key-->message` | **常に** `html_safe` になる |
+| `:subliminal` | 不可視文字（ZWNJ/ZWJ）でキーを前置 | 元の出力の `html_safe` 状態を維持（Rails 標準互換） |
+
+### `:subliminal` 方式について
+
+`:comment` 方式は HTML コメント（`<!-- -->`）を含むため、ヘルパー出力を常に `html_safe` にする必要があり、Rails 標準の `translate` ヘルパー（`_html` 終端キー以外は `html_safe` にしない）と挙動が食い違います。
+
+`:subliminal` 方式は HTML 特殊文字を含まない不可視文字でマーカーを表現するため、**元の `html_safe` 状態をそのまま維持**でき、Rails 標準と概ね互換になります。`_html` キーの扱いやエスケープ挙動を標準に揃えたい場合に有効です。
+
+#### 既知の制約とマーカー無しヘルパー（`tt`）
+
+`:subliminal` 方式では、マーカーは**ビューヘルパー / SimpleForm ラベルの出力**にのみ付きます（フレームワーク内部の `I18n.t`・`l(date)`・`human_attribute_name` などには付きません）。ただし、ヘルパー出力を以下のような用途に使う場合、不可視文字が混入して問題になることがあります。
+
+- `truncate` など文字数で切り詰める処理（先頭マーカーが字数を消費し、可視テキストが出ないことがある）
+- フォームの value / hidden field / select の value として送信する値
+- メールの件名・本文、JSON/API レスポンスなど、表示以外で利用する文字列
+
+このような箇所では、マーカーを付けない翻訳ヘルパー `tt` を使ってください（`t` の代わりに `tt` を呼ぶだけです）。`tt` は CopyRay マーカーを一切付与しません（`:comment` 方式でも同様）。
+
+```ruby
+truncate(tt('.long_description'), length: 50)
+```
+
+> いずれの方式も、マーカーが付くのは開発（`development_environments`）でミドルウェアが有効なときだけです。本番では付きません。
 
 ## Claude Code スキル
 

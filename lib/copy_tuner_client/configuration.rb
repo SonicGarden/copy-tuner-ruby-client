@@ -129,6 +129,28 @@ module CopyTunerClient
     # @return [Boolean] To disable Copyray comment injection, set true
     attr_accessor :disable_copyray_comment_injection
 
+    # Supported values for {#copyray_marker_type}.
+    COPYRAY_MARKER_TYPES = %i[comment subliminal].freeze
+
+    # @return [Symbol] Copyray overlay marker style. +:comment+ injects an HTML
+    #   comment (default, always html_safe). +:subliminal+ embeds the key with
+    #   invisible Unicode characters in the translation helper output, preserving
+    #   Rails-standard html_safe behavior.
+    attr_reader :copyray_marker_type
+
+    # @param value [Symbol, String] one of {COPYRAY_MARKER_TYPES}
+    # @raise [ArgumentError] when the value is not supported
+    def copyray_marker_type=(value)
+      symbol = value.respond_to?(:to_sym) ? value.to_sym : value
+      unless COPYRAY_MARKER_TYPES.include?(symbol)
+        raise ArgumentError,
+              "Invalid copyray_marker_type: #{value.inspect}. " \
+              "Must be one of #{COPYRAY_MARKER_TYPES.map(&:inspect).join(', ')}"
+      end
+
+      @copyray_marker_type = symbol
+    end
+
     # @return [Array<Symbol>] Restrict blurb locales to upload
     attr_accessor :locales
 
@@ -167,6 +189,7 @@ module CopyTunerClient
       self.upload_disabled_environments = %w[production staging]
       self.s3_host = 'copy-tuner.sg-apps.com' # NOTE: cloudfront host
       self.disable_copyray_comment_injection = false
+      self.copyray_marker_type = :comment
       self.html_escape = true
       self.ignored_keys = []
       self.ignored_key_handler = ->(e) { raise e }

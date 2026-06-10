@@ -29,4 +29,14 @@ describe CopyTunerClient::HelperExtension do
     view = KeywordArgumentsView.new
     expect(view.translate('views.foo', name: 'World')).to eq 'Hello, World'
   end
+
+  it 'injects the invisible subliminal marker in subliminal mode' do
+    CopyTunerClient.configuration.copyray_marker_type = :subliminal
+    view = KeywordArgumentsView.new
+    result = view.translate('some.key', name: 'World')
+    expect(CopyTunerClient::Subliminal.remove(result)).to eq 'Hello, World'
+    expect(CopyTunerClient::Subliminal.decode(result[/\A[‌‍]+/])).to eq 'some.key'
+  ensure
+    CopyTunerClient.configuration.copyray_marker_type = :comment
+  end
 end

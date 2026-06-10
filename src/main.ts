@@ -6,6 +6,7 @@ declare global {
   interface Window {
     CopyTuner: {
       url: string
+      markerType?: string
       toggle?: () => void
       // TODO: type
       data: object
@@ -30,10 +31,10 @@ const appendCopyTunerBar = (url: string) => {
 }
 
 const start = () => {
-  const { url, data } = window.CopyTuner
+  const { url, data, markerType } = window.CopyTuner
 
   appendCopyTunerBar(url)
-  const copyray = new Copyray(url, data)
+  const copyray = new Copyray(url, data, markerType)
   window.CopyTuner.toggle = () => copyray.toggle()
 
   document.addEventListener('keydown', (event) => {
