@@ -21,12 +21,13 @@ module CopyTunerClient
       @cache = cache
       @tree_cache = nil
       @cache_version = nil
-    end    # Translates the given local and key. See the I18n API documentation for details.
+    end
+
     #
     # @return [Object] the translated key (usually a String)
     def translate(locale, key, options = {})
       # I18nの標準処理に任せる（内部でlookupが呼ばれる）
-      content = super(locale, key, options)
+      content = super
 
       return content if content.nil? || content.is_a?(Hash)
 
@@ -43,8 +44,9 @@ module CopyTunerClient
     # @return [Array<String>] available locales
     def available_locales
       return @available_locales if defined?(@available_locales)
+
       cached_locales = cache.keys.map { |key| key.split('.').first }
-      @available_locales = (cached_locales + super).uniq.map { |locale| locale.to_sym }
+      @available_locales = (cached_locales + super).uniq.map(&:to_sym)
     end
 
     # Stores the given translations.
@@ -62,7 +64,7 @@ module CopyTunerClient
 
     private
 
-    def lookup(locale, key, scope = [], options = {})
+    def lookup(locale, key, scope = [], options = {}) # rubocop:disable Metrics/CyclomaticComplexity,Metrics/MethodLength
       return nil if !key.is_a?(String) && !key.is_a?(Symbol)
 
       parts = I18n.normalize_keys(locale, key, scope, options[:separator])
@@ -77,8 +79,9 @@ module CopyTunerClient
         return super
       end
 
-      if CopyTunerClient::configuration.ignored_keys.include?(key_without_locale)
-        CopyTunerClient::configuration.ignored_key_handler.call(IgnoredKey.new("Ignored key: #{key_without_locale}"))
+      config = CopyTunerClient.configuration
+      if config.ignored_keys.include?(key_without_locale)
+        config.ignored_key_handler.call(IgnoredKey.new("Ignored key: #{key_without_locale}"))
       end
 
       # NOTE: ハッシュ化した場合に削除されるキーに対応するため、最初に完全一致をチェック（旧クライアントの動作を維持）
@@ -146,19 +149,20 @@ module CopyTunerClient
     end
 
     def default(locale, object, subject, options = {})
-      content = super(locale, object, subject, options)
+      content = super
       return content if !object.is_a?(String) && !object.is_a?(Symbol)
 
       if content.respond_to?(:to_str)
         parts = I18n.normalize_keys(locale, object, options[:scope], options[:separator])
         # NOTE: ActionView::Helpers::TranslationHelper#translate wraps default String in an Array
         # NOTE: local_first キーのアップロード抑止は Cache#[]= 側に集約している
-        if subject.is_a?(String) || (subject.is_a?(Array) && subject.size == 1 && subject.first.is_a?(String))
-          key = parts.join('.')
-          cache[key] = content.to_str
-        end
+        cache[parts.join('.')] = content.to_str if default_string_subject?(subject)
       end
       content
+    end
+
+    def default_string_subject?(subject)
+      subject.is_a?(String) || (subject.is_a?(Array) && subject.size == 1 && subject.first.is_a?(String))
     end
 
     attr_reader :cache
