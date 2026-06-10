@@ -18,6 +18,11 @@ CopyTuner の Ruby クライアント gem。Rails アプリの I18n を CopyTune
 - Rack middleware `RequestSync` / `CopyrayMiddleware` — 開発環境でのリクエスト毎同期とオーバーレイ
 Rails 統合は engine.rb のイニシャライザ経由（ヘルパー/SimpleForm フック、アセット precompile）。
 
+## 開発スタイル
+- **RED/TDD で進める**: 実装前に必ず失敗するテストを書き、テストが RED になることを確認してから実装する
+- 新機能・バグ修正ともに「テスト追加 → RED 確認 → 実装 → GREEN」のサイクルを守る
+- テストを書かずに実装を先行させない
+
 ## Gotchas
 - **フロントエンドは `src/*.ts` を編集する。`app/assets/*` は Vite のビルド成果物なので直接編集しない**
   （vite.config.ts が `src/main.ts` → `app/assets/javascripts/copytuner.js` を出力）。
