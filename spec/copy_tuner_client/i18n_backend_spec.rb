@@ -425,6 +425,23 @@ describe 'CopyTunerClient::I18nBackend' do
         result = subject.translate('ja', 'hoge.hello', default: nil)
         expect(result).to be_nil
       end
+
+      it '数値セグメントを含むキー（数値enum）でクラッシュしないこと' do
+        # NOTE: enumerize の Float range など、normalize_keys が末尾を Integer に分割するキー。
+        # exact_match（完全一致）を回避するため別キーを格納し、tree_cache 探索経路を必ず通す。
+        cache['ja.dummy'] = 'dummy'
+
+        expect {
+          subject.translate('ja', 'enumerize.infection_control.body_temperature.36.5', default: nil)
+        }.not_to raise_error
+      end
+
+      it '数値セグメントキーが存在しても通常キーのlookupが壊れないこと' do
+        cache['ja.views.hoge'] = 'normal'
+
+        expect { subject.translate('ja', 'enumerize.body_temperature.36.5', default: nil) }.not_to raise_error
+        expect(subject.translate('ja', 'views.hoge')).to eq('normal')
+      end
     end
   end
 

@@ -117,7 +117,9 @@ module CopyTunerClient
     def lookup_in_tree_cache(keys)
       return nil if @tree_cache.nil?
 
-      symbol_keys = keys.map(&:to_sym)
+      # NOTE: keys は I18n.normalize_keys 済みの配列で、数字だけのセグメントは Integer になっている
+      # （例: "...body_temperature.36.5" は [..., 36, 5] に分割される）。Integer#to_sym は無いため to_s を経由する。
+      symbol_keys = keys.map { |k| k.to_s.to_sym }
       begin
         result = @tree_cache.dig(*symbol_keys)
         result.is_a?(Hash) ? result : nil
