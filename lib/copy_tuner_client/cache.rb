@@ -7,7 +7,7 @@ module CopyTunerClient
   # this class directly.
   #
   # Responsible for locking down access to data used by both threads.
-  class Cache
+  class Cache # rubocop:disable Metrics/ClassLength
     STATUS_NOT_READY = :not_ready
     STATUS_PENDING = :pending
     STATUS_READY = :ready
@@ -32,6 +32,10 @@ module CopyTunerClient
       @queued = {}
       @status = STATUS_NOT_READY
     end
+
+    # blank_keys を公開しているのは、MCP ツール等の外部利用者が「キーは登録済みだが翻訳なし」と
+    # 「キー未登録」を区別するため（このリポジトリ内では参照箇所がない）。
+    attr_reader :last_downloaded_at, :last_uploaded_at, :queued, :blurbs, :blank_keys
 
     # Returns content for the given blurb.
     # @param key [String] the key of the desired blurb
@@ -121,10 +125,12 @@ module CopyTunerClient
       @status = STATUS_PENDING unless ready?
 
       res = client.download(cache_fallback: pending?) do |downloaded_blurbs|
-        blank_blurbs, blurbs = downloaded_blurbs.partition { |_key, value| value == '' }
+        blank_keys = Set.new
+        blurbs = {}
+        downloaded_blurbs.each { |key, value| value == '' ? blank_keys << key : blurbs[key] = value }
         lock do
-          @blank_keys = Set.new(blank_blurbs.map(&:first))
-          @blurbs = blurbs.to_h
+          @blank_keys = blank_keys
+          @blurbs = blurbs
         end
       end
 
@@ -142,8 +148,6 @@ module CopyTunerClient
       download
       flush
     end
-
-    attr_reader :last_downloaded_at, :last_uploaded_at, :queued, :blurbs
 
     def inspect
       "#<CopyTunerClient::Cache:#{object_id}>"
