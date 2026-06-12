@@ -33,6 +33,8 @@ module CopyTunerClient
       @status = STATUS_NOT_READY
     end
 
+    attr_reader :last_downloaded_at, :last_uploaded_at, :queued, :blurbs
+
     # Returns content for the given blurb.
     # @param key [String] the key of the desired blurb
     # @return [String] the contents of the blurb
@@ -142,8 +144,6 @@ module CopyTunerClient
       download
       flush
     end
-
-    attr_reader :last_downloaded_at, :last_uploaded_at, :queued, :blurbs
 
     def inspect
       "#<CopyTunerClient::Cache:#{object_id}>"
