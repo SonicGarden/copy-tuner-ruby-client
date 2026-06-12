@@ -136,6 +136,7 @@ describe 'CopyTunerClient::Cache' do
 
     expect(cache['en.test.key']).to eq('test value')
     expect(cache['en.test.empty']).to eq(nil)
+    expect(cache.blank_keys).to contain_exactly('en.test.empty')
 
     cache['en.test.empty'] = ''
     expect(cache.queued).to be_empty

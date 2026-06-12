@@ -33,7 +33,9 @@ module CopyTunerClient
       @status = STATUS_NOT_READY
     end
 
-    attr_reader :last_downloaded_at, :last_uploaded_at, :queued, :blurbs
+    # blank_keys を公開しているのは、MCP ツール等の外部利用者が「キーは登録済みだが翻訳なし」と
+    # 「キー未登録」を区別するため（このリポジトリ内では参照箇所がない）。
+    attr_reader :last_downloaded_at, :last_uploaded_at, :queued, :blurbs, :blank_keys
 
     # Returns content for the given blurb.
     # @param key [String] the key of the desired blurb
