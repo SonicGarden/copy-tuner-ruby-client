@@ -217,6 +217,40 @@ describe CopyTunerClient::Configuration do
         expect(config.local_first_key?(:'views.foo')).to eq true
       end
     end
+
+    # NOTE: Rails 標準の number.*.format 配下は precision 等の非文字列値を含み CopyTuner 経由だと壊れるため、
+    # ユーザー設定の有無によらず常にローカル優先（組み込み判定）になる
+    context 'with built-in Rails number format keys' do
+      it 'returns true for built-in number format keys even when local_first_key_regexp is nil' do
+        expect(config.local_first_key?('number.format')).to eq true
+        expect(config.local_first_key?('number.currency.format')).to eq true
+        expect(config.local_first_key?('number.currency.format.precision')).to eq true
+        expect(config.local_first_key?('number.percentage.format')).to eq true
+        expect(config.local_first_key?('number.human.format.significant')).to eq true
+      end
+
+      it 'returns false for app-defined number keys (not Rails format subtrees)' do
+        expect(config.local_first_key?('number.gift_amount')).to eq false
+        expect(config.local_first_key?('number.my_currency.unit')).to eq false
+      end
+
+      it 'returns false for string-only number subtrees and non-number keys' do
+        expect(config.local_first_key?('number.human.storage_units.units.byte.one')).to eq false
+        expect(config.local_first_key?('date.formats.default')).to eq false
+        expect(config.local_first_key?('time.formats.short')).to eq false
+        expect(config.local_first_key?('datetime.distance_in_words.x')).to eq false
+        expect(config.local_first_key?('views.foo')).to eq false
+        expect(config.local_first_key?('numbers.foo')).to eq false
+      end
+
+      it 'keeps protecting built-in keys without breaking a user-set regexp' do
+        config.local_first_key_regexp = /\Aviews\./
+
+        expect(config.local_first_key?('number.currency.format')).to eq true
+        expect(config.local_first_key?('views.foo')).to eq true
+        expect(config.local_first_key?('models.foo')).to eq false
+      end
+    end
   end
 
   describe '#exclude_key_regexp= (deprecated)' do
