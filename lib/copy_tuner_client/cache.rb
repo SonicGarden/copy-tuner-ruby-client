@@ -7,7 +7,7 @@ module CopyTunerClient
   # this class directly.
   #
   # Responsible for locking down access to data used by both threads.
-  class Cache
+  class Cache # rubocop:disable Metrics/ClassLength
     STATUS_NOT_READY = :not_ready
     STATUS_PENDING = :pending
     STATUS_READY = :ready
