@@ -125,10 +125,12 @@ module CopyTunerClient
       @status = STATUS_PENDING unless ready?
 
       res = client.download(cache_fallback: pending?) do |downloaded_blurbs|
-        blank_blurbs, blurbs = downloaded_blurbs.partition { |_key, value| value == '' }
+        blank_keys = Set.new
+        blurbs = {}
+        downloaded_blurbs.each { |key, value| value == '' ? blank_keys << key : blurbs[key] = value }
         lock do
-          @blank_keys = Set.new(blank_blurbs.map(&:first))
-          @blurbs = blurbs.to_h
+          @blank_keys = blank_keys
+          @blurbs = blurbs
         end
       end
 
