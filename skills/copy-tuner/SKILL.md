@@ -20,6 +20,11 @@ license: MIT
 | マッチする | config/locales（copy_tuner と完全分離） | `config/locales/*.yml` を Read / Edit |
 | マッチしない・未設定 | copy_tuner | MCP ツール（下記） |
 
+**例外（gem 組み込み・設定不要で常に config/locales 管理）:** Rails 標準の `number.format` /
+`number.currency.format` / `number.percentage.format` / `number.human.format`（およびその配下）。
+`precision` 等の非文字列値を含み copy_tuner では正しく扱えないため、gem が常にバイパスする。
+これらは `config/locales/*.yml` を見る・編集すること（アプリ独自の `number.gift_amount` 等は対象外で通常どおり copy_tuner）。
+
 **config/locales 管理キーの落とし穴:**
 - copy_tuner には存在しないので、MCP ツールで探しても見つからない。`config/locales` を見ること。
 - copy_tuner に登録しても lookup でバイパスされ無効。必ず `.yml` 側に書く。

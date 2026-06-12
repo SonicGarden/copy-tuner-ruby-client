@@ -55,6 +55,18 @@ describe 'CopyTunerClient::Cache' do
     expect(cache.queued.keys).to match_array(%w[ja.views.foo ja.messages.bar])
   end
 
+  it 'Rails標準の number.*.format キーは設定なしでもアップロードしないこと' do
+    cache = build_cache(local_first_key_regexp: nil)
+    cache['ja.number.currency.format.unit'] = '$'
+    cache['ja.number.gift_amount']          = 'app key'
+    cache['ja.messages.bar']                = 'copy tuner value'
+
+    cache.download
+
+    # number.*.format のみ抑止。アプリ独自 number キーと通常キーは従来どおりアップロード
+    expect(cache.queued.keys).to match_array(%w[ja.number.gift_amount ja.messages.bar])
+  end
+
   it '変更がない場合はアップロードしないこと' do
     cache = build_cache
     cache.flush

@@ -53,6 +53,16 @@ CopyTuner で一元管理している翻訳を、`views.*` のような単位で
 - ローカル YAML にも存在しない場合は未訳（`nil` / MissingTranslation）となります。CopyTuner へのフォールバックや新規キーのアップロードは行いません。これにより移行漏れを未訳として検知できます。
 - マッチしたキーには、ビューヘルパー（`t` / `translate`）および SimpleForm のラベルで CopyRay オーバーレイマーカー（`<!--COPYRAY key-->`）を注入しません。これらのキーは CopyTuner 上で編集できないため、編集可能だと誤認させないためです。
 
+### Rails 標準の数値フォーマットキーは常にローカル優先（組み込み）
+
+`local_first_key_regexp` の設定有無にかかわらず、以下の Rails 標準キーは**常にローカル YAML 優先**になります（CopyTuner をバイパス）。
+
+- `number.format` / `number.currency.format` / `number.percentage.format` / `number.human.format`（およびその配下）
+
+これらは `precision`（整数）や `significant` / `strip_insignificant_zeros`（真偽値）といった非文字列値を含みます。CopyTuner は文字列値しか保持できないため、経由するとこれらが欠落し、`number_to_currency` などが意図しない表示（小数桁数や記号の崩れ）になります。これを防ぐため gem 側で固定的にローカル優先にしています。
+
+アプリ独自の `number.*` キー（例 `number.gift_amount`）は対象外で、従来どおり CopyTuner で管理できます。
+
 `exclude_key_regexp` との違い:
 
 | オプション | 対象 | 作用するタイミング |

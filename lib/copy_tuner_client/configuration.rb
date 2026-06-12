@@ -21,6 +21,21 @@ module CopyTunerClient
                  ca_file exclude_key_regexp local_first_key_regexp s3_host locales ignored_keys ignored_key_handler
                  download_cache_dir].freeze
 
+    # NOTE: Rails 標準ロケールで非文字列値（precision: Integer, significant: Boolean,
+    # strip_insignificant_zeros: Boolean）を含むのは number.*.format 配下のみ。store_item が文字列しか
+    # 保持できず lookup_in_tree_cache が tree cache をローカル YAML より優先するため、CopyTuner 経由だと
+    # precision 等が欠落し number_to_currency 等が壊れる。これらの Rails 標準 format キーだけを常にローカル
+    # 優先にする（number 全体ではなく、アプリ独自の number.* キーは対象外）。末尾 (\.|\z) で
+    # number.currency.format（ハッシュ lookup）と number.currency.format.precision（葉キー）の両方に対応する。
+    BUILTIN_LOCAL_FIRST_KEY_REGEXP =
+      /\Anumber\.(format|currency\.format|percentage\.format|human\.format)(\.|\z)/
+
+    # lookup 経路（Configuration#local_first_key?）と upload 抑止経路（Cache#[]=）で同じ組み込み判定を
+    # 共有する。判定を 1 箇所に集約することで number 以外を足す際の同期漏れを防ぐ。
+    def self.builtin_local_first_key?(key_without_locale)
+      key_without_locale.to_s.match?(BUILTIN_LOCAL_FIRST_KEY_REGEXP)
+    end
+
     # @return [String] The API key for your project, found on the project edit form.
     attr_reader :api_key
 
@@ -363,9 +378,13 @@ module CopyTunerClient
     # @param key_without_locale [String, Symbol, nil] locale prefix を除いたキー（例: "views.foo.bar"）
     # @return [Boolean]
     def local_first_key?(key_without_locale)
-      return false if local_first_key_regexp.nil? || key_without_locale.nil?
+      return false if key_without_locale.nil?
 
-      key_without_locale.to_s.match?(local_first_key_regexp)
+      normalized = key_without_locale.to_s
+      return true if self.class.builtin_local_first_key?(normalized)
+      return false if local_first_key_regexp.nil?
+
+      normalized.match?(local_first_key_regexp)
     end
 
     private

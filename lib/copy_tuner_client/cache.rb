@@ -56,8 +56,8 @@ module CopyTunerClient
 
       # NOTE: config/locales以下のファイルに除外キーが残っていた場合の対応
       key_without_locale = key.split('.')[1..].join('.')
-      # NOTE: local_first_key_regexp にマッチするキーは copy_tuner と完全分離するためアップロードしない
-      return if @local_first_key_regexp && key_without_locale.match?(@local_first_key_regexp)
+      # NOTE: local_first キー（組み込みの Rails number.*.format + ユーザー設定）は copy_tuner と完全分離するためアップロードしない
+      return if local_first_key?(key_without_locale)
 
       if @ignored_keys.include?(key_without_locale)
         @ignored_key_handler.call(IgnoredKey.new("Ignored key: #{key_without_locale}"))
@@ -164,6 +164,14 @@ module CopyTunerClient
     private
 
     attr_reader :client, :logger
+
+    # NOTE: 組み込みの Rails number.*.format キーは lookup 経路（Configuration#local_first_key?）と
+    # アップロード抑止経路（ここ）で同じ判定を共有する。判定本体は Configuration に集約し付け忘れの穴を防ぐ。
+    def local_first_key?(key_without_locale)
+      return true if Configuration.builtin_local_first_key?(key_without_locale)
+
+      @local_first_key_regexp && key_without_locale.match?(@local_first_key_regexp)
+    end
 
     def with_queued_changes
       changes_to_push = nil

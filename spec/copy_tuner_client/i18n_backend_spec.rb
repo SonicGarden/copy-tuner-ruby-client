@@ -445,7 +445,7 @@ describe 'CopyTunerClient::I18nBackend' do
     end
   end
 
-  describe 'local_first_key_regexp（ローカル優先キー）' do
+  describe 'local_first_key_regexp（ローカル優先キー）' do # rubocop:disable Metrics/BlockLength
     after { CopyTunerClient.configuration.local_first_key_regexp = nil }
 
     # ローカル config/locales 相当のデータを I18n::Backend::Simple 側だけに格納する。
@@ -467,6 +467,24 @@ describe 'CopyTunerClient::I18nBackend' do
         store_local(subject, :ja, views: { foo: 'local value' })
 
         expect(subject.translate('ja', 'views.foo')).to eq('copy tuner value')
+      end
+
+      # NOTE: number.*.format は precision 等の非文字列値が store_item で落ちるため、
+      # tree cache を優先するとローカル YAML の正しい format が壊れる。組み込み判定で常にローカル優先にする。
+      it 'number.*.format は cache に値があってもローカル YAML を優先すること' do
+        CopyTunerClient.configuration.local_first_key_regexp = nil
+        cache['ja.number.currency.format.unit'] = '$'
+        store_local(subject, :ja, number: { currency: { format: { unit: '円' } } })
+
+        expect(subject.translate('ja', 'number.currency.format')).to eq(unit: '円')
+      end
+
+      it 'アプリ独自の number キーは従来どおり copy_tuner を優先すること' do
+        CopyTunerClient.configuration.local_first_key_regexp = nil
+        cache['ja.number.gift_amount'] = 'copy tuner value'
+        store_local(subject, :ja, number: { gift_amount: 'local value' })
+
+        expect(subject.translate('ja', 'number.gift_amount')).to eq('copy tuner value')
       end
     end
 
