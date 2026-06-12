@@ -59,75 +59,22 @@ describe CopyTunerClient::DottedHash do
       it { is_expected.to eq({ 'en' => { 'test' => { 'key' => 'en test value' } } }) }
     end
 
-    context "Rails i18nの数値precisionキーの場合" do
+    # NOTE: number.*.format 配下のキー（precision 等）は I18nBackend の local_first_key? ガードで
+    # tree_cache をバイパスしローカル YAML 優先になるため、ここで型変換せず文字列のまま保持する。
+    # （number_to_currency が壊れないことは i18n_backend_spec の number ローカル優先テストで担保）
+    context "number.*.format 配下の値を含む場合" do
       let(:dotted_hash) do
         {
           'en.number.currency.format.precision' => '2',
-          'en.number.format.precision' => '3',
-        }
-      end
-
-      it "precision値を整数に変換する" do
-        is_expected.to eq({
-          'en' => {
-            'number' => {
-              'currency' => {
-                'format' => {
-                  'precision' => 2,
-                },
-              },
-              'format' => {
-                'precision' => 3,
-              },
-            },
-          },
-        })
-      end
-    end
-
-    context "Rails i18nのbooleanキーの場合" do
-      let(:dotted_hash) do
-        {
-          'en.number.currency.format.significant' => 'false',
-          'en.number.format.strip_insignificant_zeros' => 'true',
-        }
-      end
-
-      it "boolean値を実際の真偽値に変換する" do
-        is_expected.to eq({
-          'en' => {
-            'number' => {
-              'currency' => {
-                'format' => {
-                  'significant' => false,
-                },
-              },
-              'format' => {
-                'strip_insignificant_zeros' => true,
-              },
-            },
-          },
-        })
-      end
-    end
-
-    context "Rails i18n以外で似たパターンを含むキーの場合" do
-      let(:dotted_hash) do
-        {
           'en.custom.precision' => 'custom_value',
-          'en.other.significant_value' => 'true',
         }
       end
 
-      it "Rails i18nパターンで終わるキーのみ変換する" do
+      it "型変換せず値を文字列のまま保持する" do
         is_expected.to eq({
           'en' => {
-            'custom' => {
-              'precision' => 0, # .precision suffix triggers conversion
-            },
-            'other' => {
-              'significant_value' => 'true', # no conversion for non-exact match
-            },
+            'number' => { 'currency' => { 'format' => { 'precision' => '2' } } },
+            'custom' => { 'precision' => 'custom_value' },
           },
         })
       end

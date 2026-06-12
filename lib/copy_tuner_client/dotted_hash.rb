@@ -3,9 +3,7 @@ module CopyTunerClient
     def to_h(dotted_hash)
       hash = {}
       dotted_hash.to_h.transform_keys(&:to_s).sort.each do |key, value|
-        # Rails i18n標準との互換性のため、特定のキーを適切な型に変換
-        converted_value = convert_value_type(key, value)
-        _hash = key.split('.').reverse.inject(converted_value) { |memo, _key| { _key => memo } }
+        _hash = key.split('.').reverse.inject(value) { |memo, _key| { _key => memo } }
         hash.deep_merge!(_hash)
       end
       hash
@@ -29,22 +27,6 @@ module CopyTunerClient
       results
     end
 
-    private
-
-    def convert_value_type(key, value)
-      return value unless value.is_a?(String)
-
-      # Rails i18n標準で数値型として扱われるキー
-      if key.end_with?('.precision')
-        value.to_i
-      # Rails i18n標準で真偽値として扱われるキー
-      elsif key.end_with?('.significant', '.strip_insignificant_zeros')
-        value == 'true'
-      else
-        value
-      end
-    end
-
-    module_function :to_h, :conflict_keys, :convert_value_type # rubocop:disable Style/AccessModifierDeclarations
+    module_function :to_h, :conflict_keys # rubocop:disable Style/AccessModifierDeclarations
   end
 end
