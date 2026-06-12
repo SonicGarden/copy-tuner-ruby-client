@@ -48,6 +48,7 @@ module CopyTunerClient
       append_to_html_body(html, helpers.javascript_tag(<<~SCRIPT, nonce: csp_nonce))
         window.CopyTuner = {
           url: '#{CopyTunerClient.configuration.project_url}',
+          markerType: '#{CopyTunerClient.configuration.copyray_marker_type}',
           data: #{json},
         }
       SCRIPT

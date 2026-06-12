@@ -46,6 +46,31 @@ describe CopyTunerClient::Configuration do
   it { is_expected.to have_config_option(:client).overridable }
   it { is_expected.to have_config_option(:cache).overridable }
   it { is_expected.to have_config_option(:local_first_key_regexp).overridable.default(nil) }
+  describe '#copyray_marker_type=' do
+    subject(:config) { CopyTunerClient::Configuration.new }
+
+    it 'defaults to :comment' do
+      expect(config.copyray_marker_type).to eq(:comment)
+    end
+
+    it 'accepts :comment and :subliminal' do
+      config.copyray_marker_type = :subliminal
+      expect(config.copyray_marker_type).to eq(:subliminal)
+      config.copyray_marker_type = :comment
+      expect(config.copyray_marker_type).to eq(:comment)
+    end
+
+    it 'coerces string values to symbols' do
+      config.copyray_marker_type = 'subliminal'
+      expect(config.copyray_marker_type).to eq(:subliminal)
+    end
+
+    it 'raises ArgumentError for unsupported values' do
+      expect { config.copyray_marker_type = :foo }.to raise_error(ArgumentError, /copyray_marker_type/)
+      expect { config.copyray_marker_type = 'bogus' }.to raise_error(ArgumentError)
+      expect { config.copyray_marker_type = nil }.to raise_error(ArgumentError)
+    end
+  end
 
   it 'should provide default values for secure connections' do
     config = CopyTunerClient::Configuration.new

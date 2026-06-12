@@ -65,5 +65,34 @@ describe CopyTunerClient::Copyray do
         is_expected.to eq 'Hello'
       end
     end
+
+    context 'when copyray_marker_type is :subliminal' do
+      before { CopyTunerClient.configuration.copyray_marker_type = :subliminal }
+      after { CopyTunerClient.configuration.copyray_marker_type = :comment }
+
+      def leading_marker(str)
+        str[/\A[‌‍]+/]
+      end
+
+      context 'string not marked as html safe' do
+        let(:source) { FakeHtmlSafeString.new('<b>Hello</b>') }
+
+        it 'prepends the invisible marker without forcing html_safe (Rails standard compatible)' do
+          is_expected.not_to be_html_safe
+          expect(CopyTunerClient::Subliminal.remove(subject)).to eq '<b>Hello</b>'
+          expect(CopyTunerClient::Subliminal.decode(leading_marker(subject))).to eq key
+        end
+      end
+
+      context 'string marked as html safe' do
+        let(:source) { FakeHtmlSafeString.new('<b>Hello</b>').html_safe }
+
+        it 'prepends the invisible marker and preserves html_safe' do
+          is_expected.to be_html_safe
+          expect(CopyTunerClient::Subliminal.remove(subject)).to eq '<b>Hello</b>'
+          expect(CopyTunerClient::Subliminal.decode(leading_marker(subject))).to eq key
+        end
+      end
+    end
   end
 end
