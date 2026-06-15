@@ -1,0 +1,18 @@
+version: 2
+updates:
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    cooldown:
+      default-days: 5
+    ignore:
+      - dependency-name: "ruby/setup-ruby"
+        update-types:
+          - "version-update:semver-patch"
+          - "version-update:semver-minor"
+      - dependency-name: "actions/checkout"
+        update-types:
+          - "version-update:semver-patch"
+          - "version-update:semver-minor"
+    schedule:
+      # Check for updates to GitHub Actions every weekday
+      interval: "weekly"
