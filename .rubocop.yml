@@ -1,2 +1,7 @@
 inherit_gem:
   sgcop: ruby/rubocop.yml
+
+# .ruby-version が RuboCop 未対応の新しい Ruby を指すと解析が落ちるため、
+# サポート最低バージョンを明示する
+AllCops:
+  TargetRubyVersion: 3.3
