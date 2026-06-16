@@ -149,7 +149,6 @@ describe 'CopyTunerClient::I18nBackend' do
   it 'html_safe な値を渡しても backend が独自に html_safe 化しないこと' do
     cache['en.test.key'] = FakeHtmlSafeString.new("Hello").html_safe
     backend = build_backend
-    # 入力が html_safe であってもそのフラグを保持して返すだけで、backend は判定に関与しない
     expect(backend.translate('en', 'test.key')).to be_html_safe
   end
 

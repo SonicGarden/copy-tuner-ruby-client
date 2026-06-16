@@ -11,7 +11,6 @@ module CopyTunerClient
       PREFIX = '⟦CT:'.freeze
       SUFFIX = '⟧'.freeze
 
-      # マーカー 1 個を非貪欲に切り出す。キャプチャ 1 がキー。走査（属性付与）と除去（strip）の両方に使う。
       # NOTE: PREFIX/SUFFIX から動的構築し、区切り変更時に encode と SCAN_REGEXP がズレないようにする。
       SCAN_REGEXP = /#{Regexp.escape(PREFIX)}(.*?)#{Regexp.escape(SUFFIX)}/
 
