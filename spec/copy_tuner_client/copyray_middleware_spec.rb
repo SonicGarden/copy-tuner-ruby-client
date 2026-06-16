@@ -24,10 +24,10 @@ describe CopyTunerClient::CopyrayMiddleware do
     allow(middleware).to receive(:append_js) { |html, _| html }
   end
 
-  context 'html response with a marker token' do
+  context 'マーカートークンを含む HTML レスポンスのとき' do
     let(:body) { "<html><body><p>#{marker('a.b')}Hello</p></body></html>" }
 
-    it 'rewrites the marker into a data-copyray-key attribute and removes the token' do
+    it 'マーカーを data-copyray-key 属性に書き換え、トークンを除去する' do
       _status, _headers, response = middleware.call({})
       result = response.join
 
@@ -35,17 +35,17 @@ describe CopyTunerClient::CopyrayMiddleware do
       expect(result).not_to match CopyTunerClient::Copyray::Marker::SCAN_REGEXP
     end
 
-    it 'recomputes Content-Length from the rewritten body' do
+    it '書き換え後のボディから Content-Length を再計算する' do
       _status, out_headers, response = middleware.call({})
       expect(out_headers['Content-Length']).to eq response.join.bytesize.to_s
     end
   end
 
-  context 'non-html response' do
+  context 'HTML 以外のレスポンスのとき' do
     let(:headers) { { 'Content-Type' => 'application/json' } }
     let(:body) { "{\"x\":\"#{marker('a.b')}\"}" }
 
-    it 'passes through without rewriting' do
+    it '書き換えずにそのまま通過させる' do
       _status, _headers, response = middleware.call({})
       expect(response.join).to eq body
     end
