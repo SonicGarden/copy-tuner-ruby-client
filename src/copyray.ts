@@ -3,7 +3,8 @@ import Specimen from './specimen'
 
 const findBlurbs = () =>
   Array.from(document.querySelectorAll('[data-copyray-key]')).map((element) => ({
-    key: element.getAttribute('data-copyray-key'),
+    // 1 要素に複数キーがカンマ区切りで入りうる（同一テキストノードに複数訳文が連結された場合）
+    keys: (element.getAttribute('data-copyray-key') ?? '').split(',').filter(Boolean),
     element,
   }))
 
@@ -73,9 +74,9 @@ export default class Copyray {
   }
 
   makeSpecimens() {
-    for (const { element, key } of findBlurbs()) {
+    for (const { element, keys } of findBlurbs()) {
       // @ts-expect-error TS2339
-      this.specimens.push(new Specimen(element, key, this.boundOpen))
+      this.specimens.push(new Specimen(element, keys, this.boundOpen))
     }
   }
 

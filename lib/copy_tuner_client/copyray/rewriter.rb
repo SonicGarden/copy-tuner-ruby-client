@@ -40,29 +40,37 @@ module CopyTunerClient
       end
 
       def annotate_text_node(node)
-        match = node.content.match(Marker::SCAN_REGEXP)
-        return unless match
+        keys = scan_keys(node.content)
+        return if keys.empty?
 
-        set_key(node.parent, match[1])
+        set_keys(node.parent, keys)
         node.content = node.content.gsub(Marker::SCAN_REGEXP, '')
       end
 
       def annotate_attributes(element)
         element.attribute_nodes.each do |attr|
-          match = attr.value.match(Marker::SCAN_REGEXP)
-          next unless match
+          keys = scan_keys(attr.value)
+          next if keys.empty?
 
-          set_key(element, match[1])
+          set_keys(element, keys)
           attr.value = attr.value.gsub(Marker::SCAN_REGEXP, '')
         end
       end
 
-      # 最初のマーカー優先：既に属性が付いている要素には上書きしない。
-      def set_key(element, key)
-        return if element.nil? || !element.element?
-        return if element[DATA_ATTR]
+      # NOTE: 空キーは除く（JS 側も split 後に空要素を捨てるため、表現を両端で揃える）。
+      def scan_keys(text)
+        text.scan(Marker::SCAN_REGEXP).flatten.reject(&:empty?)
+      end
 
-        element[DATA_ATTR] = key
+      # NOTE: 同一テキストノード／属性値に複数マーカーが連結されると全キーをここで受け取り、
+      # 1 要素に複数キーをカンマ区切りで保持する（1 要素 1 キーだと 2 個目以降の編集導線が消える）。
+      # 既存値がある場合（同じ要素を複数経路で踏むケース）はマージして重複排除し、出現順を保つ。
+      # I18n キーに ',' は通常含まれないため区切り文字として安全。JS 側もカンマ区切りを前提に読む。
+      def set_keys(element, keys)
+        return if element.nil? || !element.element?
+
+        existing = element[DATA_ATTR]&.split(',') || []
+        element[DATA_ATTR] = (existing + keys).uniq.join(',')
       end
     end
   end

@@ -4,11 +4,11 @@ const ZINDEX = 2_000_000_000
 
 export default class Specimen {
   // @ts-expect-error TS7006
-  constructor(element, key, callback) {
+  constructor(element, keys, callback) {
     // @ts-expect-error TS2339
     this.element = element
     // @ts-expect-error TS2339
-    this.key = key
+    this.keys = keys
     // @ts-expect-error TS2339
     this.callback = callback
   }
@@ -19,10 +19,11 @@ export default class Specimen {
     // @ts-expect-error TS2339
     if (this.box === null) return
 
+    // box 全体のクリックは先頭キーを開く（広いクリック領域を維持）。複数キー時は各ラベルから個別に開ける
     // @ts-expect-error TS2339
     this.box.addEventListener('click', () => {
       // @ts-expect-error TS2339
-      this.callback(this.key)
+      this.callback(this.keys[0])
     })
 
     // @ts-expect-error TS2339
@@ -69,16 +70,25 @@ export default class Specimen {
       this.box.style.left = `${left}px`
     }
 
-    box.append(this.makeLabel())
+    // @ts-expect-error TS2339
+    for (const key of this.keys) {
+      box.append(this.makeLabel(key))
+    }
     return box
   }
 
-  makeLabel() {
+  // @ts-expect-error TS7006
+  makeLabel(key) {
     const div = document.createElement('div')
     div.classList.add('copyray-specimen-handle')
     div.classList.add('Specimen')
-    // @ts-expect-error TS2339
-    div.textContent = this.key
+    div.textContent = key
+    // ラベルのクリックはそのキーを開く。box への伝播を止めて先頭キーとの二重発火を防ぐ
+    div.addEventListener('click', (event) => {
+      event.stopPropagation()
+      // @ts-expect-error TS2339
+      this.callback(key)
+    })
     return div
   }
 }

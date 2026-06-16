@@ -80,15 +80,27 @@ describe CopyTunerClient::Copyray::Rewriter do
       end
     end
 
-    context '同一要素上の複数マーカー' do
+    context '同一テキストノード内の複数マーカー' do
       let(:html) { "<html><body><p>#{marker('first.key')}A#{marker('second.key')}B</p></body></html>" }
 
-      it '属性には最初のキーだけを使う' do
-        expect(Nokogiri::HTML(result).at_css('p')['data-copyray-key']).to eq 'first.key'
+      it 'すべてのキーをカンマ区切りで data-copyray-key に保持する' do
+        expect(Nokogiri::HTML(result).at_css('p')['data-copyray-key']).to eq 'first.key,second.key'
       end
 
       it 'すべてのトークンを除去する' do
         expect(result).not_to match CopyTunerClient::Copyray::Marker::SCAN_REGEXP
+      end
+    end
+
+    context '同一属性値内の複数マーカー' do
+      let(:html) { %(<html><body><input placeholder="#{marker('a.key')}x#{marker('b.key')}y"></body></html>) }
+
+      it 'すべてのキーをカンマ区切りで data-copyray-key に保持する' do
+        expect(Nokogiri::HTML(result).at_css('input')['data-copyray-key']).to eq 'a.key,b.key'
+      end
+
+      it '属性値からすべてのトークンを除去する' do
+        expect(Nokogiri::HTML(result).at_css('input')['placeholder']).to eq 'xy'
       end
     end
 
