@@ -64,7 +64,6 @@ describe CopyTunerClient::HelperExtension do
 
   context 'injection guard by rendering context' do
     it 'injects the marker when the template format is :html' do
-      view.current_template = Template.new(:html)
       expect(view.translate('some.key', name: 'World')).to eq '<!--COPYRAY some.key-->Hello, World'
     end
 
@@ -99,6 +98,16 @@ describe CopyTunerClient::HelperExtension do
       view.current_template = Template.new(:html)
       view.controller = Object.new
       expect { view.translate('some.key', name: 'World') }.not_to raise_error
+    end
+  end
+
+  # NOTE: マーカー注入を抑止する非 HTML 経路でも、default 引数による初期値登録（I18n.t 呼び出し）は
+  # 維持されなければならない。注入ガードが初期値登録まで巻き添えで止めていないことを保証する。
+  context 'default value registration' do
+    it 'registers the default value even when the marker is not injected' do
+      view.current_template = Template.new(:json)
+      expect(I18n).to receive(:t).with('some.key', hash_including(default: 'Default'))
+      view.translate('some.key', name: 'World', default: 'Default')
     end
   end
 end
