@@ -12,12 +12,18 @@ module CopyTunerClient
       module_function
 
       def rewrite(html)
+        # NOTE: ボディが ASCII-8BIT に転落していると UTF-8 の Marker::PREFIX との include? 比較が
+        # Encoding::CompatibilityError を投げる（ミドルウェアのボディ連結で非ASCIIバイトを含む
+        # ASCII-8BIT チャンクが混じると発生）。実バイト列は本来 UTF-8 なので判定用に UTF-8 とみなす。
+        # String.new でエンコーディングだけ付け替える（元オブジェクトを破壊せずバッファもコピーしない）。
+        scannable = html.encoding == Encoding::UTF_8 ? html : String.new(html, encoding: Encoding::UTF_8)
+
         # NOTE: マーカーが無ければ Copyray 無効時・通常ページなので一切変形しない（高速パス）。
         # これにより本番（マーカー非注入）の HTML は完全に無傷で、Nokogiri の正規化も通らない。
         # 判定は正規表現より安い部分文字列検索で行う（プレフィックスがあれば必ずマーカー候補）。
-        return html unless html.include?(Marker::PREFIX)
+        return html unless scannable.include?(Marker::PREFIX)
 
-        doc = Nokogiri::HTML(html)
+        doc = Nokogiri::HTML(scannable)
 
         doc.traverse do |node|
           if node.text?

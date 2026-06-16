@@ -7,6 +7,10 @@ describe CopyTunerClient::Copyray::Rewriter do
     CopyTunerClient::Copyray::Marker.encode(key)
   end
 
+  def ascii8(str)
+    str.dup.force_encoding(Encoding::ASCII_8BIT)
+  end
+
   describe '.rewrite' do
     subject(:result) { described_class.rewrite(html) }
 
@@ -93,6 +97,29 @@ describe CopyTunerClient::Copyray::Rewriter do
 
       it 'returns the html unchanged (no-op fast path)' do
         expect(result).to eq html
+      end
+    end
+
+    context 'body that has fallen back to ASCII-8BIT but contains a marker' do
+      let(:html) { ascii8("<html><body><p>#{marker('a.b')}日本語</p></body></html>") }
+
+      it 'does not raise and annotates the parent element' do
+        expect { result }.not_to raise_error
+        expect(Nokogiri::HTML(result).at_css('p')['data-copyray-key']).to eq 'a.b'
+        expect(result).not_to match CopyTunerClient::Copyray::Marker::SCAN_REGEXP
+      end
+    end
+
+    context 'ASCII-8BIT body without any marker' do
+      let(:html) { ascii8('<html><body><p>日本語</p></body></html>') }
+
+      it 'does not raise and returns unchanged' do
+        expect { result }.not_to raise_error
+      end
+
+      it 'leaves the original string encoding intact' do
+        result
+        expect(html.encoding).to eq Encoding::ASCII_8BIT
       end
     end
 
