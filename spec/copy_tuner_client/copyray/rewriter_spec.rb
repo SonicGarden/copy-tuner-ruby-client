@@ -135,6 +135,35 @@ describe CopyTunerClient::Copyray::Rewriter do
       end
     end
 
+    context 'rewrite が内部で例外を投げる' do
+      # NOTE: 壊れた HTML 等で Nokogiri 処理が例外を投げる状況を模す。
+      #       Copyray は開発支援機能なので、ここでページを 500 にしない（フォールバック動作）。
+      let(:html) { "<html><body><p>#{marker('a.b')}Hello</p></body></html>" }
+
+      before do
+        allow(described_class).to receive(:rewrite_with_nokogiri).and_raise(RuntimeError, 'boom')
+      end
+
+      it '例外を伝播させずトークンだけ除去して返す' do
+        expect { result }.not_to raise_error
+        expect(result).not_to match CopyTunerClient::Copyray::Marker::SCAN_REGEXP
+        expect(result).to include('<p>Hello</p>')
+      end
+
+      it 'logger.warn で例外内容を記録する' do
+        logger = double('logger')
+        allow(CopyTunerClient.configuration).to receive(:logger).and_return(logger)
+        expect(logger).to receive(:warn).with(/Rewriter failed.*RuntimeError.*boom/)
+        result
+      end
+
+      it 'logger が nil でもフォールバックが落ちない' do
+        allow(CopyTunerClient.configuration).to receive(:logger).and_return(nil)
+        expect { result }.not_to raise_error
+        expect(result).not_to match CopyTunerClient::Copyray::Marker::SCAN_REGEXP
+      end
+    end
+
     context '出力にマーカートークンが一切残らない' do
       let(:html) do
         "<html><head><title>#{marker('t')}T</title></head>" \

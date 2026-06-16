@@ -23,6 +23,17 @@ module CopyTunerClient
         # 判定は正規表現より安い部分文字列検索で行う（プレフィックスがあれば必ずマーカー候補）。
         return html unless scannable.include?(Marker::PREFIX)
 
+        rewrite_with_nokogiri(scannable)
+      rescue StandardError => e
+        # NOTE: Copyray は開発支援機能なので、壊れた HTML 等で Nokogiri 処理が落ちても
+        # ページを 500 にしない。data-copyray-key 付与（編集導線）は諦め、最低限可視トークンだけ除去する。
+        # gsub 対象が html ではなく scannable なのは、ASCII-8BIT のままだと UTF-8 の
+        # SCAN_REGEXP との比較で Encoding::CompatibilityError が再発しうるため。
+        warn_rewrite_failure(e)
+        scannable.gsub(Marker::SCAN_REGEXP, '')
+      end
+
+      def rewrite_with_nokogiri(scannable)
         doc = Nokogiri::HTML(scannable)
 
         doc.traverse do |node|
@@ -37,6 +48,12 @@ module CopyTunerClient
         # serialize 時の正規化（エンティティ復元等）でトークンが復活しうる縁を塞ぐため、
         # 最終出力にもう一度 gsub をかけて残留トークンを保険で全除去する（可視トークンの除去漏れは画面に出るため）。
         doc.to_html.gsub(Marker::SCAN_REGEXP, '')
+      end
+
+      # NOTE: logger 未設定の構成でもフォールバック自体が落ちないよう nil ガードする。
+      def warn_rewrite_failure(error)
+        logger = CopyTunerClient.configuration.logger
+        logger&.warn("CopyTuner Copyray::Rewriter failed: #{error.class.name}: #{error.message}")
       end
 
       def annotate_text_node(node)
