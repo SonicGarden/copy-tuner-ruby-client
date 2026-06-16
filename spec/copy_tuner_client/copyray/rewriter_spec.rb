@@ -14,35 +14,35 @@ describe CopyTunerClient::Copyray::Rewriter do
   describe '.rewrite' do
     subject(:result) { described_class.rewrite(html) }
 
-    context 'simple text node directly under an element' do
+    context '要素直下の単純なテキストノード' do
       let(:html) { "<html><body><p>#{marker('a.b')}Hello</p></body></html>" }
 
-      it 'adds data-copyray-key to the parent element' do
+      it '親要素に data-copyray-key を付与する' do
         expect(result).to include('data-copyray-key="a.b"')
       end
 
-      it 'removes the marker token' do
+      it 'マーカートークンを除去する' do
         expect(result).not_to match CopyTunerClient::Copyray::Marker::SCAN_REGEXP
         expect(result).to include('>Hello<')
       end
     end
 
-    context 'plain translation whose body was html-escaped by ActionView (token left intact)' do
+    context 'ActionView が body を html エスケープした平文訳文（トークンは無傷）' do
       # NOTE: 平文訳文は ActionView がエスケープするため body の & < > はエンティティ化するが、
       # トークンの区切り記号 ⟦⟧ は HTML 特殊文字ではないので無傷で残る。Rewriter はこれを拾えること。
       let(:html) { "<html><body><p>#{marker('plain.key')}Hello &amp; &lt;World&gt;</p></body></html>" }
 
-      it 'still annotates the element and removes the token, leaving the escaped body untouched' do
+      it '要素に属性を付与しトークンを除去するが、エスケープ済み body はそのまま残す' do
         expect(Nokogiri::HTML(result).at_css('p')['data-copyray-key']).to eq 'plain.key'
         expect(result).not_to match CopyTunerClient::Copyray::Marker::SCAN_REGEXP
         expect(result).to include('Hello &amp; &lt;World&gt;')
       end
     end
 
-    context 'marker inside a nested inline element' do
+    context 'ネストしたインライン要素内のマーカー' do
       let(:html) { "<html><body><p>foo <a>#{marker('link.key')}Hi</a> bar</p></body></html>" }
 
-      it 'adds the attribute to the nearest parent element (the <a>)' do
+      it '最も近い親要素（<a>）に属性を付与する' do
         fragment = Nokogiri::HTML(result)
         a = fragment.at_css('a')
         expect(a['data-copyray-key']).to eq 'link.key'
@@ -50,86 +50,86 @@ describe CopyTunerClient::Copyray::Rewriter do
       end
     end
 
-    context 'marker in the middle of a text run' do
+    context 'テキスト中間に置かれたマーカー' do
       let(:html) { "<html><body><p>foo #{marker('mid.key')}Hi</p></body></html>" }
 
-      it 'adds the attribute to the containing element' do
+      it '内包する要素に属性を付与する' do
         expect(Nokogiri::HTML(result).at_css('p')['data-copyray-key']).to eq 'mid.key'
       end
     end
 
-    context 'marker in an attribute value' do
+    context '属性値の中のマーカー' do
       let(:html) { %(<html><body><input placeholder="#{marker('search.placeholder')}検索"></body></html>) }
 
-      it 'adds data-copyray-key to the element itself' do
+      it '要素自身に data-copyray-key を付与する' do
         expect(Nokogiri::HTML(result).at_css('input')['data-copyray-key']).to eq 'search.placeholder'
       end
 
-      it 'strips the token from the attribute value' do
+      it '属性値からトークンを除去する' do
         placeholder = Nokogiri::HTML(result).at_css('input')['placeholder']
         expect(placeholder).to eq '検索'
       end
     end
 
-    context 'marker inside the head (title)' do
+    context 'head（title）の中のマーカー' do
       let(:html) { "<html><head><title>#{marker('page.title')}タイトル</title></head><body></body></html>" }
 
-      it 'removes the token' do
+      it 'トークンを除去する' do
         expect(result).not_to match CopyTunerClient::Copyray::Marker::SCAN_REGEXP
         expect(Nokogiri::HTML(result).at_css('title').text).to eq 'タイトル'
       end
     end
 
-    context 'multiple markers on the same element' do
+    context '同一要素上の複数マーカー' do
       let(:html) { "<html><body><p>#{marker('first.key')}A#{marker('second.key')}B</p></body></html>" }
 
-      it 'uses only the first key for the attribute' do
+      it '属性には最初のキーだけを使う' do
         expect(Nokogiri::HTML(result).at_css('p')['data-copyray-key']).to eq 'first.key'
       end
 
-      it 'removes all tokens' do
+      it 'すべてのトークンを除去する' do
         expect(result).not_to match CopyTunerClient::Copyray::Marker::SCAN_REGEXP
       end
     end
 
-    context 'html without any marker' do
+    context 'マーカーが無い html' do
       let(:html) { '<html><body><p>Nothing to see</p></body></html>' }
 
-      it 'returns the html unchanged (no-op fast path)' do
+      it 'html を無変形で返す（no-op 高速パス）' do
         expect(result).to eq html
       end
     end
 
-    context 'body that has fallen back to ASCII-8BIT but contains a marker' do
+    context 'ASCII-8BIT に転落したがマーカーを含む body' do
       let(:html) { ascii8("<html><body><p>#{marker('a.b')}日本語</p></body></html>") }
 
-      it 'does not raise and annotates the parent element' do
+      it '例外を投げず親要素に属性を付与する' do
         expect { result }.not_to raise_error
         expect(Nokogiri::HTML(result).at_css('p')['data-copyray-key']).to eq 'a.b'
         expect(result).not_to match CopyTunerClient::Copyray::Marker::SCAN_REGEXP
       end
     end
 
-    context 'ASCII-8BIT body without any marker' do
+    context 'マーカーが無い ASCII-8BIT の body' do
       let(:html) { ascii8('<html><body><p>日本語</p></body></html>') }
 
-      it 'does not raise and returns unchanged' do
+      it '例外を投げず無変形で返す' do
         expect { result }.not_to raise_error
       end
 
-      it 'leaves the original string encoding intact' do
+      it '渡された文字列のエンコーディングを破壊しない' do
         result
         expect(html.encoding).to eq Encoding::ASCII_8BIT
       end
     end
 
-    context 'output never retains any marker token' do
+    context '出力にマーカートークンが一切残らない' do
       let(:html) do
         "<html><head><title>#{marker('t')}T</title></head>" \
           "<body><input placeholder=\"#{marker('p')}x\"><p>#{marker('a')}A<a>#{marker('b')}B</a></p></body></html>"
       end
 
-      it 'has no leftover token in the serialized output' do
+      it 'シリアライズ後の出力にトークンが残っていない' do
         expect(result).not_to match CopyTunerClient::Copyray::Marker::SCAN_REGEXP
       end
     end
