@@ -1,31 +1,11 @@
 import CopyTunerBar from './copytuner_bar'
 import Specimen from './specimen'
 
-const findBlurbs = () => {
-  const filterNone = () => NodeFilter.FILTER_ACCEPT
-
-  // @ts-expect-error TS2554
-  const iterator = document.createNodeIterator(document.body, NodeFilter.SHOW_COMMENT, filterNone, false)
-
-  const comments = []
-  let curNode
-
-  while ((curNode = iterator.nextNode())) {
-    comments.push(curNode)
-  }
-
-  return (
-    comments
-      // @ts-expect-error TS2531
-      .filter((comment) => comment.nodeValue.startsWith('COPYRAY'))
-      .map((comment) => {
-        // @ts-expect-error TS2488
-        const [, key] = comment.nodeValue.match(/^COPYRAY (\S*)$/)
-        const element = comment.parentNode
-        return { key, element }
-      })
-  )
-}
+const findBlurbs = () =>
+  Array.from(document.querySelectorAll('[data-copyray-key]')).map((element) => ({
+    key: element.getAttribute('data-copyray-key'),
+    element,
+  }))
 
 export default class Copyray {
   // @ts-expect-error TS7006

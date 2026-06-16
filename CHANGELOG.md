@@ -1,3 +1,17 @@
+## Unreleased
+
+- Copyray オーバーレイのマーカー方式を刷新。訳文への HTML コメント `<!--COPYRAY key-->` 注入をやめ、
+  可視トークン `⟦CT:key⟧` を埋め込んだうえで `CopyrayMiddleware` が `data-copyray-key` 属性に変換し、
+  トークンを HTML から完全に除去するようになりました。最終配信 HTML にコメント・トークンは残りません。
+- **【後方互換性に影響】** `config.html_escape` を deprecated にしました。HTML の安全性判定は i18n 標準
+  （`.html` / `_html` で終わるキーのみ html_safe）に統一され、この設定は参照されなくなりました。設定しても
+  動作には影響せず、設定すると deprecation 警告が出ます。`html_escape = false`（全訳文を html_safe 扱いに
+  する旧互換挙動）に依存していたアプリは、`.html` / `_html` キー命名へ移行してください。
+- Copyray オーバーレイは平文・html_safe（`.html` / `_html` キー）どちらの訳文もハイライト対象です。マーカートークンの
+  区切り記号は HTML 特殊文字ではないため、平文訳文が ActionView でエスケープされてもトークンは無傷で残り、
+  `data-copyray-key` 属性へ正しく変換されます。`<head>` 内（title/meta）はトークンを除去するのみでオーバーレイ
+  非対象ですが、従来どおりリスト導線（CopyTuner バー）から編集できます。
+
 ## 0.16.1
 
 - Support for i18n@1.13.0
