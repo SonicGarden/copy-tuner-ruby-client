@@ -17,8 +17,9 @@ module CopyTunerClient
           # String.new でエンコーディングだけ付け替える（元オブジェクトを破壊せずバッファもコピーしない）。
           scannable = html.encoding == Encoding::UTF_8 ? html : String.new(html, encoding: Encoding::UTF_8)
 
-          # NOTE: マーカーが無ければ Copyray 無効時・通常ページなので一切変形しない（高速パス）。
-          # これにより本番（マーカー非注入）の HTML は完全に無傷で、Nokogiri の正規化も通らない。
+          # NOTE: マーカーが無ければ Copyray 無効時・マーカーの無い通常ページなので一切変形しない（高速パス）。
+          # これによりマーカー非注入の HTML は完全に無傷で、Nokogiri の正規化も通らない。
+          # （そもそも CopyrayMiddleware は development 限定で本番のスタックには登録されず、本番では呼ばれない。）
           # 判定は正規表現より安い部分文字列検索で行う（プレフィックスがあれば必ずマーカー候補）。
           return html unless scannable.include?(Marker::PREFIX)
 
