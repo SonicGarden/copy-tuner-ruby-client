@@ -114,6 +114,21 @@ describe CopyTunerClient::HelperExtension do
     end
   end
 
+  context 'tt（非推奨エイリアス）' do
+    let(:deprecator) { instance_double(ActiveSupport::Deprecation, warn: nil) }
+
+    before { allow(ActiveSupport::Deprecation).to receive(:new).and_return(deprecator) }
+
+    it '呼び出すたびに非推奨警告を出す' do
+      expect(deprecator).to receive(:warn).with(/tt is deprecated/)
+      view.tt('some.key', name: 'World')
+    end
+
+    it 'マーカー注入版（t 相当）の結果を返す' do
+      expect(view.tt('some.key', name: 'World')).to eq '⟦CT:some.key⟧Hello, World'
+    end
+  end
+
   # NOTE: マーカー注入を抑止する非 HTML 経路でも、default 引数による初期値登録（I18n.t 呼び出し）は
   # 維持されなければならない。注入ガードが初期値登録まで巻き添えで止めていないことを保証する。
   context 'default value registration' do
