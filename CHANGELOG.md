@@ -3,9 +3,10 @@
 - Copyray オーバーレイのマーカー方式を刷新。訳文への HTML コメント `<!--COPYRAY key-->` 注入をやめ、
   可視トークン `⟦CT:key⟧` を埋め込んだうえで `CopyrayMiddleware` が `data-copyray-key` 属性に変換し、
   トークンを HTML から完全に除去するようになりました。最終配信 HTML にコメント・トークンは残りません。
-- **【後方互換性に影響】** `config.html_escape` を deprecated にしました。HTML の安全性判定は i18n 標準
-  （`.html` / `_html` で終わるキーのみ html_safe）に統一され、この設定は参照されなくなりました。設定しても
-  動作には影響せず、設定すると deprecation 警告が出ます。`html_escape = false`（全訳文を html_safe 扱いに
+- **【後方互換性に影響】** `config.html_escape` 設定を削除しました。HTML の安全性判定は i18n 標準
+  （`.html` / `_html` で終わるキーのみ html_safe）に統一され、この設定は参照されなくなっていました（no-op）。
+  no-op だったため動作には影響しませんが、`config.html_escape = ...` を設定している initializer は
+  `NoMethodError` になるため、その行を削除してください。`html_escape = false`（全訳文を html_safe 扱いに
   する旧互換挙動）に依存していたアプリは、`.html` / `_html` キー命名へ移行してください。
 - Copyray オーバーレイは平文・html_safe（`.html` / `_html` キー）どちらの訳文もハイライト対象です。マーカートークンの
   区切り記号は HTML 特殊文字ではないため、平文訳文が ActionView でエスケープされてもトークンは無傷で残り、

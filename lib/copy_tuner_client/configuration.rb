@@ -147,20 +147,6 @@ module CopyTunerClient
     # @return [Array<Symbol>] Restrict blurb locales to upload
     attr_accessor :locales
 
-    # @deprecated html_safe 化は ActionView の TranslationHelper（.html/_html キー判定）に委譲するようになり、
-    #   この設定は参照されなくなった。後方互換のため残すが、設定すると deprecation ログを出す。次のメジャーで削除予定。
-    # @return [Boolean] Html escape (deprecated, no-op)
-    attr_reader :html_escape
-
-    def html_escape=(value)
-      ActiveSupport::Deprecation.new.warn(
-        'html_escape is deprecated and no longer has any effect. ' \
-        'HTML safety now follows the i18n standard (.html/_html keys are html_safe). ' \
-        'Please remove this setting.'
-      )
-      @html_escape = value
-    end
-
     # @return [Array<String>] A list of ignored keys
     attr_accessor :ignored_keys
 
@@ -193,8 +179,6 @@ module CopyTunerClient
       self.upload_disabled_environments = %w[production staging]
       self.s3_host = 'copy-tuner.sg-apps.com' # NOTE: cloudfront host
       self.disable_copyray_comment_injection = false
-      # NOTE: deprecated・no-op。デフォルト初期化では setter の deprecation ログを出さないため ivar に直接代入する。
-      @html_escape = true
       self.ignored_keys = []
       self.ignored_key_handler = ->(e) { raise e }
       self.local_first_key_regexp = nil

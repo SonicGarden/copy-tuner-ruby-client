@@ -276,30 +276,6 @@ describe CopyTunerClient::Configuration do
       config.exclude_key_regexp = nil
     end
   end
-
-  describe '#html_escape= (deprecated)' do
-    let(:config) { CopyTunerClient::Configuration.new }
-    let(:deprecator) { instance_double(ActiveSupport::Deprecation, warn: nil) }
-
-    before { allow(ActiveSupport::Deprecation).to receive(:new).and_return(deprecator) }
-
-    it 'warns when a value is set' do
-      expect(deprecator).to receive(:warn).with(/html_escape is deprecated/)
-
-      config.html_escape = false
-    end
-
-    it 'stores the assigned value' do
-      config.html_escape = false
-      expect(config.html_escape).to eq(false)
-    end
-
-    it 'does not warn on default initialization' do
-      expect(deprecator).not_to receive(:warn)
-
-      CopyTunerClient::Configuration.new
-    end
-  end
 end
 
 shared_context 'stubbed configuration' do
