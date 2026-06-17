@@ -112,18 +112,9 @@ describe CopyTunerClient::HelperExtension do
     end
   end
 
-  context 'tt（非推奨エイリアス）' do
-    let(:deprecator) { instance_double(ActiveSupport::Deprecation, warn: nil) }
-
-    before { allow(ActiveSupport::Deprecation).to receive(:new).and_return(deprecator) }
-
-    it '呼び出すたびに非推奨警告を出す' do
-      expect(deprecator).to receive(:warn).with(/tt is deprecated/)
-      view.tt('some.key', name: 'World')
-    end
-
-    it 'マーカー注入版（t 相当）の結果を返す' do
-      expect(view.tt('some.key', name: 'World')).to eq '⟦CT:some.key⟧Hello, World'
+  context 'tt（削除済み）' do
+    it 'tt は定義されていない' do
+      expect(view).not_to respond_to(:tt)
     end
   end
 

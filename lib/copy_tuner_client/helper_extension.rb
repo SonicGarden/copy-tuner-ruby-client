@@ -60,18 +60,6 @@ module CopyTunerClient
             alias_method :translate_without_copyray_comment, :translate
             alias_method :translate, :translate_with_copyray_comment
             alias :t :translate
-
-            # NOTE: マーカー方式刷新（PR #122）で t が安全にマーカー注入できるようになり、
-            # 「マーカーなしの生訳文を取る」ための tt の存在理由は失われた。移行期間として
-            # 非推奨警告を出しつつ t 相当（マーカー注入版）へ委譲する。次のメジャーで削除予定。
-            def tt(key, **options)
-              ActiveSupport::Deprecation.new.warn(
-                'tt is deprecated and will be removed in a future release. Use t (translate) instead.'
-              )
-              translate_with_copyray_comment(key, **options)
-            end
-          else
-            alias :tt :translate
           end
         end
       end
