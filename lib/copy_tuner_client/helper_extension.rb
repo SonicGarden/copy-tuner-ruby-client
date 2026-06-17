@@ -39,18 +39,20 @@ module CopyTunerClient
             end
           end
 
-          # NOTE: @current_template.format が描画中テンプレートのフォーマットを最も正確に表す。
-          # render html: 等で @current_template が nil のときは lookup_context.formats.first にフォールバック。
+          # NOTE: HTML 以外の経路（メール本文・render :json・CSV/PDF など）ではマーカーが文字列として
+          # 出力に混入するため注入しない。判定には controller.request.format を使い、@current_template.format /
+          # lookup_context.formats のような ActionView の内部実装には依存させない（Rails バージョン間で壊れうるため）。
           def copyray_injectable?
-            format = @current_template&.format || lookup_context.formats.first
-            return false unless format == :html
-
-            # NOTE: mailer の HTML パートも format は :html になるため format 判定だけでは除外できない。明示除外する。
             current_controller = controller
             return false if current_controller.nil?
+
+            # NOTE: mailer は request を持たず request.format で判定できない。かつメール本文への
+            # マーカー混入は実害が大きいため、controller の型で明示除外する。
             return false if defined?(ActionMailer::Base) && current_controller.is_a?(ActionMailer::Base)
 
-            true
+            # NOTE: request が無い／format が html でない経路には注入しない。&. と || false で
+            # request 不在時も安全に false を返す。
+            current_controller.request&.format&.html? || false
           end
           private :copyray_injectable?
 
