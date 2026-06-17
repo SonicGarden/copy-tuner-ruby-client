@@ -13,28 +13,29 @@ describe CopyTunerClient::HelperExtension do
     end
   end
 
-  # NOTE: format / controller を差し替えられる最小のフェイクビュー。
-  # @current_template.format と lookup_context.formats.first で描画フォーマットを、
-  # controller で mailer 判定を再現する。
-  Template = Struct.new(:format)
-  LookupContext = Struct.new(:formats)
+  # NOTE: request.format で描画フォーマットを判定するため、format を差し替えられる
+  # 最小のフェイク request / controller を用意する。mailer 判定は controller の型で行う。
+  Format = Struct.new(:type) do
+    def html?
+      type == :html
+    end
+  end
+  Request = Struct.new(:format)
+  Controller = Struct.new(:request)
 
   module KeywordArgumentsHelper
-    attr_writer :current_template, :lookup_context, :controller
+    attr_writer :controller
 
     def translate(key, **options)
       "Hello, #{options[:name]}"
     end
 
-    def lookup_context
-      @lookup_context ||= LookupContext.new([:html])
-    end
-
     def controller
       return @controller if defined?(@controller)
 
-      # NOTE: 実 HTML 描画では controller が存在するため、デフォルトは非 nil の素のオブジェクト。
-      @controller = Object.new
+      # NOTE: 実 HTML 描画では controller が存在し request.format が html になるため、
+      # デフォルトはそれを再現した controller。
+      @controller = Controller.new(Request.new(Format.new(:html)))
     end
   end
 
@@ -47,7 +48,6 @@ describe CopyTunerClient::HelperExtension do
   let(:view) { KeywordArgumentsView.new }
 
   before do
-    view.current_template = Template.new(:html)
     # NOTE: controller_of_rails_engine? は ::Rails::Engine への依存があり単体 spec では評価できないため、
     # この spec の関心（注入ガード）に絞って常に false を返すようスタブする。
     allow(CopyTunerClient::Rails).to receive(:controller_of_rails_engine?).and_return(false)
@@ -62,41 +62,39 @@ describe CopyTunerClient::HelperExtension do
     expect(view.translate('views.foo', name: 'World')).to eq 'Hello, World'
   end
 
-  context 'injection guard by rendering context' do
-    it 'injects the marker when the template format is :html' do
-      expect(view.translate('some.key', name: 'World')).to eq '<!--COPYRAY some.key-->Hello, World'
-    end
-
-    it 'falls back to lookup_context.formats.first when @current_template is nil' do
-      view.current_template = nil
-      view.lookup_context = LookupContext.new([:html])
+  context 'injection guard by request format' do
+    it 'injects the marker when request.format is html' do
       expect(view.translate('some.key', name: 'World')).to eq '<!--COPYRAY some.key-->Hello, World'
     end
 
     %i[json text csv pdf].each do |format|
-      it "does not inject the marker when the template format is :#{format}" do
-        view.current_template = Template.new(format)
+      it "does not inject the marker when request.format is :#{format}" do
+        view.controller = Controller.new(Request.new(Format.new(format)))
         expect(view.translate('some.key', name: 'World')).to eq 'Hello, World'
       end
     end
+  end
 
+  context 'injection guard by controller' do
     it 'does not inject the marker when rendered by a mailer' do
       stub_const('ActionMailer::Base', Class.new)
-      view.current_template = Template.new(:html)
       view.controller = ActionMailer::Base.new
       expect(view.translate('some.key', name: 'World')).to eq 'Hello, World'
     end
 
     it 'does not inject the marker when controller is nil' do
-      view.current_template = Template.new(:html)
       view.controller = nil
+      expect(view.translate('some.key', name: 'World')).to eq 'Hello, World'
+    end
+
+    it 'does not inject the marker when the controller has no request' do
+      view.controller = Controller.new(nil)
       expect(view.translate('some.key', name: 'World')).to eq 'Hello, World'
     end
 
     it 'does not raise when ActionMailer is not loaded' do
       hide_const('ActionMailer::Base') if defined?(ActionMailer::Base)
-      view.current_template = Template.new(:html)
-      view.controller = Object.new
+      view.controller = Controller.new(Request.new(Format.new(:html)))
       expect { view.translate('some.key', name: 'World') }.not_to raise_error
     end
   end
@@ -105,7 +103,7 @@ describe CopyTunerClient::HelperExtension do
   # 維持されなければならない。注入ガードが初期値登録まで巻き添えで止めていないことを保証する。
   context 'default value registration' do
     it 'registers the default value even when the marker is not injected' do
-      view.current_template = Template.new(:json)
+      view.controller = Controller.new(Request.new(Format.new(:json)))
       expect(I18n).to receive(:t).with('some.key', hash_including(default: 'Default'))
       view.translate('some.key', name: 'World', default: 'Default')
     end
