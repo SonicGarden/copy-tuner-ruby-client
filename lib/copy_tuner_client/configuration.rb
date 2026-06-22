@@ -10,7 +10,7 @@ require 'copy_tuner_client/copyray_middleware'
 
 module CopyTunerClient
   # Used to set up and modify settings for the client.
-  class Configuration
+  class Configuration # rubocop:disable Metrics/ClassLength
     # These options will be present in the Hash returned by {#to_hash}.
     OPTIONS = %i[api_key development_environments environment_name host
                  http_open_timeout http_read_timeout client_name client_url
@@ -43,7 +43,8 @@ module CopyTunerClient
     attr_accessor :host
 
     # @return [Fixnum] The port on which your CopyTuner server runs (defaults to +443+ for secure connections, +80+ for insecure connections).
-    attr_accessor :port
+    # NOTE: reader は default_port フォールバック付きの明示定義（#port）があるため attr_accessor を使わない
+    attr_writer :port
 
     # @return [Boolean] +true+ for https connections, +false+ for http connections.
     attr_accessor :secure
@@ -94,7 +95,8 @@ module CopyTunerClient
     attr_accessor :polling_delay
 
     # @return [Integer] The time, in seconds, in between each sync to the server in development. Defaults to +60+.
-    attr_accessor :sync_interval
+    # NOTE: reader は environment で分岐する明示定義（#sync_interval）があるため attr_accessor を使わない
+    attr_writer :sync_interval
 
     # @return [Integer] The time, in seconds, in between each sync to the server in development. Defaults to +60+.
     attr_accessor :sync_interval_staging
@@ -162,7 +164,7 @@ module CopyTunerClient
     alias secure? secure
 
     # Instantiated from {CopyTunerClient.configure}. Sets defaults.
-    def initialize
+    def initialize # rubocop:disable Metrics/AbcSize, Metrics/MethodLength
       self.client_name = 'CopyTuner Client'
       self.client_url = 'https://rubygems.org/gems/copy_tuner_client'
       self.client_version = VERSION
@@ -193,7 +195,7 @@ module CopyTunerClient
     # @param [Symbol] option Key for a given attribute
     # @return [Object] the given attribute
     def [](option)
-      send(option)
+      public_send(option)
     end
 
     # Returns a hash of all configurable options
@@ -202,7 +204,7 @@ module CopyTunerClient
       base_options = { public: public?, upload_disabled: upload_disabled? }
 
       OPTIONS.inject(base_options) do |hash, option|
-        hash.merge option.to_sym => send(option)
+        hash.merge option.to_sym => public_send(option)
       end
     end
 
@@ -254,7 +256,7 @@ module CopyTunerClient
     # This creates the {I18nBackend} and puts them together.
     #
     # When {#test?} returns +false+, the poller will be started.
-    def apply
+    def apply # rubocop:disable Metrics/AbcSize, Metrics/CyclomaticComplexity, Metrics/MethodLength, Metrics/PerceivedComplexity
       self.locales ||= self.locales = if defined?(::Rails)
                                         ::Rails.application.config.i18n.available_locales.presence || Array(::Rails.application.config.i18n.default_locale)
                                       else
