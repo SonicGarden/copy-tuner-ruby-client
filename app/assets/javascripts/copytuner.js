@@ -1,79 +1,79 @@
-var y = typeof globalThis < "u" ? globalThis : typeof window < "u" ? window : typeof global < "u" ? global : typeof self < "u" ? self : {}, A = "Expected a function", C = 0 / 0, _ = "[object Symbol]", $ = /^\s+|\s+$/g, R = /^[-+]0x[0-9a-f]+$/i, H = /^0b[01]+$/i, W = /^0o[0-7]+$/i, F = parseInt, D = typeof y == "object" && y && y.Object === Object && y, P = typeof self == "object" && self && self.Object === Object && self, q = D || P || Function("return this")(), K = Object.prototype, U = K.toString, Y = Math.max, V = Math.min, v = function() {
-  return q.Date.now();
+var y = typeof globalThis < "u" ? globalThis : typeof window < "u" ? window : typeof global < "u" ? global : typeof self < "u" ? self : {}, $ = "Expected a function", C = 0 / 0, _ = "[object Symbol]", H = /^\s+|\s+$/g, q = /^[-+]0x[0-9a-f]+$/i, D = /^0b[01]+$/i, N = /^0o[0-7]+$/i, R = parseInt, W = typeof y == "object" && y && y.Object === Object && y, K = typeof self == "object" && self && self.Object === Object && self, U = W || K || Function("return this")(), F = Object.prototype, P = F.toString, X = Math.max, z = Math.min, v = function() {
+  return U.Date.now();
 };
-function X(t, e, n) {
-  var o, s, d, r, a, c, u = 0, x = !1, f = !1, b = !0;
+function G(t, e, n) {
+  var o, a, l, i, r, c, u = 0, E = !1, p = !1, b = !0;
   if (typeof t != "function")
-    throw new TypeError(A);
-  e = O(e) || 0, E(n) && (x = !!n.leading, f = "maxWait" in n, d = f ? Y(O(n.maxWait) || 0, e) : d, b = "trailing" in n ? !!n.trailing : b);
-  function g(i) {
-    var l = o, p = s;
-    return o = s = void 0, u = i, r = t.apply(p, l), r;
+    throw new TypeError($);
+  e = B(e) || 0, x(n) && (E = !!n.leading, p = "maxWait" in n, l = p ? X(B(n.maxWait) || 0, e) : l, b = "trailing" in n ? !!n.trailing : b);
+  function g(s) {
+    var d = o, f = a;
+    return o = a = void 0, u = s, i = t.apply(f, d), i;
   }
-  function B(i) {
-    return u = i, a = setTimeout(m, e), x ? g(i) : r;
+  function j(s) {
+    return u = s, r = setTimeout(m, e), E ? g(s) : i;
   }
-  function M(i) {
-    var l = i - c, p = i - u, T = e - l;
-    return f ? V(T, d - p) : T;
+  function M(s) {
+    var d = s - c, f = s - u, T = e - d;
+    return p ? z(T, l - f) : T;
   }
-  function w(i) {
-    var l = i - c, p = i - u;
-    return c === void 0 || l >= e || l < 0 || f && p >= d;
+  function w(s) {
+    var d = s - c, f = s - u;
+    return c === void 0 || d >= e || d < 0 || p && f >= l;
   }
   function m() {
-    var i = v();
-    if (w(i))
-      return S(i);
-    a = setTimeout(m, M(i));
+    var s = v();
+    if (w(s))
+      return S(s);
+    r = setTimeout(m, M(s));
   }
-  function S(i) {
-    return a = void 0, b && o ? g(i) : (o = s = void 0, r);
+  function S(s) {
+    return r = void 0, b && o ? g(s) : (o = a = void 0, i);
   }
   function I() {
-    a !== void 0 && clearTimeout(a), u = 0, o = c = s = a = void 0;
+    r !== void 0 && clearTimeout(r), u = 0, o = c = a = r = void 0;
   }
-  function N() {
-    return a === void 0 ? r : S(v());
+  function A() {
+    return r === void 0 ? i : S(v());
   }
   function k() {
-    var i = v(), l = w(i);
-    if (o = arguments, s = this, c = i, l) {
-      if (a === void 0)
-        return B(c);
-      if (f)
-        return a = setTimeout(m, e), g(c);
+    var s = v(), d = w(s);
+    if (o = arguments, a = this, c = s, d) {
+      if (r === void 0)
+        return j(c);
+      if (p)
+        return r = setTimeout(m, e), g(c);
     }
-    return a === void 0 && (a = setTimeout(m, e)), r;
+    return r === void 0 && (r = setTimeout(m, e)), i;
   }
-  return k.cancel = I, k.flush = N, k;
+  return k.cancel = I, k.flush = A, k;
 }
-function E(t) {
+function x(t) {
   var e = typeof t;
   return !!t && (e == "object" || e == "function");
 }
-function z(t) {
+function V(t) {
   return !!t && typeof t == "object";
 }
-function G(t) {
-  return typeof t == "symbol" || z(t) && U.call(t) == _;
+function Y(t) {
+  return typeof t == "symbol" || V(t) && P.call(t) == _;
 }
-function O(t) {
+function B(t) {
   if (typeof t == "number")
     return t;
-  if (G(t))
+  if (Y(t))
     return C;
-  if (E(t)) {
+  if (x(t)) {
     var e = typeof t.valueOf == "function" ? t.valueOf() : t;
-    t = E(e) ? e + "" : e;
+    t = x(e) ? e + "" : e;
   }
   if (typeof t != "string")
     return t === 0 ? t : +t;
-  t = t.replace($, "");
-  var n = H.test(t);
-  return n || W.test(t) ? F(t.slice(2), n ? 2 : 8) : R.test(t) ? C : +t;
+  t = t.replace(H, "");
+  var n = D.test(t);
+  return n || N.test(t) ? R(t.slice(2), n ? 2 : 8) : q.test(t) ? C : +t;
 }
-var Z = X;
+var Z = G;
 const h = "copy-tuner-hidden";
 class J {
   // @ts-expect-error TS7006
@@ -102,18 +102,18 @@ class J {
     e.setAttribute("id", "copy-tuner-bar-log-menu"), e.classList.add(h);
     const n = document.createElement("table"), o = document.createElement("tbody");
     o.classList.remove("is-not-initialized");
-    for (const s of Object.keys(this.data).sort()) {
-      const d = this.data[s];
-      if (d === "")
+    for (const a of Object.keys(this.data).sort()) {
+      const l = this.data[a];
+      if (l === "")
         continue;
+      const i = document.createElement("td");
+      i.textContent = a;
       const r = document.createElement("td");
-      r.textContent = s;
-      const a = document.createElement("td");
-      a.textContent = d;
+      r.textContent = l;
       const c = document.createElement("tr");
-      c.classList.add("copy-tuner-bar-log-menu__row"), c.dataset.key = s, c.addEventListener("click", ({ currentTarget: u }) => {
+      c.classList.add("copy-tuner-bar-log-menu__row"), c.dataset.key = a, c.addEventListener("click", ({ currentTarget: u }) => {
         this.callback(u.dataset.key);
-      }), c.append(r), c.append(a), o.append(c);
+      }), c.append(i), c.append(r), o.append(c);
     }
     return n.append(o), e.append(n), e;
   }
@@ -122,9 +122,9 @@ class J {
     const n = e.value.trim();
     this.showLogMenu();
     const o = [...this.logMenuElement.querySelectorAll("tr")];
-    for (const s of o) {
-      const d = n === "" || [...s.querySelectorAll("td")].some((r) => r.textContent.includes(n));
-      s.classList.toggle(h, !d);
+    for (const a of o) {
+      const l = n === "" || [...a.querySelectorAll("td")].some((i) => i.textContent.includes(n));
+      a.classList.toggle(h, !l);
     }
   }
 }
@@ -150,11 +150,11 @@ const L = navigator.platform.toUpperCase().includes("MAC"), Q = (t) => !!(t.offs
 class oe {
   // @ts-expect-error TS7006
   constructor(e, n, o) {
-    this.element = e, this.key = n, this.callback = o;
+    this.element = e, this.keys = n, this.callback = o;
   }
   show() {
     this.box = this.makeBox(), this.box !== null && (this.box.addEventListener("click", () => {
-      this.callback(this.key);
+      this.callback(this.keys[0]);
     }), document.body.append(this.box));
   }
   remove() {
@@ -166,29 +166,30 @@ class oe {
     const n = te(this.element);
     if (n === null)
       return null;
-    for (const r of Object.keys(n)) {
-      const a = n[r];
-      e.style[r] = `${a}px`;
+    for (const i of Object.keys(n)) {
+      const r = n[i];
+      e.style[i] = `${r}px`;
     }
     e.style.zIndex = ne;
-    const { position: o, top: s, left: d } = getComputedStyle(this.element);
-    return o === "fixed" && (this.box.style.position = "fixed", this.box.style.top = `${s}px`, this.box.style.left = `${d}px`), e.append(this.makeLabel()), e;
+    const { position: o, top: a, left: l } = getComputedStyle(this.element);
+    o === "fixed" && (this.box.style.position = "fixed", this.box.style.top = `${a}px`, this.box.style.left = `${l}px`);
+    for (const i of this.keys)
+      e.append(this.makeLabel(i));
+    return e;
   }
-  makeLabel() {
-    const e = document.createElement("div");
-    return e.classList.add("copyray-specimen-handle"), e.classList.add("Specimen"), e.textContent = this.key, e;
+  // @ts-expect-error TS7006
+  makeLabel(e) {
+    const n = document.createElement("div");
+    return n.classList.add("copyray-specimen-handle"), n.classList.add("Specimen"), n.textContent = e, n.addEventListener("click", (o) => {
+      o.stopPropagation(), this.callback(e);
+    }), n;
   }
 }
-const se = () => {
-  const t = () => NodeFilter.FILTER_ACCEPT, e = document.createNodeIterator(document.body, NodeFilter.SHOW_COMMENT, t, !1), n = [];
-  let o;
-  for (; o = e.nextNode(); )
-    n.push(o);
-  return n.filter((s) => s.nodeValue.startsWith("COPYRAY")).map((s) => {
-    const [, d] = s.nodeValue.match(/^COPYRAY (\S*)$/), r = s.parentNode;
-    return { key: d, element: r };
-  });
-};
+const se = () => Array.from(document.querySelectorAll("[data-copyray-key]")).map((t) => ({
+  // 1 要素に複数キーがカンマ区切りで入りうる（同一テキストノードに複数訳文が連結された場合）
+  keys: (t.getAttribute("data-copyray-key") ?? "").split(",").filter(Boolean),
+  element: t
+}));
 class ie {
   // @ts-expect-error TS7006
   constructor(e, n) {
@@ -211,7 +212,7 @@ class ie {
     window.open(`${this.baseUrl}/blurbs/${e}/edit`);
   }
   makeSpecimens() {
-    for (const { element: e, key: n } of se())
+    for (const { element: e, keys: n } of se())
       this.specimens.push(new oe(e, n, this.boundOpen));
   }
   makeToggleButton() {
@@ -237,7 +238,7 @@ const re = (t) => {
     <a href="javascript:void(0)" class="copy-tuner-bar-open-log copy-tuner-bar-button js-copy-tuner-bar-open-log">Translations in this page</a>
     <input type="text" class="copy-tuner-bar__search js-copy-tuner-bar-search" placeholder="search">
   `, document.body.append(e);
-}, j = () => {
+}, O = () => {
   const { url: t, data: e } = window.CopyTuner;
   re(t);
   const n = new ie(t, e);
@@ -249,4 +250,4 @@ const re = (t) => {
     (L && o.metaKey || !L && o.ctrlKey) && o.shiftKey && o.key.toLowerCase() === "k" && n.toggle();
   }), console && console.log(`Ready to Copyray. Press ${L ? "cmd+shift+k" : "ctrl+shift+k"} to scan your UI.`);
 };
-document.readyState === "complete" || document.readyState !== "loading" ? j() : document.addEventListener("DOMContentLoaded", () => j());
+document.readyState === "complete" || document.readyState !== "loading" ? O() : document.addEventListener("DOMContentLoaded", () => O());

@@ -141,14 +141,11 @@ module CopyTunerClient
     # @return [String] The S3 host to connect to (defaults to +copy-tuner-us.s3.amazonaws.com+).
     attr_accessor :s3_host
 
-    # @return [Boolean] To disable Copyray comment injection, set true
+    # @return [Boolean] To disable Copyray marker injection, set true
     attr_accessor :disable_copyray_comment_injection
 
     # @return [Array<Symbol>] Restrict blurb locales to upload
     attr_accessor :locales
-
-    # @return [Boolean] Html escape
-    attr_accessor :html_escape
 
     # @return [Array<String>] A list of ignored keys
     attr_accessor :ignored_keys
@@ -182,7 +179,6 @@ module CopyTunerClient
       self.upload_disabled_environments = %w[production staging]
       self.s3_host = 'copy-tuner.sg-apps.com' # NOTE: cloudfront host
       self.disable_copyray_comment_injection = false
-      self.html_escape = true
       self.ignored_keys = []
       self.ignored_key_handler = ->(e) { raise e }
       self.local_first_key_regexp = nil

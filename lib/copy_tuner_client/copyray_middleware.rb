@@ -1,5 +1,7 @@
 # cf) xray-rails : xray/middleware.rb
 
+require 'copy_tuner_client/copyray/rewriter'
+
 module CopyTunerClient
   class CopyrayMiddleware
     def initialize(app)
@@ -11,6 +13,9 @@ module CopyTunerClient
       status, headers, response = @app.call(env)
       if html_headers?(status, headers) && body = response_body(response)
         csp_nonce = env['action_dispatch.content_security_policy_nonce'] || env['secure_headers_content_security_policy_nonce']
+        # NOTE: CSS/JS 挿入の前に Rewriter を通す。serialize 後も </body> は必ず出力されるので
+        # append_to_html_body の rindex は機能し、CSS/JS タグはトークン非含有なので二重処理も起きない。
+        body = CopyTunerClient::Copyray::Rewriter.rewrite(body)
         body = append_css(body, csp_nonce)
         body = append_js(body, csp_nonce)
         content_length = body.bytesize.to_s

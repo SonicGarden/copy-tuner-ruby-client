@@ -26,8 +26,11 @@ describe CopyTunerClient::HelperExtension do
   module KeywordArgumentsHelper
     attr_writer :controller
 
+    # NOTE: ActionView の TranslationHelper を模し、.html/_html キーのみ html_safe な訳文を返す。
+    # マーカーは平文・html_safe どちらにも注入されるが、html_safe フラグの引き継ぎを検証できるよう両方返し分ける。
     def translate(key, **options)
-      "Hello, #{options[:name]}"
+      source = "Hello, #{options[:name]}"
+      key.to_s.end_with?('.html', '_html') ? source.html_safe : source
     end
 
     def controller
@@ -54,7 +57,17 @@ describe CopyTunerClient::HelperExtension do
   end
 
   it 'works with keyword argument method' do
-    expect(view.translate('some.key', name: 'World')).to eq '<!--COPYRAY some.key-->Hello, World'
+    expect(view.translate('some.key_html', name: 'World')).to eq '⟦CT:some.key_html⟧Hello, World'
+  end
+
+  it 'injects the marker into a plain (non html_safe) translation, keeping it non html_safe' do
+    result = view.translate('some.key', name: 'World')
+    expect(result).to eq '⟦CT:some.key⟧Hello, World'
+    expect(result).not_to be_html_safe
+  end
+
+  it 'keeps the html_safe flag for an _html key so the body is not re-escaped' do
+    expect(view.translate('some.key_html', name: 'World')).to be_html_safe
   end
 
   it 'does not inject the overlay marker for a local_first key' do
@@ -62,9 +75,9 @@ describe CopyTunerClient::HelperExtension do
     expect(view.translate('views.foo', name: 'World')).to eq 'Hello, World'
   end
 
-  context 'injection guard by request format' do
-    it 'injects the marker when request.format is html' do
-      expect(view.translate('some.key', name: 'World')).to eq '<!--COPYRAY some.key-->Hello, World'
+  context 'injection guard by rendering context' do
+    it 'injects the marker when request.format is :html' do
+      expect(view.translate('some.key', name: 'World')).to eq '⟦CT:some.key⟧Hello, World'
     end
 
     %i[json text csv pdf].each do |format|

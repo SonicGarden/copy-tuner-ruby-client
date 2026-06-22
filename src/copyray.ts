@@ -1,31 +1,12 @@
 import CopyTunerBar from './copytuner_bar'
 import Specimen from './specimen'
 
-const findBlurbs = () => {
-  const filterNone = () => NodeFilter.FILTER_ACCEPT
-
-  // @ts-expect-error TS2554
-  const iterator = document.createNodeIterator(document.body, NodeFilter.SHOW_COMMENT, filterNone, false)
-
-  const comments = []
-  let curNode
-
-  while ((curNode = iterator.nextNode())) {
-    comments.push(curNode)
-  }
-
-  return (
-    comments
-      // @ts-expect-error TS2531
-      .filter((comment) => comment.nodeValue.startsWith('COPYRAY'))
-      .map((comment) => {
-        // @ts-expect-error TS2488
-        const [, key] = comment.nodeValue.match(/^COPYRAY (\S*)$/)
-        const element = comment.parentNode
-        return { key, element }
-      })
-  )
-}
+const findBlurbs = () =>
+  Array.from(document.querySelectorAll('[data-copyray-key]')).map((element) => ({
+    // 1 要素に複数キーがカンマ区切りで入りうる（同一テキストノードに複数訳文が連結された場合）
+    keys: (element.getAttribute('data-copyray-key') ?? '').split(',').filter(Boolean),
+    element,
+  }))
 
 export default class Copyray {
   // @ts-expect-error TS7006
@@ -93,9 +74,9 @@ export default class Copyray {
   }
 
   makeSpecimens() {
-    for (const { element, key } of findBlurbs()) {
+    for (const { element, keys } of findBlurbs()) {
       // @ts-expect-error TS2339
-      this.specimens.push(new Specimen(element, key, this.boundOpen))
+      this.specimens.push(new Specimen(element, keys, this.boundOpen))
     }
   }
 

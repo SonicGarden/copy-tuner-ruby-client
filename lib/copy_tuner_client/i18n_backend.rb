@@ -26,18 +26,11 @@ module CopyTunerClient
     #
     # @return [Object] the translated key (usually a String)
     def translate(locale, key, options = {})
-      # I18nの標準処理に任せる（内部でlookupが呼ばれる）
-      content = super
-
-      return content if content.nil? || content.is_a?(Hash)
-
-      # HTML escapeの処理（ツリー構造のHashは除く）
-      if CopyTunerClient.configuration.html_escape
-        content
-      else
-        # Backward compatible
-        content.respond_to?(:html_safe) ? content.html_safe : content
-      end
+      # I18nの標準処理に任せる（内部でlookupが呼ばれる）。
+      # NOTE: html_safe 化は backend では行わない。.html/_html キーの html_safe 化は
+      # ActionView の TranslationHelper（ActiveSupport::HtmlSafeTranslation）が担うため、
+      # backend は I18n 標準どおり素の content を返すだけにする（旧 html_escape 分岐は廃止）。
+      super
     end
 
     # Returns locales available for this CopyTuner project.

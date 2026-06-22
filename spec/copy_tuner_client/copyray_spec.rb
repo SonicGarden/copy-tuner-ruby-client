@@ -7,62 +7,44 @@ describe CopyTunerClient::Copyray do
 
     let(:key) { 'en.test.key' }
 
-    shared_examples 'Not escaped' do
-      it { is_expected.to be_html_safe }
-      it { is_expected.to eq "<!--COPYRAY #{key}--><b>Hello</b>" }
-    end
-
-    context 'html_escape option is false' do
-      before do
-        CopyTunerClient.configure do |configuration|
-          configuration.html_escape = false
-          configuration.client = FakeClient.new
-        end
-      end
-
-      context 'string not marked as html safe' do
-        let(:source) { FakeHtmlSafeString.new('<b>Hello</b>') }
-
-        it_behaves_like 'Not escaped'
-      end
-
-      context 'string marked as html safe' do
-        let(:source) { FakeHtmlSafeString.new('<b>Hello</b>').html_safe }
-
-        it_behaves_like 'Not escaped'
+    before do
+      CopyTunerClient.configure do |configuration|
+        configuration.client = FakeClient.new
       end
     end
 
-    context 'html_escape option is true' do
-      before do
-        CopyTunerClient.configure do |configuration|
-          configuration.html_escape = true
-          configuration.client = FakeClient.new
-        end
+    context 'when the source is html_safe (e.g. _html key)' do
+      let(:source) { FakeHtmlSafeString.new('<b>Hello</b>').html_safe }
+
+      it 'keeps the html_safe flag so the translation is not re-escaped' do
+        is_expected.to be_html_safe
       end
 
-      context 'string not marked as html safe' do
-        let(:source) { FakeHtmlSafeString.new('<b>Hello</b>') }
-
-        it { is_expected.to be_html_safe }
-        it { is_expected.to eq "<!--COPYRAY #{key}-->&lt;b&gt;Hello&lt;/b&gt;" }
+      it 'prepends the visible marker token without escaping' do
+        is_expected.to eq '⟦CT:en.test.key⟧<b>Hello</b>'
       end
+    end
 
-      context 'string marked as html safe' do
-        let(:source) { FakeHtmlSafeString.new('<b>Hello</b>').html_safe }
+    context 'when the source is plain text (not html_safe)' do
+      let(:source) { FakeHtmlSafeString.new('Hello & <World>') }
 
-        it_behaves_like 'Not escaped'
+      it 'prepends the marker but keeps the source non html_safe so ActionView still escapes the body' do
+        is_expected.to eq '⟦CT:en.test.key⟧Hello & <World>'
+        is_expected.not_to be_html_safe
       end
     end
 
     context 'when the key matches local_first_key_regexp' do
-      let(:source) { 'Hello' }
       let(:key) { 'views.foo' }
 
       before { CopyTunerClient.configuration.local_first_key_regexp = /\Aviews\./ }
 
-      it 'does not inject the overlay marker' do
-        is_expected.to eq 'Hello'
+      it 'does not inject the marker into a plain source' do
+        expect(CopyTunerClient::Copyray.augment_template('Hello', key)).to eq 'Hello'
+      end
+
+      it 'does not inject the marker into an html_safe source' do
+        expect(CopyTunerClient::Copyray.augment_template('Hello'.html_safe, key)).to eq 'Hello'
       end
     end
   end
