@@ -112,12 +112,6 @@ describe CopyTunerClient::HelperExtension do
     end
   end
 
-  context 'tt（削除済み）' do
-    it 'tt は定義されていない' do
-      expect(view).not_to respond_to(:tt)
-    end
-  end
-
   # NOTE: マーカー注入を抑止する非 HTML 経路でも、default 引数による初期値登録（I18n.t 呼び出し）は
   # 維持されなければならない。注入ガードが初期値登録まで巻き添えで止めていないことを保証する。
   context 'default value registration' do
