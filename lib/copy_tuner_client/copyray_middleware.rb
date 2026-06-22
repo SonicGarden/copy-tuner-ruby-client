@@ -15,9 +15,11 @@ module CopyTunerClient
         csp_nonce = env['action_dispatch.content_security_policy_nonce'] || env['secure_headers_content_security_policy_nonce']
         # NOTE: CSS/JS 挿入の前に Rewriter を通す。serialize 後も </body> は必ず出力されるので
         # append_to_html_body の rindex は機能し、CSS/JS タグはトークン非含有なので二重処理も起きない。
-        body = CopyTunerClient::Copyray::Rewriter.rewrite(body)
+        # NOTE: skipped は data-copyray-key を付与できなかったこと（巨大DOM/Nokogiri例外）を表す。
+        # JS にこれを伝え、オーバーレイ非対応である旨をツールバーで案内させる。
+        body, skipped = CopyTunerClient::Copyray::Rewriter.rewrite(body)
         body = append_css(body, csp_nonce)
-        body = append_js(body, csp_nonce)
+        body = append_js(body, csp_nonce, skipped: skipped)
         content_length = body.bytesize.to_s
         headers['Content-Length'] = content_length
         # maintains compatibility with other middlewares
@@ -42,7 +44,7 @@ module CopyTunerClient
       append_to_html_body(html, css_tag)
     end
 
-    def append_js(html, csp_nonce)
+    def append_js(html, csp_nonce, skipped: false)
       json =
         if CopyTunerClient::TranslationLog.initialized?
           CopyTunerClient::TranslationLog.translations.to_json
@@ -54,6 +56,7 @@ module CopyTunerClient
         window.CopyTuner = {
           url: '#{CopyTunerClient.configuration.project_url}',
           data: #{json},
+          keysSkipped: #{skipped},
         }
       SCRIPT
       append_to_html_body(html, helpers.javascript_include_tag('copytuner', type: 'module', crossorigin: 'anonymous', nonce: csp_nonce))

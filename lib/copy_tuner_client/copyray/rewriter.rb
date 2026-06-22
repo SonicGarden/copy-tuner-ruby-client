@@ -9,7 +9,16 @@ module CopyTunerClient
     module Rewriter
       DATA_ATTR = 'data-copyray-key'.freeze
 
+      # NOTE: マーカーを含む巨大 HTML を Nokogiri で parse/traverse/再シリアライズすると
+      # サイズに比例して重くなる（実測 ~1MB で 167ms, ~3MB で 514ms）。development 限定機能で
+      # レスポンスを大きく悪化させないため、この閾値超では Nokogiri を通さず可視トークン除去のみ行う。
+      # 失うのは data-copyray-key（オーバーレイ編集導線）だけで、フォールバックの gsub は巨大ページでも数ms。
+      MAX_REWRITE_BYTESIZE = 1_000_000
+
       class << self
+        # NOTE: 戻り値は [html, skipped]。skipped は data-copyray-key を付与できなかったことを表す
+        # （巨大DOMでのスキップ・Nokogiri 例外の双方で true）。ミドルウェアがこれを JS に伝え、
+        # オーバーレイ非対応である旨をツールバーで案内する。
         def rewrite(html)
           # NOTE: ボディが ASCII-8BIT に転落していると UTF-8 の Marker::PREFIX との include? 比較が
           # Encoding::CompatibilityError を投げる（ミドルウェアのボディ連結で非ASCIIバイトを含む
@@ -21,19 +30,26 @@ module CopyTunerClient
           # これによりマーカー非注入の HTML は完全に無傷で、Nokogiri の正規化も通らない。
           # （そもそも CopyrayMiddleware は development 限定で本番のスタックには登録されず、本番では呼ばれない。）
           # 判定は正規表現より安い部分文字列検索で行う（プレフィックスがあれば必ずマーカー候補）。
-          return html unless scannable.include?(Marker::PREFIX)
+          return [html, false] unless scannable.include?(Marker::PREFIX)
 
-          rewrite_with_nokogiri(scannable)
+          # NOTE: 閾値超は Nokogiri を通さず可視トークン除去のみ。skipped=true で編集導線を諦めた旨を伝える。
+          return [strip_markers(scannable), true] if scannable.bytesize > MAX_REWRITE_BYTESIZE
+
+          [rewrite_with_nokogiri(scannable), false]
         rescue StandardError => e
           # NOTE: Copyray は開発支援機能なので、壊れた HTML 等で Nokogiri 処理が落ちても
           # ページを 500 にしない。data-copyray-key 付与（編集導線）は諦め、最低限可視トークンだけ除去する。
-          # gsub 対象が html ではなく scannable なのは、ASCII-8BIT のままだと UTF-8 の
-          # SCAN_REGEXP との比較で Encoding::CompatibilityError が再発しうるため。
           warn_rewrite_failure(e)
-          scannable.gsub(Marker::SCAN_REGEXP, '')
+          [strip_markers(scannable), true]
         end
 
         private
+
+        # NOTE: gsub 対象が html ではなく scannable なのは、ASCII-8BIT のままだと UTF-8 の
+        # SCAN_REGEXP との比較で Encoding::CompatibilityError が再発しうるため。
+        def strip_markers(scannable)
+          scannable.gsub(Marker::SCAN_REGEXP, '')
+        end
 
         def rewrite_with_nokogiri(scannable)
           doc = Nokogiri::HTML(scannable)
@@ -49,7 +65,7 @@ module CopyTunerClient
           # NOTE: Nokogiri 走査はテキストノード親要素・属性値への属性付与とノード単位の除去を担うが、
           # serialize 時の正規化（エンティティ復元等）でトークンが復活しうる縁を塞ぐため、
           # 最終出力にもう一度 gsub をかけて残留トークンを保険で全除去する（可視トークンの除去漏れは画面に出るため）。
-          doc.to_html.gsub(Marker::SCAN_REGEXP, '')
+          strip_markers(doc.to_html)
         end
 
         # NOTE: logger 未設定の構成でもフォールバック自体が落ちないよう nil ガードする。

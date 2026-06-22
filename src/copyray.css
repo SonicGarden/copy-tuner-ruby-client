@@ -189,6 +189,15 @@ a.copyray-toggle-button:hover {
   background-color: #555;
 }
 
+.copy-tuner-bar__notice {
+  display: inline-block;
+  margin: 8px;
+  font-size: 13px;
+  line-height: 24px;
+  vertical-align: middle;
+  color: #ffd24d;
+}
+
 input[type='text'].copy-tuner-bar__search {
   -webkit-appearance: none;
   -moz-appearance: none;

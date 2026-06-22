@@ -12,7 +12,11 @@ describe CopyTunerClient::Copyray::Rewriter do
   end
 
   describe '.rewrite' do
-    subject(:result) { described_class.rewrite(html) }
+    # NOTE: rewrite は [html, skipped] を返すが、既存テストの大半は html だけを検証する。
+    # 1 回の呼び出しを let でメモ化して共有し、result は html、skipped は 2 要素目を指す。
+    let(:rewritten) { described_class.rewrite(html) }
+    subject(:result) { rewritten.first }
+    let(:skipped) { rewritten.last }
 
     context '要素直下の単純なテキストノード' do
       let(:html) { "<html><body><p>#{marker('a.b')}Hello</p></body></html>" }
@@ -24,6 +28,10 @@ describe CopyTunerClient::Copyray::Rewriter do
       it 'マーカートークンを除去する' do
         expect(result).not_to match CopyTunerClient::Copyray::Marker::SCAN_REGEXP
         expect(result).to include('>Hello<')
+      end
+
+      it 'skipped が false を返す（属性付与に成功した）' do
+        expect(skipped).to be false
       end
     end
 
@@ -110,6 +118,32 @@ describe CopyTunerClient::Copyray::Rewriter do
       it 'html を無変形で返す（no-op 高速パス）' do
         expect(result).to eq html
       end
+
+      it 'skipped が false を返す（変形していない）' do
+        expect(skipped).to be false
+      end
+    end
+
+    context 'HTML が閾値（MAX_REWRITE_BYTESIZE）を超える場合' do
+      # NOTE: マーカーを含みつつ閾値超のサイズにするため、padding でかさ増しする。
+      let(:padding) { '<span>x</span>' * ((described_class::MAX_REWRITE_BYTESIZE / 14) + 1) }
+      let(:html) { "<html><body><p>#{marker('big.key')}Hello</p>#{padding}</body></html>" }
+
+      it '閾値を超えるサイズである（前提確認）' do
+        expect(html.bytesize).to be > described_class::MAX_REWRITE_BYTESIZE
+      end
+
+      it 'マーカートークンを除去する' do
+        expect(result).not_to match CopyTunerClient::Copyray::Marker::SCAN_REGEXP
+      end
+
+      it 'data-copyray-key を付与しない（Nokogiri を通さない）' do
+        expect(result).not_to include(described_class::DATA_ATTR)
+      end
+
+      it 'skipped が true を返す' do
+        expect(skipped).to be true
+      end
     end
 
     context 'ASCII-8BIT に転落したがマーカーを含む body' do
@@ -148,6 +182,10 @@ describe CopyTunerClient::Copyray::Rewriter do
         expect { result }.not_to raise_error
         expect(result).not_to match CopyTunerClient::Copyray::Marker::SCAN_REGEXP
         expect(result).to include('<p>Hello</p>')
+      end
+
+      it 'skipped が true を返す（属性付与できなかった）' do
+        expect(skipped).to be true
       end
 
       it 'logger.warn で例外内容を記録する' do
