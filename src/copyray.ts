@@ -10,7 +10,7 @@ const findBlurbs = () =>
 
 export default class Copyray {
   // @ts-expect-error TS7006
-  constructor(baseUrl, data) {
+  constructor(baseUrl, data, keysSkipped = false) {
     // @ts-expect-error TS2339
     this.baseUrl = baseUrl
     // @ts-expect-error TS2339
@@ -27,7 +27,7 @@ export default class Copyray {
     this.boundOpen = this.open.bind(this)
 
     // @ts-expect-error TS2339
-    this.copyTunerBar = new CopyTunerBar(document.querySelector('#copy-tuner-bar'), this.data, this.boundOpen)
+    this.copyTunerBar = new CopyTunerBar(document.querySelector('#copy-tuner-bar'), this.data, this.boundOpen, keysSkipped)
   }
 
   show() {

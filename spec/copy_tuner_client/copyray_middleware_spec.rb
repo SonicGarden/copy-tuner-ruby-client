@@ -21,7 +21,7 @@ describe CopyTunerClient::CopyrayMiddleware do
     # NOTE: CSS/JS 挿入は Rails の ActionController::Base.helpers に依存するため、
     # Rewriter の効果だけを検証できるよう no-op にスタブする。
     allow(middleware).to receive(:append_css) { |html, _| html }
-    allow(middleware).to receive(:append_js) { |html, _| html }
+    allow(middleware).to receive(:append_js) { |html, *| html }
   end
 
   context 'マーカートークンを含む HTML レスポンスのとき' do
@@ -48,6 +48,41 @@ describe CopyTunerClient::CopyrayMiddleware do
     it '書き換えずにそのまま通過させる' do
       _status, _headers, response = middleware.call({})
       expect(response.join).to eq body
+    end
+  end
+
+  describe '#append_js' do
+    # NOTE: append_js は private かつ Rails の view ヘルパー（javascript_tag 等）に依存する。
+    # トップレベルの no-op スタブを外して実体を呼び、ヘルパーは渡された script 本文をそのまま
+    # 返す最小フェイクに差し替えて、window.CopyTuner に keysSkipped が埋まることだけ検証する。
+    subject(:script) { middleware.__send__(:append_js, '<html><body></body></html>', nil, skipped: skipped) }
+
+    let(:fake_helpers) do
+      Class.new {
+        def javascript_tag(content, **_opts) = content
+        def javascript_include_tag(*, **) = ''
+      }.new
+    end
+
+    before do
+      allow(middleware).to receive(:append_js).and_call_original
+      allow(middleware).to receive(:helpers).and_return(fake_helpers)
+    end
+
+    context 'skipped が true のとき' do
+      let(:skipped) { true }
+
+      it 'window.CopyTuner に keysSkipped: true を出力する' do
+        expect(script).to include('keysSkipped: true')
+      end
+    end
+
+    context 'skipped が false のとき' do
+      let(:skipped) { false }
+
+      it 'window.CopyTuner に keysSkipped: false を出力する' do
+        expect(script).to include('keysSkipped: false')
+      end
     end
   end
 end
