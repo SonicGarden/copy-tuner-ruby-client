@@ -18,7 +18,7 @@ module CopyTunerClient
                  proxy_port proxy_user secure polling_delay sync_interval
                  sync_interval_staging sync_ignore_path_regex logger
                  framework middleware disable_middleware disable_test_translation
-                 ca_file exclude_key_regexp local_first_key_regexp s3_host locales ignored_keys ignored_key_handler
+                 ca_file local_first_key_regexp s3_host locales ignored_keys ignored_key_handler
                  download_cache_dir].freeze
 
     # NOTE: Rails 標準ロケールで非文字列値（precision: Integer, significant: Boolean,
@@ -129,10 +129,6 @@ module CopyTunerClient
     attr_accessor :client
 
     attr_accessor :poller
-
-    # @return [Regexp] Regular expression to exclude keys.
-    # @deprecated Use {#local_first_key_regexp} instead.
-    attr_reader :exclude_key_regexp
 
     # @return [Regexp] Keys (without locale) matching this regexp bypass the
     #   copy_tuner cache and are looked up from local config/locales
@@ -333,18 +329,6 @@ module CopyTunerClient
       raise ArgumentError, 'api_key is required' if api_key.nil? || api_key.empty?
 
       @api_key = api_key
-    end
-
-    # @deprecated Use {#local_first_key_regexp} instead.
-    def exclude_key_regexp=(value)
-      unless value.nil?
-        ActiveSupport::Deprecation.new.warn(
-          'exclude_key_regexp is deprecated and will be removed in a future release. ' \
-          'Use local_first_key_regexp instead (note: it matches keys WITHOUT the locale prefix, ' \
-          'e.g. /\Aviews\./ instead of /\Aja\.views\./).'
-        )
-      end
-      @exclude_key_regexp = value
     end
 
     # Sync interval for Rack Middleware

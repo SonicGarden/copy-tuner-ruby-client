@@ -24,16 +24,6 @@ describe 'CopyTunerClient::Cache' do
     expect(cache.keys).to match_array(%w[en.test.key en.test.other_key])
   end
 
-  it 'exclude_key_regexpが設定されている場合、該当データを除外すること' do
-    cache = build_cache(exclude_key_regexp: /^en\.test\.other_key$/)
-    cache['en.test.key']       = 'expected'
-    cache['en.test.other_key'] = 'expected'
-
-    cache.download
-
-    expect(cache.queued.keys).to match_array(%w[en.test.key])
-  end
-
   it 'local_first_key_regexpにマッチするキー（locale除く）はアップロードキューに入れないこと' do
     cache = build_cache(local_first_key_regexp: /\Aviews\./)
     cache['ja.views.foo']    = 'local value'
@@ -284,6 +274,7 @@ describe 'CopyTunerClient::Cache' do
   it 'トップレベルからflushできること' do
     cache = build_cache
     CopyTunerClient.configure do |config|
+      config.project_id = 1
       config.cache = cache
     end
     expect(cache).to receive(:flush).at_least(:once)
@@ -410,6 +401,7 @@ describe 'CopyTunerClient::Cache' do
 
     it 'トップレベル定数から呼び出せること' do
       CopyTunerClient.configure do |config|
+        config.project_id = 1
         config.cache = cache
       end
       expect(cache).to receive(:export)
