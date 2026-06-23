@@ -9,6 +9,7 @@ describe CopyTunerClient::Copyray do
 
     before do
       CopyTunerClient.configure do |configuration|
+        configuration.project_id = 1
         configuration.client = FakeClient.new
       end
     end

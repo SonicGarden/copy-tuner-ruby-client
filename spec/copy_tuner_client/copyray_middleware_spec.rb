@@ -16,6 +16,7 @@ describe CopyTunerClient::CopyrayMiddleware do
 
   before do
     CopyTunerClient.configure do |configuration|
+      configuration.project_id = 1
       configuration.client = FakeClient.new
     end
     # NOTE: CSS/JS 挿入は Rails の ActionController::Base.helpers に依存するため、

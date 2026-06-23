@@ -253,6 +253,9 @@ module CopyTunerClient
     #
     # When {#test?} returns +false+, the poller will be started.
     def apply # rubocop:disable Metrics/AbcSize, Metrics/CyclomaticComplexity, Metrics/MethodLength, Metrics/PerceivedComplexity
+      # NOTE: project_id は必須。未設定なら apply 時点で明示的に失敗させる
+      validate_project_id!
+
       self.locales ||= self.locales = if defined?(::Rails)
                                         ::Rails.application.config.i18n.available_locales.presence || Array(::Rails.application.config.i18n.default_locale)
                                       else
@@ -340,16 +343,11 @@ module CopyTunerClient
       end
     end
 
-    # @return [String] current project url by api_key
+    # @return [String] current project url by project_id
     def project_url
-      path =
-        if project_id
-          "/projects/#{project_id}"
-        else
-          ActiveSupport::Deprecation.new.warn('Please set project_id.')
-          "/projects/#{api_key}"
-        end
+      validate_project_id!
 
+      path = "/projects/#{project_id}"
       URI::Generic.build(scheme: self.protocol, host: self.host, port: self.port.to_i, path:).to_s
     end
 
@@ -370,6 +368,12 @@ module CopyTunerClient
     end
 
     private
+
+    # project_id は必須。未設定なら明示的に失敗させる。
+    # apply（起動時の全体検証）と project_url（apply を経ない経路へのセーフネット）の両方から呼ぶ。
+    def validate_project_id!
+      raise ArgumentError, 'project_id is required' if project_id.nil?
+    end
 
     def default_port
       if secure?
