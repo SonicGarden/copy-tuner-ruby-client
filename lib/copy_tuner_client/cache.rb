@@ -20,7 +20,6 @@ module CopyTunerClient
       @client = client
       @logger = options[:logger]
       @mutex = Mutex.new
-      @exclude_key_regexp = options[:exclude_key_regexp]
       @local_first_key_regexp = options[:local_first_key_regexp]
       @upload_disabled = options[:upload_disabled]
       @ignored_keys = options.fetch(:ignored_keys, [])
@@ -49,7 +48,6 @@ module CopyTunerClient
     # @param key [String] the key of the blurb to update
     # @param value [String] the new contents of the blurb
     def []=(key, value)
-      return if @exclude_key_regexp && key.match?(@exclude_key_regexp)
       return unless key.include?('.')
       return if @locales.present? && !@locales.member?(key.split('.').first)
       return if @upload_disabled

@@ -5,7 +5,7 @@ const HIDDEN_CLASS = 'copy-tuner-hidden'
 
 export default class CopytunerBar {
   // @ts-expect-error TS7006
-  constructor(element, data, callback) {
+  constructor(element, data, callback, keysSkipped = false) {
     // @ts-expect-error TS2339
     this.element = element
     // @ts-expect-error TS2339
@@ -19,7 +19,21 @@ export default class CopytunerBar {
     // @ts-expect-error TS2339
     this.element.append(this.logMenuElement)
 
+    // 巨大DOM/Nokogiri例外でキー付与がスキップされた場合は、オーバーレイが使えないので
+    // ツールバー（Translations in this page）から編集する旨を案内する。
+    if (keysSkipped) {
+      this.appendSkippedNotice()
+    }
+
     this.addHandler()
+  }
+
+  appendSkippedNotice() {
+    const notice = document.createElement('span')
+    notice.classList.add('copy-tuner-bar__notice')
+    notice.textContent = '⚠ This page is too large for the overlay. Use "Translations in this page" to edit.'
+    // @ts-expect-error TS2339
+    this.element.append(notice)
   }
 
   addHandler() {

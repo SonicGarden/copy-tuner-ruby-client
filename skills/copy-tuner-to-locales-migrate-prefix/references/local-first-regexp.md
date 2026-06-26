@@ -60,13 +60,8 @@ config.local_first_key_regexp = Regexp.union(
 （`/\Aviews\./`。`Regexp.union` に文字列を渡す場合は自動エスケープされるが、Regexp リテラルを渡すときは自分で
 書く）。
 
-## deprecated な exclude_key_regexp との違い
+## 旧 exclude_key_regexp について
 
-| | `local_first_key_regexp` | `exclude_key_regexp`（非推奨） |
-|---|---|---|
-| 対象キー | locale を**除いた**キー（`views.foo`） | locale を**含む**キー（`ja.views.foo`） |
-| 作用タイミング | lookup（読み込み）時 | upload（送信）時 |
-| 効果 | ローカル YAML を優先（完全分離） | サーバへのアップロードを抑止するだけ |
-
-`exclude_key_regexp` は PR #110 で非推奨化された（設定すると `ActiveSupport::Deprecation` 警告が出る）。
-移行では使わない。もし既存設定に `exclude_key_regexp` があれば、cleanup スキルで gem ごと撤去される。
+かつて存在した `exclude_key_regexp` オプションは v2 で削除済み。`local_first_key_regexp` を使うこと
+（対象は locale を**除いた**キー `views.foo`、lookup 時に作用しローカル YAML を優先＝完全分離）。
+既存 initializer に `exclude_key_regexp` の設定が残っている場合は削除する。

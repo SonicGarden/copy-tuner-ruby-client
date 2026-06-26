@@ -1,25 +1,25 @@
-var y = typeof globalThis < "u" ? globalThis : typeof window < "u" ? window : typeof global < "u" ? global : typeof self < "u" ? self : {}, A = "Expected a function", C = 0 / 0, _ = "[object Symbol]", $ = /^\s+|\s+$/g, R = /^[-+]0x[0-9a-f]+$/i, H = /^0b[01]+$/i, W = /^0o[0-7]+$/i, F = parseInt, D = typeof y == "object" && y && y.Object === Object && y, P = typeof self == "object" && self && self.Object === Object && self, q = D || P || Function("return this")(), K = Object.prototype, U = K.toString, Y = Math.max, V = Math.min, v = function() {
-  return q.Date.now();
+var y = typeof globalThis < "u" ? globalThis : typeof window < "u" ? window : typeof global < "u" ? global : typeof self < "u" ? self : {}, _ = "Expected a function", C = 0 / 0, $ = "[object Symbol]", N = /^\s+|\s+$/g, H = /^[-+]0x[0-9a-f]+$/i, q = /^0b[01]+$/i, D = /^0o[0-7]+$/i, R = parseInt, U = typeof y == "object" && y && y.Object === Object && y, W = typeof self == "object" && self && self.Object === Object && self, K = U || W || Function("return this")(), F = Object.prototype, P = F.toString, X = Math.max, z = Math.min, v = function() {
+  return K.Date.now();
 };
-function X(t, e, n) {
-  var o, s, d, r, a, c, u = 0, x = !1, f = !1, b = !0;
+function G(t, e, n) {
+  var o, s, l, r, a, c, u = 0, E = !1, h = !1, b = !0;
   if (typeof t != "function")
-    throw new TypeError(A);
-  e = O(e) || 0, E(n) && (x = !!n.leading, f = "maxWait" in n, d = f ? Y(O(n.maxWait) || 0, e) : d, b = "trailing" in n ? !!n.trailing : b);
+    throw new TypeError(_);
+  e = B(e) || 0, x(n) && (E = !!n.leading, h = "maxWait" in n, l = h ? X(B(n.maxWait) || 0, e) : l, b = "trailing" in n ? !!n.trailing : b);
   function g(i) {
-    var l = o, p = s;
-    return o = s = void 0, u = i, r = t.apply(p, l), r;
+    var d = o, f = s;
+    return o = s = void 0, u = i, r = t.apply(f, d), r;
   }
-  function B(i) {
-    return u = i, a = setTimeout(m, e), x ? g(i) : r;
+  function j(i) {
+    return u = i, a = setTimeout(m, e), E ? g(i) : r;
   }
   function M(i) {
-    var l = i - c, p = i - u, T = e - l;
-    return f ? V(T, d - p) : T;
+    var d = i - c, f = i - u, T = e - d;
+    return h ? z(T, l - f) : T;
   }
   function w(i) {
-    var l = i - c, p = i - u;
-    return c === void 0 || l >= e || l < 0 || f && p >= d;
+    var d = i - c, f = i - u;
+    return c === void 0 || d >= e || d < 0 || h && f >= l;
   }
   function m() {
     var i = v();
@@ -33,52 +33,56 @@ function X(t, e, n) {
   function I() {
     a !== void 0 && clearTimeout(a), u = 0, o = c = s = a = void 0;
   }
-  function N() {
+  function A() {
     return a === void 0 ? r : S(v());
   }
   function k() {
-    var i = v(), l = w(i);
-    if (o = arguments, s = this, c = i, l) {
+    var i = v(), d = w(i);
+    if (o = arguments, s = this, c = i, d) {
       if (a === void 0)
-        return B(c);
-      if (f)
+        return j(c);
+      if (h)
         return a = setTimeout(m, e), g(c);
     }
     return a === void 0 && (a = setTimeout(m, e)), r;
   }
-  return k.cancel = I, k.flush = N, k;
+  return k.cancel = I, k.flush = A, k;
 }
-function E(t) {
+function x(t) {
   var e = typeof t;
   return !!t && (e == "object" || e == "function");
 }
-function z(t) {
+function V(t) {
   return !!t && typeof t == "object";
 }
-function G(t) {
-  return typeof t == "symbol" || z(t) && U.call(t) == _;
+function Y(t) {
+  return typeof t == "symbol" || V(t) && P.call(t) == $;
 }
-function O(t) {
+function B(t) {
   if (typeof t == "number")
     return t;
-  if (G(t))
+  if (Y(t))
     return C;
-  if (E(t)) {
+  if (x(t)) {
     var e = typeof t.valueOf == "function" ? t.valueOf() : t;
-    t = E(e) ? e + "" : e;
+    t = x(e) ? e + "" : e;
   }
   if (typeof t != "string")
     return t === 0 ? t : +t;
-  t = t.replace($, "");
-  var n = H.test(t);
-  return n || W.test(t) ? F(t.slice(2), n ? 2 : 8) : R.test(t) ? C : +t;
+  t = t.replace(N, "");
+  var n = q.test(t);
+  return n || D.test(t) ? R(t.slice(2), n ? 2 : 8) : H.test(t) ? C : +t;
 }
-var Z = X;
-const h = "copy-tuner-hidden";
+var Z = G;
+const p = "copy-tuner-hidden";
 class J {
   // @ts-expect-error TS7006
-  constructor(e, n, o) {
-    this.element = e, this.data = n, this.callback = o, this.searchBoxElement = e.querySelector(".js-copy-tuner-bar-search"), this.logMenuElement = this.makeLogMenu(), this.element.append(this.logMenuElement), this.addHandler();
+  constructor(e, n, o, s = !1) {
+    this.element = e, this.data = n, this.callback = o, this.searchBoxElement = e.querySelector(".js-copy-tuner-bar-search"), this.logMenuElement = this.makeLogMenu(), this.element.append(this.logMenuElement), s && this.appendSkippedNotice(), this.addHandler();
+  }
+  appendSkippedNotice() {
+    const e = document.createElement("span");
+    e.classList.add("copy-tuner-bar__notice"), e.textContent = '⚠ This page is too large for the overlay. Use "Translations in this page" to edit.', this.element.append(e);
   }
   addHandler() {
     this.element.querySelector(".js-copy-tuner-bar-open-log").addEventListener("click", (n) => {
@@ -86,30 +90,30 @@ class J {
     }), this.searchBoxElement.addEventListener("input", Z(this.onKeyup.bind(this), 250));
   }
   show() {
-    this.element.classList.remove(h), this.searchBoxElement.focus();
+    this.element.classList.remove(p), this.searchBoxElement.focus();
   }
   hide() {
-    this.element.classList.add(h);
+    this.element.classList.add(p);
   }
   showLogMenu() {
-    this.logMenuElement.classList.remove(h);
+    this.logMenuElement.classList.remove(p);
   }
   toggleLogMenu() {
-    this.logMenuElement.classList.toggle(h);
+    this.logMenuElement.classList.toggle(p);
   }
   makeLogMenu() {
     const e = document.createElement("div");
-    e.setAttribute("id", "copy-tuner-bar-log-menu"), e.classList.add(h);
+    e.setAttribute("id", "copy-tuner-bar-log-menu"), e.classList.add(p);
     const n = document.createElement("table"), o = document.createElement("tbody");
     o.classList.remove("is-not-initialized");
     for (const s of Object.keys(this.data).sort()) {
-      const d = this.data[s];
-      if (d === "")
+      const l = this.data[s];
+      if (l === "")
         continue;
       const r = document.createElement("td");
       r.textContent = s;
       const a = document.createElement("td");
-      a.textContent = d;
+      a.textContent = l;
       const c = document.createElement("tr");
       c.classList.add("copy-tuner-bar-log-menu__row"), c.dataset.key = s, c.addEventListener("click", ({ currentTarget: u }) => {
         this.callback(u.dataset.key);
@@ -123,8 +127,8 @@ class J {
     this.showLogMenu();
     const o = [...this.logMenuElement.querySelectorAll("tr")];
     for (const s of o) {
-      const d = n === "" || [...s.querySelectorAll("td")].some((r) => r.textContent.includes(n));
-      s.classList.toggle(h, !d);
+      const l = n === "" || [...s.querySelectorAll("td")].some((r) => r.textContent.includes(n));
+      s.classList.toggle(p, !l);
     }
   }
 }
@@ -150,11 +154,11 @@ const L = navigator.platform.toUpperCase().includes("MAC"), Q = (t) => !!(t.offs
 class oe {
   // @ts-expect-error TS7006
   constructor(e, n, o) {
-    this.element = e, this.key = n, this.callback = o;
+    this.element = e, this.keys = n, this.callback = o;
   }
   show() {
     this.box = this.makeBox(), this.box !== null && (this.box.addEventListener("click", () => {
-      this.callback(this.key);
+      this.callback(this.keys[0]);
     }), document.body.append(this.box));
   }
   remove() {
@@ -171,28 +175,29 @@ class oe {
       e.style[r] = `${a}px`;
     }
     e.style.zIndex = ne;
-    const { position: o, top: s, left: d } = getComputedStyle(this.element);
-    return o === "fixed" && (this.box.style.position = "fixed", this.box.style.top = `${s}px`, this.box.style.left = `${d}px`), e.append(this.makeLabel()), e;
+    const { position: o, top: s, left: l } = getComputedStyle(this.element);
+    o === "fixed" && (this.box.style.position = "fixed", this.box.style.top = `${s}px`, this.box.style.left = `${l}px`);
+    for (const r of this.keys)
+      e.append(this.makeLabel(r));
+    return e;
   }
-  makeLabel() {
-    const e = document.createElement("div");
-    return e.classList.add("copyray-specimen-handle"), e.classList.add("Specimen"), e.textContent = this.key, e;
+  // @ts-expect-error TS7006
+  makeLabel(e) {
+    const n = document.createElement("div");
+    return n.classList.add("copyray-specimen-handle"), n.classList.add("Specimen"), n.textContent = e, n.addEventListener("click", (o) => {
+      o.stopPropagation(), this.callback(e);
+    }), n;
   }
 }
-const se = () => {
-  const t = () => NodeFilter.FILTER_ACCEPT, e = document.createNodeIterator(document.body, NodeFilter.SHOW_COMMENT, t, !1), n = [];
-  let o;
-  for (; o = e.nextNode(); )
-    n.push(o);
-  return n.filter((s) => s.nodeValue.startsWith("COPYRAY")).map((s) => {
-    const [, d] = s.nodeValue.match(/^COPYRAY (\S*)$/), r = s.parentNode;
-    return { key: d, element: r };
-  });
-};
+const se = () => Array.from(document.querySelectorAll("[data-copyray-key]")).map((t) => ({
+  // 1 要素に複数キーがカンマ区切りで入りうる（同一テキストノードに複数訳文が連結された場合）
+  keys: (t.getAttribute("data-copyray-key") ?? "").split(",").filter(Boolean),
+  element: t
+}));
 class ie {
   // @ts-expect-error TS7006
-  constructor(e, n) {
-    this.baseUrl = e, this.data = n, this.isShowing = !1, this.specimens = [], this.overlay = this.makeOverlay(), this.toggleButton = this.makeToggleButton(), this.boundOpen = this.open.bind(this), this.copyTunerBar = new J(document.querySelector("#copy-tuner-bar"), this.data, this.boundOpen);
+  constructor(e, n, o = !1) {
+    this.baseUrl = e, this.data = n, this.isShowing = !1, this.specimens = [], this.overlay = this.makeOverlay(), this.toggleButton = this.makeToggleButton(), this.boundOpen = this.open.bind(this), this.copyTunerBar = new J(document.querySelector("#copy-tuner-bar"), this.data, this.boundOpen, o);
   }
   show() {
     this.reset(), document.body.append(this.overlay), this.makeSpecimens();
@@ -211,7 +216,7 @@ class ie {
     window.open(`${this.baseUrl}/blurbs/${e}/edit`);
   }
   makeSpecimens() {
-    for (const { element: e, key: n } of se())
+    for (const { element: e, keys: n } of se())
       this.specimens.push(new oe(e, n, this.boundOpen));
   }
   makeToggleButton() {
@@ -237,16 +242,16 @@ const re = (t) => {
     <a href="javascript:void(0)" class="copy-tuner-bar-open-log copy-tuner-bar-button js-copy-tuner-bar-open-log">Translations in this page</a>
     <input type="text" class="copy-tuner-bar__search js-copy-tuner-bar-search" placeholder="search">
   `, document.body.append(e);
-}, j = () => {
-  const { url: t, data: e } = window.CopyTuner;
+}, O = () => {
+  const { url: t, data: e, keysSkipped: n } = window.CopyTuner;
   re(t);
-  const n = new ie(t, e);
-  window.CopyTuner.toggle = () => n.toggle(), document.addEventListener("keydown", (o) => {
-    if (n.isShowing && ["Escape", "Esc"].includes(o.key)) {
-      n.hide();
+  const o = new ie(t, e, !!n);
+  window.CopyTuner.toggle = () => o.toggle(), document.addEventListener("keydown", (s) => {
+    if (o.isShowing && ["Escape", "Esc"].includes(s.key)) {
+      o.hide();
       return;
     }
-    (L && o.metaKey || !L && o.ctrlKey) && o.shiftKey && o.key.toLowerCase() === "k" && n.toggle();
+    (L && s.metaKey || !L && s.ctrlKey) && s.shiftKey && s.key.toLowerCase() === "k" && o.toggle();
   }), console && console.log(`Ready to Copyray. Press ${L ? "cmd+shift+k" : "ctrl+shift+k"} to scan your UI.`);
 };
-document.readyState === "complete" || document.readyState !== "loading" ? j() : document.addEventListener("DOMContentLoaded", () => j());
+document.readyState === "complete" || document.readyState !== "loading" ? O() : document.addEventListener("DOMContentLoaded", () => O());

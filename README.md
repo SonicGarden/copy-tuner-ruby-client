@@ -18,7 +18,6 @@ CopyTunerClient.configure do |config|
   config.api_key = 'YOUR-API-KEY'
   config.project_id = 77
   config.host = 'COPY-TUNER-HOST-NAME'
-  config.html_escape = true
 
   # I18n keys and messages will be sent to server if the locale matches
   config.locales = [:ja, :en]
@@ -62,30 +61,6 @@ CopyTuner で一元管理している翻訳を、`views.*` のような単位で
 これらは `precision`（整数）や `significant` / `strip_insignificant_zeros`（真偽値）といった非文字列値を含みます。CopyTuner は文字列値しか保持できないため、経由するとこれらが欠落し、`number_to_currency` などが意図しない表示（小数桁数や記号の崩れ）になります。これを防ぐため gem 側で固定的にローカル優先にしています。
 
 アプリ独自の `number.*` キー（例 `number.gift_amount`）は対象外で、従来どおり CopyTuner で管理できます。
-
-`exclude_key_regexp` との違い:
-
-| オプション | 対象 | 作用するタイミング |
-| --- | --- | --- |
-| `exclude_key_regexp` | locale 付きキー（例 `ja.views.foo`） | アップロード時（CopyTuner への送信を抑止） |
-| `local_first_key_regexp` | locale を除いたキー（例 `views.foo`） | 読み込み時（lookup の優先順位） |
-
-### `exclude_key_regexp` は非推奨です
-
-`exclude_key_regexp` は **非推奨**です（将来のリリースで削除予定）。設定すると deprecation 警告が出ます。代わりに `local_first_key_regexp` を使ってください。
-
-```ruby
-# Before（非推奨）
-config.exclude_key_regexp = /\Aja\.views\./
-
-# After: locale プレフィックス（ja.）を外して指定する
-config.local_first_key_regexp = /\Aviews\./
-```
-
-移行時の注意:
-
-- 対象キーの形式が異なります。`exclude_key_regexp` は **locale 付き**（`ja.views.foo`）、`local_first_key_regexp` は **locale を除いた**形式（`views.foo`）でマッチします。正規表現から locale プレフィックスを外してください。
-- 挙動も少し変わります。`exclude_key_regexp` はアップロードを抑止するだけで lookup 時は CopyTuner キャッシュを参照し続けますが、`local_first_key_regexp` は lookup 時に CopyTuner キャッシュをスキップしてローカル YAML を優先します（完全分離）。ローカル管理へ移行する用途では `local_first_key_regexp` のほうが適切です。
 
 ## Claude Code スキル
 

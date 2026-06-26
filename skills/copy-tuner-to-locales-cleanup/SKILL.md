@@ -82,10 +82,10 @@ migrate-prefix 側で配置を直してから戻る。
 
 ### 3. `tt` ヘルパーをアプリ側へ退避
 
-copy_tuner_client は `ActionView` の `translate` をフックする際に **`tt` という独自エイリアス**を生やす
-（copyray コメント注入なしの純粋な翻訳。シグネチャは `tt(key, **options)`）。アプリのビューが `tt(...)` を
-使っていると、gem 撤去で `tt` が消えて `NoMethodError`（テンプレートで未定義ヘルパー）になる。**gem を抜く前に**
-アプリ側へ移しておく。
+copy_tuner_client はかつて `ActionView` の `translate` をフックする際に **`tt` という独自エイリアス**を生やして
+いた（シグネチャは `tt(key, **options)`）。PR #122 で存在理由を喪失したため gem からは削除済みだが、過去の
+copy_tuner_client を使っていたアプリのビューに `tt(...)` 呼び出しが残っていると `NoMethodError`（テンプレートで
+未定義ヘルパー）になる。**gem を抜く前に**アプリ側へ移しておく（既に gem 側に `tt` が無い場合も手順は同じ）。
 
 1. 利用箇所を洗い出す（残っていれば移行対象）:
 

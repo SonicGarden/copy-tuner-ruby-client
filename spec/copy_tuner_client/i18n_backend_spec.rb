@@ -138,10 +138,18 @@ describe 'CopyTunerClient::I18nBackend' do
     expect(cache['en.test.key']).to eq 'default %{interpolate}'
   end
 
+  # NOTE: backend は html_safe 化をしない（.html/_html キーの html_safe 化は ActionView の
+  # TranslationHelper が担う）。html_escape 設定の有無に関わらず素の content を返す i18n 標準準拠の挙動。
   it 'html safeを付与しないこと' do
     cache['en.test.key'] = FakeHtmlSafeString.new("Hello")
     backend = build_backend
     expect(backend.translate('en', 'test.key')).to_not be_html_safe
+  end
+
+  it 'html_safe な値を渡しても backend が独自に html_safe 化しないこと' do
+    cache['en.test.key'] = FakeHtmlSafeString.new("Hello").html_safe
+    backend = build_backend
+    expect(backend.translate('en', 'test.key')).to be_html_safe
   end
 
   it 'defaultが配列の場合に順に検索できること' do
@@ -149,21 +157,6 @@ describe 'CopyTunerClient::I18nBackend' do
     backend = build_backend
     expect(backend.translate('en', 'key.three', :default => [:"key.two", :"key.one"])).
       to eq('Expected')
-  end
-
-  context 'html_escapeオプションがtrueの場合' do
-    before do
-      CopyTunerClient.configure do |configuration|
-        configuration.html_escape = true
-        configuration.client = FakeClient.new
-      end
-    end
-
-    it 'html safeを付与しないこと' do
-      cache['en.test.key'] = FakeHtmlSafeString.new("Hello")
-      backend = build_backend
-      expect(backend.translate('en', 'test.key')).not_to be_html_safe
-    end
   end
 
   context '非文字列キーの場合' do

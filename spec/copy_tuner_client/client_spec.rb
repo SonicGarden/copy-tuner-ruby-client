@@ -207,6 +207,7 @@ describe 'CopyTunerClient' do
     client = build_client
     allow(client).to receive(:download)
     CopyTunerClient.configure do |config|
+      config.project_id = 1
       config.client = client
     end
     expect(client).to receive(:deploy)

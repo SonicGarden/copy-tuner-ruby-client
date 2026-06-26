@@ -9,6 +9,9 @@ declare global {
       toggle?: () => void
       // TODO: type
       data: object
+      // 巨大DOM/Nokogiri例外で data-copyray-key 付与をスキップしたか。
+      // true のときオーバーレイは使えないのでツールバーから編集する旨を案内する。
+      keysSkipped?: boolean
     }
   }
 }
@@ -30,10 +33,10 @@ const appendCopyTunerBar = (url: string) => {
 }
 
 const start = () => {
-  const { url, data } = window.CopyTuner
+  const { url, data, keysSkipped } = window.CopyTuner
 
   appendCopyTunerBar(url)
-  const copyray = new Copyray(url, data)
+  const copyray = new Copyray(url, data, Boolean(keysSkipped))
   window.CopyTuner.toggle = () => copyray.toggle()
 
   document.addEventListener('keydown', (event) => {
