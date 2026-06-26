@@ -1,5 +1,14 @@
 ## Unreleased
 
+- **【後方互換性に影響】** `config.exclude_key_regexp` を削除しました。後継の `config.local_first_key_regexp`
+  を使ってください。両者は対象キーの形式が異なります（`exclude_key_regexp` は locale 付き `ja.views.foo`、
+  `local_first_key_regexp` は locale を除いた `views.foo`）。正規表現から locale プレフィックスを外して
+  移行してください。挙動も異なり、`local_first_key_regexp` は lookup 時に CopyTuner キャッシュをスキップして
+  ローカル YAML を優先します（完全分離）。
+- **【後方互換性に影響】** `config.project_id` を必須にしました。未設定のまま `configure`（`apply`）すると
+  `ArgumentError: project_id is required` で失敗します。これまで `project_id` 未設定時は `api_key` へ
+  フォールバックして deprecation 警告を出していましたが、このフォールバックは削除しました。initializer に
+  `config.project_id = <プロジェクト ID>` を設定してください。
 - Copyray オーバーレイのマーカー方式を刷新。訳文への HTML コメント `<!--COPYRAY key-->` 注入をやめ、
   可視トークン `⟦CT:key⟧` を埋め込んだうえで `CopyrayMiddleware` が `data-copyray-key` 属性に変換し、
   トークンを HTML から完全に除去するようになりました。最終配信 HTML にコメント・トークンは残りません。

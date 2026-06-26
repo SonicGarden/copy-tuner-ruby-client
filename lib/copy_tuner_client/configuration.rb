@@ -18,7 +18,7 @@ module CopyTunerClient
                  proxy_port proxy_user secure polling_delay sync_interval
                  sync_interval_staging sync_ignore_path_regex logger
                  framework middleware disable_middleware disable_test_translation
-                 ca_file exclude_key_regexp local_first_key_regexp s3_host locales ignored_keys ignored_key_handler
+                 ca_file local_first_key_regexp s3_host locales ignored_keys ignored_key_handler
                  download_cache_dir].freeze
 
     # NOTE: Rails 標準ロケールで非文字列値（precision: Integer, significant: Boolean,
@@ -129,10 +129,6 @@ module CopyTunerClient
     attr_accessor :client
 
     attr_accessor :poller
-
-    # @return [Regexp] Regular expression to exclude keys.
-    # @deprecated Use {#local_first_key_regexp} instead.
-    attr_reader :exclude_key_regexp
 
     # @return [Regexp] Keys (without locale) matching this regexp bypass the
     #   copy_tuner cache and are looked up from local config/locales
@@ -257,6 +253,9 @@ module CopyTunerClient
     #
     # When {#test?} returns +false+, the poller will be started.
     def apply # rubocop:disable Metrics/AbcSize, Metrics/CyclomaticComplexity, Metrics/MethodLength, Metrics/PerceivedComplexity
+      # NOTE: project_id は必須。未設定なら apply 時点で明示的に失敗させる
+      validate_project_id!
+
       self.locales ||= self.locales = if defined?(::Rails)
                                         ::Rails.application.config.i18n.available_locales.presence || Array(::Rails.application.config.i18n.default_locale)
                                       else
@@ -335,18 +334,6 @@ module CopyTunerClient
       @api_key = api_key
     end
 
-    # @deprecated Use {#local_first_key_regexp} instead.
-    def exclude_key_regexp=(value)
-      unless value.nil?
-        ActiveSupport::Deprecation.new.warn(
-          'exclude_key_regexp is deprecated and will be removed in a future release. ' \
-          'Use local_first_key_regexp instead (note: it matches keys WITHOUT the locale prefix, ' \
-          'e.g. /\Aviews\./ instead of /\Aja\.views\./).'
-        )
-      end
-      @exclude_key_regexp = value
-    end
-
     # Sync interval for Rack Middleware
     def sync_interval
       if environment_name == 'staging'
@@ -356,16 +343,11 @@ module CopyTunerClient
       end
     end
 
-    # @return [String] current project url by api_key
+    # @return [String] current project url by project_id
     def project_url
-      path =
-        if project_id
-          "/projects/#{project_id}"
-        else
-          ActiveSupport::Deprecation.new.warn('Please set project_id.')
-          "/projects/#{api_key}"
-        end
+      validate_project_id!
 
+      path = "/projects/#{project_id}"
       URI::Generic.build(scheme: self.protocol, host: self.host, port: self.port.to_i, path:).to_s
     end
 
@@ -386,6 +368,12 @@ module CopyTunerClient
     end
 
     private
+
+    # project_id は必須。未設定なら明示的に失敗させる。
+    # apply（起動時の全体検証）と project_url（apply を経ない経路へのセーフネット）の両方から呼ぶ。
+    def validate_project_id!
+      raise ArgumentError, 'project_id is required' if project_id.nil?
+    end
 
     def default_port
       if secure?

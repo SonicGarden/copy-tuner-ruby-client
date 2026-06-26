@@ -253,27 +253,24 @@ describe CopyTunerClient::Configuration do
     end
   end
 
-  describe '#exclude_key_regexp= (deprecated)' do
-    let(:config) { CopyTunerClient::Configuration.new }
-    let(:deprecator) { instance_double(ActiveSupport::Deprecation, warn: nil) }
-
-    before { allow(ActiveSupport::Deprecation).to receive(:new).and_return(deprecator) }
-
-    it 'warns when a value is set' do
-      expect(deprecator).to receive(:warn).with(/exclude_key_regexp is deprecated/)
-
-      config.exclude_key_regexp = /\Aja\.views\./
+  describe 'project_id の必須化' do
+    let(:config) do
+      config = CopyTunerClient::Configuration.new
+      config.api_key = 'abc123'
+      config
     end
 
-    it 'stores the assigned value' do
-      config.exclude_key_regexp = /\Aja\.views\./
-      expect(config.exclude_key_regexp).to eq(/\Aja\.views\./)
+    it 'project_id が未設定のとき apply が ArgumentError を出すこと' do
+      expect { config.apply }.to raise_error(ArgumentError, 'project_id is required')
     end
 
-    it 'does not warn when set to nil' do
-      expect(deprecator).not_to receive(:warn)
+    it 'project_id が未設定のとき project_url が ArgumentError を出すこと' do
+      expect { config.project_url }.to raise_error(ArgumentError, 'project_id is required')
+    end
 
-      config.exclude_key_regexp = nil
+    it 'project_id を設定すると project_url がそれを使った URL を返すこと' do
+      config.project_id = 77
+      expect(config.project_url).to include('/projects/77')
     end
   end
 end
@@ -294,6 +291,9 @@ shared_context 'stubbed configuration' do
     allow(CopyTunerClient::Poller).to receive(:new).and_return(poller)
     allow(CopyTunerClient::ProcessGuard).to receive(:new).and_return(process_guard)
     subject.logger = logger
+    # NOTE: apply は project_id 必須になったため、未設定だと raise する。applied 系テストは
+    #       project_id 自体を検証しないので適当な値を補っておく
+    subject.project_id ||= 1
     apply
   end
 end
