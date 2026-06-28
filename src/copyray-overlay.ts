@@ -31,7 +31,6 @@ export class CopyrayOverlay extends HTMLElement {
     style.textContent = OVERLAY_STYLES
     shadow.append(style)
 
-    // 暗転背景。クリックで閉じる。
     this.#backdrop = document.createElement('div')
     this.#backdrop.classList.add('backdrop')
     this.#backdrop.addEventListener('click', () => this.hide())
@@ -40,7 +39,6 @@ export class CopyrayOverlay extends HTMLElement {
     this.#specimens = document.createElement('div')
     this.#specimens.classList.add('specimens')
 
-    // 常時表示のトグルボタン（画面左下固定）
     this.#toggleButton = document.createElement('a')
     this.#toggleButton.classList.add('toggle-button')
     this.#toggleButton.textContent = 'Open CopyTuner'
