@@ -26,6 +26,7 @@ export default class Copyray {
     // @ts-expect-error TS2339
     this.boundOpen = this.open.bind(this)
 
+    // biome-ignore format: 1行に保たないと @ts-expect-error の対象行がずれるため
     // @ts-expect-error TS2339
     this.copyTunerBar = new CopyTunerBar(document.querySelector('#copy-tuner-bar'), this.data, this.boundOpen, keysSkipped)
   }

@@ -1,5 +1,4 @@
-// @ts-expect-error TS7016
-import debounce from 'lodash.debounce'
+import { debounce } from './util'
 
 const HIDDEN_CLASS = 'copy-tuner-hidden'
 

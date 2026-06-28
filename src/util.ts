@@ -35,4 +35,12 @@ const computeBoundingBox = (element) => {
   }
 }
 
-export { isMac, isVisible, getOffset, computeBoundingBox }
+const debounce = <A extends unknown[]>(fn: (...args: A) => void, wait: number) => {
+  let timer: ReturnType<typeof setTimeout> | undefined
+  return (...args: A) => {
+    clearTimeout(timer)
+    timer = setTimeout(() => fn(...args), wait)
+  }
+}
+
+export { computeBoundingBox, debounce, getOffset, isMac, isVisible }
