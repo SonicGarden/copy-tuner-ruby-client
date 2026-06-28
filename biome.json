@@ -7,7 +7,7 @@
   },
   "files": {
     "ignoreUnknown": false,
-    "includes": ["src/**", "*.ts", "*.json", "!src/copyray.css"]
+    "includes": ["src/**", "*.ts", "*.json"]
   },
   "formatter": {
     "enabled": true,

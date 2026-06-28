@@ -1,4 +1,4 @@
-//#region src/util.ts
+//#region src/styles.ts
 var e = navigator.platform.toUpperCase().includes("MAC"), t = (e) => !!(e.offsetWidth || e.offsetHeight || e.getClientRects().length > 0), n = (e) => {
 	let t = e.getBoundingClientRect();
 	return {
@@ -19,148 +19,146 @@ var e = navigator.platform.toUpperCase().includes("MAC"), t = (e) => !!(e.offset
 	return (...r) => {
 		clearTimeout(n), n = setTimeout(() => e(...r), t);
 	};
-}, a = "copy-tuner-hidden", o = class {
-	constructor(e, t, n, r = !1) {
-		this.element = e, this.data = t, this.callback = n, this.searchBoxElement = e.querySelector(".js-copy-tuner-bar-search"), this.logMenuElement = this.makeLogMenu(), this.element.append(this.logMenuElement), r && this.appendSkippedNotice(), this.addHandler();
+}, a = () => Array.from(document.querySelectorAll("[data-copyray-key]")).map((e) => ({
+	keys: (e.getAttribute("data-copyray-key") ?? "").split(",").filter(Boolean),
+	element: e
+})), o = class extends HTMLElement {
+	#e = () => {};
+	#t = () => {};
+	#n;
+	#r;
+	#i;
+	constructor() {
+		super();
+		let e = this.attachShadow({ mode: "open" }), t = document.createElement("style");
+		t.textContent = "\n:host {\n  position: absolute;\n  top: 0;\n  left: 0;\n  width: 0;\n  height: 0;\n}\n\n:host([hidden]) {\n  display: none;\n}\n\n.backdrop {\n  position: fixed;\n  inset: 0;\n  background-image: radial-gradient(\n    ellipse farthest-corner at center,\n    rgba(0, 0, 0, 0.4) 10%,\n    rgba(0, 0, 0, 0.8) 100%\n  );\n  z-index: 9000;\n}\n\n.specimen {\n  position: absolute;\n  background: rgba(255, 50, 50, 0.1);\n  outline: 1px solid rgba(255, 50, 50, 0.8);\n  outline-offset: -1px;\n  color: #666;\n  font-family: 'Helvetica Neue', sans-serif;\n  font-size: 13px;\n  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.7);\n  z-index: 2000000000;\n}\n\n.specimen:hover {\n  cursor: pointer;\n  background: rgba(255, 50, 50, 0.4);\n}\n\n.specimen-handle {\n  float: left;\n  margin: 0 2px 2px 0;\n  background: rgba(255, 50, 50, 0.8);\n  padding: 0 3px;\n  color: #fff;\n  font-size: 10px;\n  cursor: pointer;\n}\n\n.toggle-button {\n  display: block;\n  position: fixed;\n  left: 0;\n  bottom: 0;\n  color: white;\n  background: black;\n  padding: 12px 16px;\n  border-radius: 0 10px 0 0;\n  opacity: 0;\n  transition: opacity 0.6s ease-in-out;\n  z-index: 10000;\n  font-size: 12px;\n  cursor: pointer;\n  text-decoration: none;\n}\n\n.toggle-button:hover {\n  opacity: 1;\n}\n\n@media screen and (max-width: 480px) {\n  .toggle-button {\n    display: none;\n  }\n}\n", e.append(t), this.#n = document.createElement("div"), this.#n.classList.add("backdrop"), this.#n.addEventListener("click", () => this.hide()), this.#r = document.createElement("div"), this.#r.classList.add("specimens"), this.#i = document.createElement("a"), this.#i.classList.add("toggle-button"), this.#i.textContent = "Open CopyTuner", this.#i.addEventListener("click", () => this.#t()), e.append(this.#n, this.#r, this.#i), this.hide();
 	}
-	appendSkippedNotice() {
-		let e = document.createElement("span");
-		e.classList.add("copy-tuner-bar__notice"), e.textContent = "⚠ This page is too large for the overlay. Use \"Translations in this page\" to edit.", this.element.append(e);
+	set onOpen(e) {
+		this.#e = e;
 	}
-	addHandler() {
-		this.element.querySelector(".js-copy-tuner-bar-open-log").addEventListener("click", (e) => {
-			e.preventDefault(), this.toggleLogMenu();
-		}), this.searchBoxElement.addEventListener("input", i(this.onKeyup.bind(this), 250));
+	set onToggle(e) {
+		this.#t = e;
+	}
+	get isShowing() {
+		return !this.#n.hidden;
 	}
 	show() {
-		this.element.classList.remove(a), this.searchBoxElement.focus();
+		this.reset(), this.#n.hidden = !1;
+		for (let { element: e, keys: t } of a()) {
+			let n = this.makeBox(e, t);
+			n && this.#r.append(n);
+		}
 	}
 	hide() {
-		this.element.classList.add(a);
+		this.reset(), this.#n.hidden = !0;
 	}
-	showLogMenu() {
-		this.logMenuElement.classList.remove(a);
+	reset() {
+		this.#r.replaceChildren();
 	}
-	toggleLogMenu() {
-		this.logMenuElement.classList.toggle(a);
-	}
-	makeLogMenu() {
-		let e = document.createElement("div");
-		e.setAttribute("id", "copy-tuner-bar-log-menu"), e.classList.add(a);
-		let t = document.createElement("table"), n = document.createElement("tbody");
-		n.classList.remove("is-not-initialized");
-		for (let e of Object.keys(this.data).sort()) {
-			let t = this.data[e];
-			if (t === "") continue;
-			let r = document.createElement("td");
-			r.textContent = e;
-			let i = document.createElement("td");
-			i.textContent = t;
-			let a = document.createElement("tr");
-			a.classList.add("copy-tuner-bar-log-menu__row"), a.dataset.key = e, a.addEventListener("click", ({ currentTarget: e }) => {
-				this.callback(e.dataset.key);
-			}), a.append(r), a.append(i), n.append(a);
-		}
-		return t.append(n), e.append(t), e;
-	}
-	onKeyup({ target: e }) {
-		let t = e.value.trim();
-		this.showLogMenu();
-		let n = [...this.logMenuElement.querySelectorAll("tr")];
-		for (let e of n) {
-			let n = t === "" || [...e.querySelectorAll("td")].some((e) => e.textContent.includes(t));
-			e.classList.toggle(a, !n);
-		}
-	}
-}, s = 2e9, c = class {
-	constructor(e, t, n) {
-		this.element = e, this.keys = t, this.callback = n;
-	}
-	show() {
-		this.box = this.makeBox(), this.box !== null && (this.box.addEventListener("click", () => {
-			this.callback(this.keys[0]);
-		}), document.body.append(this.box));
-	}
-	remove() {
-		this.box &&= (this.box.remove(), null);
-	}
-	makeBox() {
-		let e = document.createElement("div");
-		e.classList.add("copyray-specimen"), e.classList.add("Specimen");
-		let t = r(this.element);
-		if (t === null) return null;
-		for (let n of Object.keys(t)) {
-			let r = t[n];
-			e.style[n] = `${r}px`;
-		}
-		e.style.zIndex = s;
-		let { position: n, top: i, left: a } = getComputedStyle(this.element);
-		n === "fixed" && (this.box.style.position = "fixed", this.box.style.top = `${i}px`, this.box.style.left = `${a}px`);
-		for (let t of this.keys) e.append(this.makeLabel(t));
-		return e;
+	makeBox(e, t) {
+		let n = r(e);
+		if (n === null) return null;
+		let i = document.createElement("div");
+		i.classList.add("specimen"), i.style.left = `${n.left}px`, i.style.top = `${n.top}px`, i.style.width = `${n.width}px`, i.style.height = `${n.height}px`;
+		let { position: a, top: o, left: s } = getComputedStyle(e);
+		a === "fixed" && (i.style.position = "fixed", i.style.top = o, i.style.left = s), i.addEventListener("click", () => this.#e(t[0]));
+		for (let e of t) i.append(this.makeLabel(e));
+		return i;
 	}
 	makeLabel(e) {
 		let t = document.createElement("div");
-		return t.classList.add("copyray-specimen-handle"), t.classList.add("Specimen"), t.textContent = e, t.addEventListener("click", (t) => {
-			t.stopPropagation(), this.callback(e);
+		return t.classList.add("specimen-handle"), t.textContent = e, t.addEventListener("click", (t) => {
+			t.stopPropagation(), this.#e(e);
 		}), t;
 	}
-}, l = () => Array.from(document.querySelectorAll("[data-copyray-key]")).map((e) => ({
-	keys: (e.getAttribute("data-copyray-key") ?? "").split(",").filter(Boolean),
-	element: e
-})), u = class {
-	constructor(e, t, n = !1) {
-		this.baseUrl = e, this.data = t, this.isShowing = !1, this.specimens = [], this.overlay = this.makeOverlay(), this.toggleButton = this.makeToggleButton(), this.boundOpen = this.open.bind(this), this.copyTunerBar = new o(document.querySelector("#copy-tuner-bar"), this.data, this.boundOpen, n);
+}, s = class extends HTMLElement {
+	#e = () => {};
+	#t;
+	#n;
+	constructor() {
+		super(), this.attachShadow({ mode: "open" });
+	}
+	connectedCallback() {
+		this.hidden = !0;
+	}
+	init({ url: e, data: t, keysSkipped: n, onOpen: r }) {
+		this.#e = r;
+		let a = this.shadowRoot, o = document.createElement("style");
+		o.textContent = "\n:host {\n  position: fixed;\n  left: 0;\n  right: 0;\n  bottom: 0;\n  height: 40px;\n  padding: 0 8px;\n  background: #222;\n  font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;\n  font-weight: 200;\n  color: #fff;\n  z-index: 2147483647;\n  box-shadow: 0 -1px 0 rgba(255, 255, 255, 0.1), inset 0 2px 6px rgba(0, 0, 0, 0.8);\n  background-image: linear-gradient(rgba(0, 0, 0, 0), rgba(0, 0, 0, 0.3));\n  box-sizing: border-box;\n}\n\n:host([hidden]) {\n  display: none;\n}\n\n.log-menu {\n  position: fixed;\n  left: 0;\n  right: 0;\n  bottom: 40px;\n  max-height: calc(100vh - 40px);\n  background: #222;\n  color: #fff;\n  overflow-y: auto;\n}\n\n.log-menu[hidden] {\n  display: none;\n}\n\n.log-menu tbody td {\n  padding: 2px 8px;\n}\n\n.log-menu tbody tr {\n  cursor: pointer;\n}\n\n.log-menu tbody tr:hover {\n  background: #444;\n}\n\n.log-menu tbody tr[hidden] {\n  display: none;\n}\n\n.button {\n  position: relative;\n  display: inline-block;\n  color: #fff;\n  margin: 8px 1px;\n  height: 24px;\n  line-height: 24px;\n  padding: 0 8px;\n  font-size: 14px;\n  cursor: pointer;\n  vertical-align: middle;\n  background-color: #444;\n  background-image: linear-gradient(rgba(0, 0, 0, 0), rgba(0, 0, 0, 0.2));\n  border-radius: 2px;\n  box-shadow: 1px 1px 1px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.2),\n    inset 0 0 2px rgba(255, 255, 255, 0.2);\n  text-shadow: 0 -1px 0 rgba(0, 0, 0, 0.4);\n  text-decoration: none;\n}\n\n.button:hover,\n.button:focus {\n  color: #fff;\n  text-decoration: none;\n  background-color: #555;\n}\n\n.notice {\n  display: inline-block;\n  margin: 8px;\n  font-size: 13px;\n  line-height: 24px;\n  vertical-align: middle;\n  color: #ffd24d;\n}\n\n.search {\n  appearance: none;\n  border: none;\n  border-radius: 2px;\n  background-image: linear-gradient(rgba(0, 0, 0, 0.2), rgba(0, 0, 0, 0));\n  box-shadow: inset 0 1px 0 rgba(0, 0, 0, 0.2), inset 0 0 2px rgba(0, 0, 0, 0.2);\n  padding: 2px 8px;\n  margin: 0;\n  line-height: 20px;\n  vertical-align: middle;\n  color: black;\n  width: auto;\n  height: auto;\n  font-size: 14px;\n}\n", a.append(o);
+		let s = this.makeButton("CopyTuner", e, "_blank"), c = this.makeButton("Sync", "/copytuner", "_blank"), l = this.makeButton("Translations in this page", "javascript:void(0)");
+		this.#t = document.createElement("input"), this.#t.type = "text", this.#t.classList.add("search"), this.#t.placeholder = "search", a.append(s, c, l, this.#t), this.#n = this.makeLogMenu(t), a.append(this.#n), n && this.appendSkippedNotice(), l.addEventListener("click", (e) => {
+			e.preventDefault(), this.toggleLogMenu();
+		}), this.#t.addEventListener("input", i(this.onSearch.bind(this), 250));
 	}
 	show() {
-		this.reset(), document.body.append(this.overlay), this.makeSpecimens();
-		for (let e of this.specimens) e.show();
-		this.copyTunerBar.show(), this.isShowing = !0;
+		this.hidden = !1, this.#t.focus();
 	}
 	hide() {
-		this.overlay.remove(), this.reset(), this.copyTunerBar.hide(), this.isShowing = !1;
+		this.hidden = !0;
 	}
-	toggle() {
-		this.isShowing ? this.hide() : this.show();
+	makeButton(e, t, n) {
+		let r = document.createElement("a");
+		return r.classList.add("button"), r.textContent = e, r.href = t, n && (r.target = n), r;
 	}
-	open(e) {
-		window.open(`${this.baseUrl}/blurbs/${e}/edit`);
+	appendSkippedNotice() {
+		let e = document.createElement("span");
+		e.classList.add("notice"), e.textContent = "⚠ This page is too large for the overlay. Use \"Translations in this page\" to edit.", this.shadowRoot.append(e);
 	}
-	makeSpecimens() {
-		for (let { element: e, keys: t } of l()) this.specimens.push(new c(e, t, this.boundOpen));
+	showLogMenu() {
+		this.#n.hidden = !1;
 	}
-	makeToggleButton() {
-		let e = document.createElement("a");
-		return e.addEventListener("click", () => {
-			this.show();
-		}), e.classList.add("copyray-toggle-button"), e.classList.add("hidden-on-mobile"), e.textContent = "Open CopyTuner", document.body.append(e), e;
+	toggleLogMenu() {
+		this.#n.hidden = !this.#n.hidden;
 	}
-	makeOverlay() {
-		let e = document.createElement("div");
-		return e.setAttribute("id", "copyray-overlay"), e.addEventListener("click", () => this.hide()), e;
+	makeLogMenu(e) {
+		let t = document.createElement("div");
+		t.classList.add("log-menu"), t.hidden = !0;
+		let n = document.createElement("table"), r = document.createElement("tbody");
+		for (let t of Object.keys(e).sort()) {
+			let n = e[t];
+			if (n === "") continue;
+			let i = document.createElement("td");
+			i.textContent = t;
+			let a = document.createElement("td");
+			a.textContent = n;
+			let o = document.createElement("tr");
+			o.dataset.key = t, o.addEventListener("click", ({ currentTarget: e }) => {
+				let t = e;
+				t.dataset.key && this.#e(t.dataset.key);
+			}), o.append(i, a), r.append(o);
+		}
+		return n.append(r), t.append(n), t;
 	}
-	reset() {
-		for (let e of this.specimens) e.remove();
+	onSearch() {
+		let e = this.#t.value.trim();
+		this.showLogMenu();
+		let t = [...this.#n.querySelectorAll("tr")];
+		for (let n of t) n.hidden = !(e === "" || [...n.querySelectorAll("td")].some((t) => (t.textContent ?? "").includes(e)));
 	}
-}, d = (e) => {
-	let t = document.createElement("div");
-	t.id = "copy-tuner-bar", t.classList.add("copy-tuner-hidden"), t.innerHTML = `
-    <a class="copy-tuner-bar-button" target="_blank" href="${e}">CopyTuner</a>
-    <a href="/copytuner" target="_blank" class="copy-tuner-bar-button">Sync</a>
-    <a href="javascript:void(0)" class="copy-tuner-bar-open-log copy-tuner-bar-button js-copy-tuner-bar-open-log">Translations in this page</a>
-    <input type="text" class="copy-tuner-bar__search js-copy-tuner-bar-search" placeholder="search">
-  `, document.body.append(t);
-}, f = () => {
-	let { url: t, data: n, keysSkipped: r } = window.CopyTuner;
-	d(t);
-	let i = new u(t, n, !!r);
-	window.CopyTuner.toggle = () => i.toggle(), document.addEventListener("keydown", (t) => {
-		if (i.isShowing && ["Escape", "Esc"].includes(t.key)) {
-			i.hide();
+};
+customElements.define("copytuner-bar", s), customElements.define("copyray-overlay", o);
+var c = () => {
+	let { url: t, data: n, keysSkipped: r } = window.CopyTuner, i = (e) => window.open(`${t}/blurbs/${e}/edit`), a = document.createElement("copytuner-bar");
+	document.body.append(a), a.init({
+		url: t,
+		data: n,
+		keysSkipped: !!r,
+		onOpen: i
+	});
+	let o = document.createElement("copyray-overlay");
+	o.onOpen = i, document.body.append(o);
+	let s = () => {
+		o.show(), a.show();
+	}, c = () => {
+		o.hide(), a.hide();
+	}, l = () => o.isShowing ? c() : s();
+	o.onToggle = l, window.CopyTuner.toggle = l, document.addEventListener("keydown", (t) => {
+		if (o.isShowing && ["Escape", "Esc"].includes(t.key)) {
+			c();
 			return;
 		}
-		(e && t.metaKey || !e && t.ctrlKey) && t.shiftKey && t.key.toLowerCase() === "k" && i.toggle();
+		(e && t.metaKey || !e && t.ctrlKey) && t.shiftKey && t.key.toLowerCase() === "k" && l();
 	}), console && console.log(`Ready to Copyray. Press ${e ? "cmd+shift+k" : "ctrl+shift+k"} to scan your UI.`);
 };
-document.readyState === "complete" || document.readyState !== "loading" ? f() : document.addEventListener("DOMContentLoaded", () => f());
+document.readyState === "complete" || document.readyState !== "loading" ? c() : document.addEventListener("DOMContentLoaded", () => c());
 //#endregion

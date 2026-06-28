@@ -18,7 +18,6 @@ module CopyTunerClient
         # NOTE: skipped は data-copyray-key を付与できなかったこと（巨大DOM/Nokogiri例外）を表す。
         # JS にこれを伝え、オーバーレイ非対応である旨をツールバーで案内させる。
         body, skipped = CopyTunerClient::Copyray::Rewriter.rewrite(body)
-        body = append_css(body, csp_nonce)
         body = append_js(body, csp_nonce, skipped: skipped)
         content_length = body.bytesize.to_s
         headers['Content-Length'] = content_length
@@ -37,11 +36,6 @@ module CopyTunerClient
 
     def helpers
       ActionController::Base.helpers
-    end
-
-    def append_css(html, csp_nonce)
-      css_tag = helpers.stylesheet_link_tag 'copytuner', media: :all, nonce: csp_nonce
-      append_to_html_body(html, css_tag)
     end
 
     def append_js(html, csp_nonce, skipped: false)

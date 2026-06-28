@@ -1,5 +1,6 @@
 /* eslint-disable no-console */
-import Copyray from './copyray'
+import { CopyrayOverlay } from './copyray-overlay'
+import { CopytunerBar } from './copytuner-bar'
 import { isMac } from './util'
 
 declare global {
@@ -7,8 +8,7 @@ declare global {
     CopyTuner: {
       url: string
       toggle?: () => void
-      // TODO: type
-      data: object
+      data: Record<string, string>
       // 巨大DOM/Nokogiri例外で data-copyray-key 付与をスキップしたか。
       // true のときオーバーレイは使えないのでツールバーから編集する旨を案内する。
       keysSkipped?: boolean
@@ -16,38 +16,42 @@ declare global {
   }
 }
 
-import './copyray.css'
-
-// NOTE: 元々railsから出力されいてたマークアップに合わせてひとまず、、
-const appendCopyTunerBar = (url: string) => {
-  const bar = document.createElement('div')
-  bar.id = 'copy-tuner-bar'
-  bar.classList.add('copy-tuner-hidden')
-  bar.innerHTML = `
-    <a class="copy-tuner-bar-button" target="_blank" href="${url}">CopyTuner</a>
-    <a href="/copytuner" target="_blank" class="copy-tuner-bar-button">Sync</a>
-    <a href="javascript:void(0)" class="copy-tuner-bar-open-log copy-tuner-bar-button js-copy-tuner-bar-open-log">Translations in this page</a>
-    <input type="text" class="copy-tuner-bar__search js-copy-tuner-bar-search" placeholder="search">
-  `
-  document.body.append(bar)
-}
+customElements.define('copytuner-bar', CopytunerBar)
+customElements.define('copyray-overlay', CopyrayOverlay)
 
 const start = () => {
   const { url, data, keysSkipped } = window.CopyTuner
+  const onOpen = (key: string) => window.open(`${url}/blurbs/${key}/edit`)
 
-  appendCopyTunerBar(url)
-  const copyray = new Copyray(url, data, Boolean(keysSkipped))
-  window.CopyTuner.toggle = () => copyray.toggle()
+  const bar = document.createElement('copytuner-bar') as CopytunerBar
+  document.body.append(bar)
+  bar.init({ url, data, keysSkipped: Boolean(keysSkipped), onOpen })
+
+  const overlay = document.createElement('copyray-overlay') as CopyrayOverlay
+  overlay.onOpen = onOpen
+  document.body.append(overlay)
+
+  const show = () => {
+    overlay.show()
+    bar.show()
+  }
+  const hide = () => {
+    overlay.hide()
+    bar.hide()
+  }
+  const toggle = () => (overlay.isShowing ? hide() : show())
+
+  overlay.onToggle = toggle
+  window.CopyTuner.toggle = toggle
 
   document.addEventListener('keydown', (event) => {
-    // @ts-expect-error TS2339
-    if (copyray.isShowing && ['Escape', 'Esc'].includes(event.key)) {
-      copyray.hide()
+    if (overlay.isShowing && ['Escape', 'Esc'].includes(event.key)) {
+      hide()
       return
     }
 
     if (((isMac && event.metaKey) || (!isMac && event.ctrlKey)) && event.shiftKey && event.key.toLowerCase() === 'k') {
-      copyray.toggle()
+      toggle()
     }
   })
 
