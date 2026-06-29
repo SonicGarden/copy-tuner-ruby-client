@@ -11,7 +11,6 @@ export default defineConfig({
     rollupOptions: {
       output: {
         entryFileNames: `javascripts/copytuner.js`,
-        assetFileNames: `stylesheets/copytuner.[ext]`,
       },
     },
   },

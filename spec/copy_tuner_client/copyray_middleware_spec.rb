@@ -19,9 +19,8 @@ describe CopyTunerClient::CopyrayMiddleware do
       configuration.project_id = 1
       configuration.client = FakeClient.new
     end
-    # NOTE: CSS/JS 挿入は Rails の ActionController::Base.helpers に依存するため、
+    # NOTE: JS 挿入は Rails の ActionController::Base.helpers に依存するため、
     # Rewriter の効果だけを検証できるよう no-op にスタブする。
-    allow(middleware).to receive(:append_css) { |html, _| html }
     allow(middleware).to receive(:append_js) { |html, *| html }
   end
 

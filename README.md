@@ -84,9 +84,13 @@ Development
 `src`以下を編集してください。
 `app/assets/*`を直接編集したらダメよ！
 
+Node.js と pnpm は [mise](https://mise.jdx.dev/) で管理しています（`mise install` でセットアップ）。
+
 ```
-$ yarn dev   # 開発時
-$ yarn build   # ビルド
+$ pnpm install   # 依存インストール
+$ pnpm dev       # 開発時
+$ pnpm build     # ビルド
+$ pnpm check     # Lint + Format（Biome）
 ```
 
 

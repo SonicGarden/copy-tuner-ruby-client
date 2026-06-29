@@ -25,7 +25,7 @@ module CopyTunerClient
     end
 
     initializer "copy_tuner.assets.precompile", group: :all do |app|
-      app.config.assets.precompile += ['copytuner.js', 'copytuner.css']
+      app.config.assets.precompile += ['copytuner.js']
     end
   end
 end

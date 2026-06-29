@@ -6,8 +6,11 @@ CopyTuner の Ruby クライアント gem。Rails アプリの I18n を CopyTune
 - テスト: `bundle exec rspec`（単一ファイル: `bundle exec rspec spec/copy_tuner_client/cache_spec.rb`）
 - 特定の Rails バージョンでテスト: `BUNDLE_GEMFILE=gemfiles/8.0.gemfile bundle exec rspec`
 - Lint: `bundle exec rubocop`（`sgcop` を継承）
-- フロントエンドビルド: `yarn build`（開発: `yarn dev`）
+- フロントエンドビルド: `pnpm build`（開発: `pnpm dev`）
+- フロントエンド Lint/Format: `pnpm check`（Biome）
 - gem リリース: `bundle exec rake build|install|release`
+
+Node.js / pnpm は mise（mise.toml）で管理。フロントエンドのツールチェーンは pnpm + Biome + Vite + TypeScript。
 
 ## アーキテクチャ
 `Configuration#apply`（lib/copy_tuner_client/configuration.rb）が全コンポーネントを組み立てる起点:
