@@ -81,6 +81,18 @@ STRING_METHOD_RE = /\btt\b\s*(?:\([^\n]*?\)|['":@][^\n,]*)\s*(?:\.\s*(?:#{STRING
 # 先頭ドットの相対キー tt('.foo') は I18n.t では解決できず絶対キー化が要る → 強調表示用。
 RELATIVE_KEY_RE = /\btt\b\s*(?:\(\s*)?['":]\s*\./
 
+# label 系ヘルパーの第一引数 / label: オプションに tt(t) を渡すパターン。
+# t 化すると戻り値(⟦CT:..⟧) が method 名扱いされ、humanize で小文字化された ⟦ct:..⟧ が
+# Rewriter(大文字 ⟦CT: 固定)の除去網をすり抜け画面に残る。I18n.t 化では直らない。
+# 正しい修正は method 名を第一引数・表示テキストを第二引数へ分離すること。
+LABEL_FIRST_ARG_RE = /
+  (?: (?<![\w.])\w+\.label\b | \blabel_tag\b | (?<![\w.])label(?![\w]) )
+  \s*\(?\s*
+  tt\b (?=\s*[("':@])
+/x
+# simple_form 等の label: オプションに渡すケース（f.input :x, label: tt('k')）
+LABEL_OPTION_RE = /\blabel:\s*tt\b/
+
 def relative(path)
   path.sub("#{ROOT}/", '')
 end
@@ -117,8 +129,19 @@ def classify_line(line, entry, in_app:)
     return [:other, entry]
   end
 
+  # label の第一引数 / label: オプションに渡すケースは文字列加工が無いので、safe 確定より前に拾う。
+  # 修正方法が文字列加工系（I18n.t 化）と異なるためサブ種別 :label_arg で区別する。
+  if line.match?(LABEL_FIRST_ARG_RE) || line.match?(LABEL_OPTION_RE)
+    entry[:kind] = :label_arg
+    entry[:hint] = 'label の引数に渡している。t 化すると humanize で小文字化された ⟦ct:..⟧ が ' \
+                   'Rewriter(大文字 ⟦CT: のみ除去)をすり抜け画面に残る。I18n.t 化では直らない。' \
+                   'method 名を第一引数・表示テキストを第二引数に分離: f.label :method, t(...)'
+    return [:suspicious, entry]
+  end
+
   return [:safe, entry] unless line.match?(STRING_HELPER_RE) || line.match?(STRING_METHOD_RE)
 
+  entry[:kind] = :string_manipulation
   entry[:relative_key] = line.match?(RELATIVE_KEY_RE)
   entry[:hint] = if entry[:relative_key]
                    'I18n.t へ。相対キー(.foo)は絶対キーへ書き換えが必要'
@@ -147,10 +170,14 @@ end
 def print_section(title, entries)
   puts "\n== #{title} (#{entries.size}) =="
   entries.each do |e|
+    # hint があれば必ず kind も付く（classify_line で対で設定）ので素直に出す。
+    # suspicious 内のサブ種別(label_arg / string_manipulation)を可視化する。
     suffix = if e[:hint]
-               "  # #{e[:hint]}"
+               "  # [#{e[:kind]}] #{e[:hint]}"
+             elsif e[:reason]
+               "  # #{e[:reason]}"
              else
-               (e[:reason] ? "  # #{e[:reason]}" : '')
+               ''
              end
     puts "#{e[:file]}:#{e[:lineno]}: #{e[:code].strip}#{suffix}"
   end
