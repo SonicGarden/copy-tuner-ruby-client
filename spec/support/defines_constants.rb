@@ -7,11 +7,11 @@ module DefinesConstants
     end
   end
 
-  def define_class(class_name, base = Object, &block)
+  def define_class(class_name, base = Object, &)
     class_name = class_name.to_s.camelize
     klass = Class.new(base)
     define_constant(class_name, klass)
-    klass.class_eval(&block) if block_given?
+    klass.class_eval(&) if block_given?
     klass
   end
 
@@ -27,9 +27,10 @@ module DefinesConstants
   def parse_constant(path)
     parent_names = path.split('::')
     name = parent_names.pop
-    parent = parent_names.inject(Object) do |ref, child_name|
-      ref.const_get(child_name)
-    end
+    parent =
+      parent_names.inject(Object) do |ref, child_name|
+        ref.const_get(child_name)
+      end
     yield(parent, name)
   end
 
@@ -41,4 +42,3 @@ module DefinesConstants
     end
   end
 end
-

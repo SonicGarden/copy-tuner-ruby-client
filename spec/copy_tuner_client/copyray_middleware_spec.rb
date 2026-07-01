@@ -8,11 +8,11 @@ describe CopyTunerClient::CopyrayMiddleware do
     CopyTunerClient::Copyray::Marker.encode(key)
   end
 
+  subject(:middleware) { described_class.new(app) }
+
   let(:headers) { { 'Content-Type' => 'text/html' } }
   let(:app) { ->(_env) { [status, headers, [body]] } }
   let(:status) { 200 }
-
-  subject(:middleware) { described_class.new(app) }
 
   before do
     CopyTunerClient.configure do |configuration|
@@ -55,7 +55,7 @@ describe CopyTunerClient::CopyrayMiddleware do
     # NOTE: append_js は private かつ Rails の view ヘルパー（javascript_tag 等）に依存する。
     # トップレベルの no-op スタブを外して実体を呼び、ヘルパーは渡された script 本文をそのまま
     # 返す最小フェイクに差し替えて、window.CopyTuner に keysSkipped が埋まることだけ検証する。
-    subject(:script) { middleware.__send__(:append_js, '<html><body></body></html>', nil, skipped: skipped) }
+    subject(:script) { middleware.__send__(:append_js, '<html><body></body></html>', nil, skipped:) }
 
     let(:fake_helpers) do
       Class.new {

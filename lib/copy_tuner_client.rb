@@ -57,14 +57,10 @@ module CopyTunerClient
   # @yield [Configuration] the configuration to be modified
   def self.configure(apply = true)
     self.configuration ||= Configuration.new
-    yield configuration
+    yield(configuration)
 
-    if apply
-      configuration.apply
-    end
+    configuration.apply if apply
   end
 end
 
-if defined? ::Rails
-  require 'copy_tuner_client/rails'
-end
+require 'copy_tuner_client/rails' if defined? Rails

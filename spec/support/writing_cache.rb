@@ -1,8 +1,6 @@
 class WritingCache
   def flush
-    File.open(path, "w") do |file|
-      file.write(object_id.to_s)
-    end
+    File.write(path, object_id.to_s)
   end
 
   def written?
