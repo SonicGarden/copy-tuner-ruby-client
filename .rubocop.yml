@@ -1,7 +1,16 @@
+inherit_from: .rubocop_todo.yml
+
 inherit_gem:
-  sgcop: ruby/rubocop.yml
+  sgcop: ruby/rubocop_strict.yml
+
+plugins:
+  - rubocop-rake
+  - rubocop-rspec
 
 # .ruby-version が RuboCop 未対応の新しい Ruby を指すと解析が落ちるため、
 # サポート最低バージョンを明示する
+# rubocop-rails は Rails プロジェクトではないため意図的に読み込まない
 AllCops:
   TargetRubyVersion: 3.3
+  NewCops: enable
+  SuggestExtensions: false

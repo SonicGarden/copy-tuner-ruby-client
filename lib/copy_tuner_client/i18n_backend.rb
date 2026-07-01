@@ -57,7 +57,7 @@ module CopyTunerClient
 
     private
 
-    def lookup(locale, key, scope = [], options = {}) # rubocop:disable Metrics/CyclomaticComplexity,Metrics/MethodLength
+    def lookup(locale, key, scope = [], options = {}) # rubocop:disable Metrics/MethodLength
       return nil if !key.is_a?(String) && !key.is_a?(Symbol)
 
       parts = I18n.normalize_keys(locale, key, scope, options[:separator])
