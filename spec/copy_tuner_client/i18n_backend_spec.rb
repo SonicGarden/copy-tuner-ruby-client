@@ -237,7 +237,7 @@ describe 'CopyTunerClient::I18nBackend' do
   end
 
   # NOTE: 色々考慮する必要があることが分かったため暫定対応として、ツリーキャッシュを使用しないようにしている
-  describe 'ツリー構造のlookup' do # rubocop:disable Metrics/BlockLength
+  describe 'ツリー構造のlookup' do
     subject { build_backend }
 
     context '完全一致が存在する場合' do
@@ -438,7 +438,7 @@ describe 'CopyTunerClient::I18nBackend' do
     end
   end
 
-  describe 'local_first_key_regexp（ローカル優先キー）' do # rubocop:disable Metrics/BlockLength
+  describe 'local_first_key_regexp（ローカル優先キー）' do
     after { CopyTunerClient.configuration.local_first_key_regexp = nil }
 
     # ローカル config/locales 相当のデータを I18n::Backend::Simple 側だけに格納する。

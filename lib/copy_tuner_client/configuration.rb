@@ -252,7 +252,7 @@ module CopyTunerClient
     # This creates the {I18nBackend} and puts them together.
     #
     # When {#test?} returns +false+, the poller will be started.
-    def apply # rubocop:disable Metrics/AbcSize, Metrics/CyclomaticComplexity, Metrics/MethodLength, Metrics/PerceivedComplexity
+    def apply # rubocop:disable Metrics/AbcSize, Metrics/MethodLength
       # NOTE: project_id は必須。未設定なら apply 時点で明示的に失敗させる
       validate_project_id!
 
