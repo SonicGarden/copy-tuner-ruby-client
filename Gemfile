@@ -3,4 +3,4 @@ source 'http://rubygems.org'
 gemspec
 
 gem 'bundler-skills'
-gem 'sgcop', github: 'SonicGarden/sgcop', tag: 'v1.33.0.pre1' # TODO: リリースされたら切り替える
+gem 'sgcop', github: 'SonicGarden/sgcop', ref: '40dd2110429e5410410e71de8e7f249302175851' # TODO: 1.33.0がリリースされたら切り替える
