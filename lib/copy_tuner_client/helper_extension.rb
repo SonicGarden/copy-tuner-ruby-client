@@ -51,12 +51,12 @@ module CopyTunerClient
           # request 不在時も安全に false を返す。
           current_controller.request&.format&.html? || false
         end
-        private(:copyray_injectable?)
+        private :copyray_injectable?
 
         if middleware_enabled
-          alias_method(:translate_without_copyray_comment, :translate)
-          alias_method(:translate, :translate_with_copyray_comment)
-          alias_method(:t, :translate)
+          alias_method :translate_without_copyray_comment, :translate
+          alias_method :translate, :translate_with_copyray_comment
+          alias_method :t, :translate
         end
       end
     end
