@@ -48,4 +48,25 @@ describe CopyTunerClient::TranslationLog do
       end
     end
   end
+
+  describe '.install_hook' do
+    # フック導入前後で I18n の特異クラスを復元し、他のテストへの副作用を防ぐ
+    around do |example|
+      original_singleton_methods = I18n.singleton_class.instance_methods(false)
+      example.run
+      (I18n.singleton_class.instance_methods(false) - original_singleton_methods).each do |method_name|
+        I18n.singleton_class.__send__(:remove_method, method_name)
+      end
+    end
+
+    context 'when middleware is enabled' do
+      before { allow(CopyTunerClient.configuration).to receive(:enable_middleware?).and_return(true) }
+
+      it 'hooks I18n.translate without raising an error' do
+        expect { described_class.install_hook }.not_to raise_error
+        expect(I18n.translate(:hello, default: 'Hello')).to eq 'Hello'
+        expect(described_class.translations).to have_key('hello')
+      end
+    end
+  end
 end

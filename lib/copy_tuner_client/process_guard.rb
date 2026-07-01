@@ -33,11 +33,11 @@ module CopyTunerClient
     end
 
     def passenger_spawner?
-      defined?(PhusionPassenger) && ($0.include?("Passenger AppPreloader") || $0.include?("ApplicationSpawner") || $0.include?("rack-preloader"))
+      defined?(PhusionPassenger) && ($0.include?('Passenger AppPreloader') || $0.include?('ApplicationSpawner') || $0.include?('rack-preloader'))
     end
 
     def unicorn_spawner?
-      defined?(Unicorn::HttpServer) && ($0.include?("unicorn") && !caller.any? { |line| line.include?("worker_loop") })
+      defined?(Unicorn::HttpServer) && $0.include?('unicorn') && !caller.any? { |line| line.include?('worker_loop') }
     end
 
     def puma_spawner?
@@ -71,17 +71,17 @@ module CopyTunerClient
     end
 
     def register_passenger_hook
-      @logger.info("Registered Phusion Passenger fork hook")
-      PhusionPassenger.on_event(:starting_worker_process) do |forked|
+      @logger.info('Registered Phusion Passenger fork hook')
+      PhusionPassenger.on_event(:starting_worker_process) do |_forked|
         start_polling
       end
     end
 
     def register_unicorn_hook
-      @logger.info("Registered Unicorn fork hook")
+      @logger.info('Registered Unicorn fork hook')
       poller = @poller
       Unicorn::HttpServer.class_eval do
-        alias_method :worker_loop_without_copy_tuner, :worker_loop
+        alias_method(:worker_loop_without_copy_tuner, :worker_loop)
         define_method :worker_loop do |worker|
           poller.start
           worker_loop_without_copy_tuner(worker)
@@ -90,10 +90,10 @@ module CopyTunerClient
     end
 
     def register_delayed_hook
-      @logger.info("Registered Delayed::Job start hook")
+      @logger.info('Registered Delayed::Job start hook')
       poller = @poller
       Delayed::Worker.class_eval do
-        alias_method :start_without_copy_tuner, :start
+        alias_method(:start_without_copy_tuner, :start)
         define_method :start do
           poller.start
           start_without_copy_tuner
@@ -102,15 +102,16 @@ module CopyTunerClient
     end
 
     def register_good_job_hook
-      @logger.info("Registered good_job start hook")
+      @logger.info('Registered good_job start hook')
       poller = @poller
-      hook_module = Module.new do
-        define_method :daemon do
-          super() # NOTE: define_method 内で super を呼ぶ場合は引数を明示的に指定する必要があるので注意
-          poller.start
+      hook_module =
+        Module.new do
+          define_method :daemon do
+            super() # NOTE: define_method 内で super を呼ぶ場合は引数を明示的に指定する必要があるので注意
+            poller.start
+          end
         end
-      end
-      ::Process.singleton_class.prepend hook_module
+      ::Process.singleton_class.prepend(hook_module)
     end
 
     def register_puma_hook
@@ -126,13 +127,14 @@ module CopyTunerClient
       # If Puma is clustered mode with preload_app, this method is called before fork.
       # Delay poller start until Puma::Runner#start_server which is called on worker process.
       poller = @poller
-      hook_module = Module.new do
-        define_method :start_server do
-          poller.start
-          super() # NOTE: define_method 内で super を呼ぶ場合は引数を明示的に指定する必要があるので注意
+      hook_module =
+        Module.new do
+          define_method :start_server do
+            poller.start
+            super() # NOTE: define_method 内で super を呼ぶ場合は引数を明示的に指定する必要があるので注意
+          end
         end
-      end
-      Puma::Runner.prepend hook_module
+      Puma::Runner.prepend(hook_module)
     end
 
     def register_exit_hooks

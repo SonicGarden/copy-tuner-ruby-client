@@ -58,8 +58,6 @@ class FakeClient
   end
 
   def raise_error_if_present
-    if error
-      raise error
-    end
+    raise error if error
   end
 end

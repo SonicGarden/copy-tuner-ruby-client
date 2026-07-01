@@ -9,7 +9,7 @@ module CopyTunerClient
   #
   # This is injected into the Rails middleware stack in development environments.
   class RequestSync
-    VIEW_PATH = File.expand_path('../../../ui/views/', __FILE__)
+    VIEW_PATH = File.expand_path('../../ui/views', __dir__)
 
     # @param app [Rack] the upstream app into whose responses to inject the editor
     # @param options [Hash]
@@ -29,7 +29,7 @@ module CopyTunerClient
     # Invokes the upstream Rack application and flushes the cache after each
     # request.
     def call(env)
-      if /^\/copytuner/ =~ ::Rack::Request.new(env).path_info
+      if %r{^/copytuner} =~ ::Rack::Request.new(env).path_info
         dup._call(env)
       else
         first_request = @first
@@ -53,7 +53,7 @@ module CopyTunerClient
       @req = ::Rack::Request.new(env)
 
       case @req.path_info
-      when /^\/copytuner\/?$/
+      when %r{^/copytuner/?$}
         index
       when /sync/
         sync
@@ -71,21 +71,19 @@ module CopyTunerClient
 
     def sync
       @cache.sync
-      ::Rack::Response.new{|r| r.redirect('/copytuner/')}.finish
+      ::Rack::Response.new { |r| r.redirect('/copytuner/') }.finish
     end
 
-    def render(view, layout=true)
+    def render(view, layout = true)
       add_rack_array = true
-      if view.is_a? Hash
+      if view.is_a?(Hash)
         layout = false
-        if view[:object]
-          object = view[:object]
-        end
+        object = view[:object] if view[:object]
 
         if view[:collection]
-          return view[:collection].map do |object|
-            render({:partial => view[:partial], :object => object})
-          end.join(' ')
+          return view[:collection].map { |object|
+            render({ partial: view[:partial], object: })
+          }.join(' ')
         end
 
         if view[:partial]
@@ -93,17 +91,19 @@ module CopyTunerClient
           view = "_#{view[:partial]}"
         end
       end
-      binding = Proc.new {}.binding
-      if layout
-        body = render_with_layout(view) do
+      binding = proc {}.binding
+      body =
+        if layout
+          render_with_layout(view) do
+            render_without_layout(view, binding)
+          end
+        else
           render_without_layout(view, binding)
         end
-      else
-        body = render_without_layout(view, binding)
-      end
       if add_rack_array
         ::Rack::Response.new(
-          body, 200,
+          body,
+          200,
           ::Rack::CONTENT_TYPE => 'text/html; charset=utf-8'
         ).finish
       else
@@ -115,7 +115,7 @@ module CopyTunerClient
     # that block are interpolated into the layout
     def render_with_layout(view)
       body = ERB.new(File.read(File.join(VIEW_PATH, 'layouts/copytuner_default.html.erb')))
-      body.result(Proc.new {}.binding)
+      body.result(proc {}.binding)
     end
 
     # you have to pass a binding to this (a proc) so that ERB can have
@@ -133,12 +133,13 @@ module CopyTunerClient
     end
 
     def asset_request?(env)
-      env['PATH_INFO'] =~ /^\/assets/
+      env['PATH_INFO'] =~ %r{^/assets}
     end
 
     def in_interval?
       return false if @last_synced.nil?
       return false if @interval <= 0
+
       next_sync_at > Time.now.utc
     end
 

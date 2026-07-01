@@ -5,9 +5,7 @@ describe CopyTunerClient::Configuration do
     match do |config|
       expect(config).to respond_to(option)
 
-      if instance_variables.include?(:'@default')
-        expect(config.send(option)).to eq(@default)
-      end
+      expect(config.send(option)).to eq(@default) if instance_variables.include?(:@default)
 
       if @overridable
         value = 'a value'
@@ -47,21 +45,21 @@ describe CopyTunerClient::Configuration do
   it { is_expected.to have_config_option(:cache).overridable }
   it { is_expected.to have_config_option(:local_first_key_regexp).overridable.default(nil) }
 
-  it 'should provide default values for secure connections' do
+  it 'provides default values for secure connections' do
     config = CopyTunerClient::Configuration.new
     config.secure = true
     expect(config.port).to eq(443)
     expect(config.protocol).to eq('https')
   end
 
-  it 'should provide default values for insecure connections' do
+  it 'provides default values for insecure connections' do
     config = CopyTunerClient::Configuration.new
     config.secure = false
     expect(config.port).to eq(80)
     expect(config.protocol).to eq('http')
   end
 
-  it 'should not cache inferred ports' do
+  it 'does not cache inferred ports' do
     config = CopyTunerClient::Configuration.new
     config.secure = false
     config.port
@@ -69,72 +67,74 @@ describe CopyTunerClient::Configuration do
     expect(config.port).to eq(443)
   end
 
-  it 'should act like a hash' do
+  it 'acts like a hash' do
     config = CopyTunerClient::Configuration.new
     hash = config.to_hash
 
-    [:api_key, :environment_name, :host, :http_open_timeout,
-      :http_read_timeout, :client_name, :client_url, :client_version, :port,
-      :protocol, :proxy_host, :proxy_pass, :proxy_port, :proxy_user, :secure,
-      :development_environments, :logger, :framework, :ca_file].each do |option|
+    %i[
+      api_key environment_name host http_open_timeout
+      http_read_timeout client_name client_url client_version port
+      protocol proxy_host proxy_pass proxy_port proxy_user secure
+      development_environments logger framework ca_file
+    ].each do |option|
       expect(hash[option]).to eq(config[option])
     end
 
     expect(hash[:public]).to eq(config.public?)
   end
 
-  it 'should be mergable' do
+  it 'is mergable' do
     config = CopyTunerClient::Configuration.new
     hash = config.to_hash
-    expect(config.merge(:key => 'value')).to eq(hash.merge(:key => 'value'))
+    expect(config.merge(key: 'value')).to eq(hash.merge(key: 'value'))
   end
 
-  it 'should use development and staging as development environments by default' do
+  it 'uses development and staging as development environments by default' do
     config = CopyTunerClient::Configuration.new
-    expect(config.development_environments).to match_array(%w(development staging))
+    expect(config.development_environments).to match_array(%w[development staging])
   end
 
-  it 'should use test and cucumber as test environments by default' do
+  it 'uses test and cucumber as test environments by default' do
     config = CopyTunerClient::Configuration.new
-    expect(config.test_environments).to match_array(%w(test cucumber))
+    expect(config.test_environments).to match_array(%w[test cucumber])
   end
 
-  it 'should be test in a test environment' do
+  it 'is test in a test environment' do
     config = CopyTunerClient::Configuration.new
-    config.test_environments = %w(test)
+    config.test_environments = %w[test]
     config.environment_name = 'test'
     expect(config).to be_test
   end
 
-  it 'should be public in a public environment' do
+  it 'is public in a public environment' do
     config = CopyTunerClient::Configuration.new
-    config.development_environments = %w(development)
+    config.development_environments = %w[development]
     config.environment_name = 'production'
     expect(config).to be_public
     expect(config).not_to be_development
   end
 
-  it 'should be development in a development environment' do
+  it 'is development in a development environment' do
     config = CopyTunerClient::Configuration.new
-    config.development_environments = %w(staging)
+    config.development_environments = %w[staging]
     config.environment_name = 'staging'
     expect(config).to be_development
     expect(config).not_to be_public
   end
 
-  it 'should be public without an environment name' do
+  it 'is public without an environment name' do
     config = CopyTunerClient::Configuration.new
     expect(config).to be_public
   end
 
-  it 'should yield and save a configuration when configuring' do
+  it 'yields and save a configuration when configuring' do
     yielded_configuration = nil
 
     CopyTunerClient.configure(false) do |config|
       yielded_configuration = config
     end
 
-    expect(yielded_configuration).to be_kind_of(CopyTunerClient::Configuration)
+    expect(yielded_configuration).to be_a(CopyTunerClient::Configuration)
     expect(CopyTunerClient.configuration).to eq(yielded_configuration)
   end
 
@@ -145,7 +145,7 @@ describe CopyTunerClient::Configuration do
     expect(logger.entries[:info]).to be_empty
   end
 
-  it 'should not remove existing config options when configuring twice' do
+  it 'does not remove existing config options when configuring twice' do
     first_config = nil
 
     CopyTunerClient.configure(false) do |config|
@@ -176,8 +176,8 @@ describe CopyTunerClient::Configuration do
   it 'generates environment info with a framework' do
     subject.environment_name = 'production'
     subject.framework = 'Sinatra: 1.0.0'
-    expect(subject.environment_info).
-      to eq("[Ruby: #{RUBY_VERSION}] [Sinatra: 1.0.0] [Env: production]")
+    expect(subject.environment_info)
+      .to eq("[Ruby: #{RUBY_VERSION}] [Sinatra: 1.0.0] [Env: production]")
   end
 
   it 'prefixes log entries' do
@@ -277,8 +277,9 @@ end
 
 shared_context 'stubbed configuration' do
   subject { CopyTunerClient::Configuration.new }
+
   let(:backend) { double('i18n-backend') }
-  let(:cache) { double('cache', download: "download") }
+  let(:cache) { double('cache', download: 'download') }
   let(:client) { double('client') }
   let(:logger) { FakeLogger.new }
   let(:poller) { double('poller') }
@@ -313,8 +314,8 @@ shared_examples_for 'applied configuration' do
   end
 
   it 'builds a process guard' do
-    expect(CopyTunerClient::ProcessGuard).to have_received(:new).
-      with(cache, poller, subject.to_hash)
+    expect(CopyTunerClient::ProcessGuard).to have_received(:new)
+      .with(cache, poller, subject.to_hash)
   end
 
   it 'logs that it is ready' do
@@ -327,7 +328,7 @@ shared_examples_for 'applied configuration' do
 end
 
 describe CopyTunerClient::Configuration, 'applied when testing' do
-  it_should_behave_like 'applied configuration' do
+  it_behaves_like 'applied configuration' do
     it 'does not start the process guard' do
       expect(process_guard).not_to receive(:start)
     end
@@ -340,7 +341,7 @@ describe CopyTunerClient::Configuration, 'applied when testing' do
 end
 
 describe CopyTunerClient::Configuration, 'applied when not testing' do
-  it_should_behave_like 'applied configuration' do
+  it_behaves_like 'applied configuration' do
     it 'starts the process guard' do
       expect(process_guard).to have_received(:start)
     end
@@ -353,7 +354,7 @@ describe CopyTunerClient::Configuration, 'applied when not testing' do
 end
 
 describe CopyTunerClient::Configuration, 'applied when developing with middleware' do
-  it_should_behave_like 'applied configuration' do
+  it_behaves_like 'applied configuration' do
     it 'adds the sync middleware' do
       expect(middleware).to include(CopyTunerClient::RequestSync)
     end
@@ -369,7 +370,7 @@ describe CopyTunerClient::Configuration, 'applied when developing with middlewar
 end
 
 describe CopyTunerClient::Configuration, 'applied when developing without middleware' do
-  it_should_behave_like 'applied configuration'
+  it_behaves_like 'applied configuration'
 
   def apply
     subject.middleware = nil
@@ -379,9 +380,9 @@ describe CopyTunerClient::Configuration, 'applied when developing without middle
 end
 
 describe CopyTunerClient::Configuration, 'applied with middleware when not developing' do
-  it_should_behave_like 'applied configuration'
-
   let(:middleware) { MiddlewareStack.new }
+
+  it_behaves_like 'applied configuration'
 
   def apply
     subject.middleware = middleware
@@ -401,7 +402,7 @@ describe CopyTunerClient::Configuration, 'applied without locale filter' do
     subject.apply
   end
 
-  it 'should have locales [:en]' do
+  it 'has locales [:en]' do
     expect(subject.locales).to eq [:en]
   end
 end
@@ -410,12 +411,12 @@ describe CopyTunerClient::Configuration, 'applied with locale filter' do
   include_context 'stubbed configuration'
 
   def apply
-    subject.locales = %i(en ja)
+    subject.locales = %i[en ja]
     subject.apply
   end
 
-  it 'should have locales %i(en ja)' do
-    expect(subject.locales).to eq %i(en ja)
+  it 'has locales %i(en ja)' do
+    expect(subject.locales).to eq %i[en ja]
   end
 end
 
@@ -439,20 +440,20 @@ describe CopyTunerClient::Configuration, 'applied with Rails i18n config' do
   end
 
   context 'with available_locales' do
-    with_config(available_locales: %i(en ja))
+    with_config(available_locales: %i[en ja])
     include_context 'stubbed configuration'
 
-    it 'should have locales %i(en ja)' do
-      expect(subject.locales).to eq %i(en ja)
+    it 'has locales %i(en ja)' do
+      expect(subject.locales).to eq %i[en ja]
     end
   end
 
   context 'with default_locale' do
-    with_config(available_locales: %i(ja))
+    with_config(available_locales: %i[ja])
     include_context 'stubbed configuration'
 
-    it 'should have locales %i(ja)' do
-      expect(subject.locales).to eq %i(ja)
+    it 'has locales %i(ja)' do
+      expect(subject.locales).to eq %i[ja]
     end
   end
 end

@@ -1,6 +1,6 @@
 class FakeHtmlSafeString < String
-  def initialize(*args)
-    super(*args)
+  def initialize(*)
+    super
     @html_safe = false
   end
 
@@ -17,4 +17,3 @@ class FakeHtmlSafeString < String
     @html_safe
   end
 end
-

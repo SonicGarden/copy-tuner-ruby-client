@@ -3,8 +3,8 @@ class MiddlewareStack
     @middlewares = []
   end
 
-  def use(klass, *args)
-    @middlewares << klass.new('fake_app', *args)
+  def use(klass, *)
+    @middlewares << klass.new('fake_app', *)
   end
 
   def include?(klass)

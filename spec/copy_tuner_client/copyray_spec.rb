@@ -18,11 +18,11 @@ describe CopyTunerClient::Copyray do
       let(:source) { FakeHtmlSafeString.new('<b>Hello</b>').html_safe }
 
       it 'keeps the html_safe flag so the translation is not re-escaped' do
-        is_expected.to be_html_safe
+        expect(subject).to be_html_safe
       end
 
       it 'prepends the visible marker token without escaping' do
-        is_expected.to eq '⟦CT:en.test.key⟧<b>Hello</b>'
+        expect(subject).to eq '⟦CT:en.test.key⟧<b>Hello</b>'
       end
     end
 
@@ -30,8 +30,8 @@ describe CopyTunerClient::Copyray do
       let(:source) { FakeHtmlSafeString.new('Hello & <World>') }
 
       it 'prepends the marker but keeps the source non html_safe so ActionView still escapes the body' do
-        is_expected.to eq '⟦CT:en.test.key⟧Hello & <World>'
-        is_expected.not_to be_html_safe
+        expect(subject).to eq '⟦CT:en.test.key⟧Hello & <World>'
+        expect(subject).not_to be_html_safe
       end
     end
 

@@ -1,18 +1,20 @@
 require 'spec_helper'
 
 describe CopyTunerClient::RequestSync do
+  subject { CopyTunerClient::RequestSync.new(app, poller:, cache:, interval: 0) }
+
   let(:poller) { {} }
   let(:cache) { {} }
   let(:response) { 'response' }
   let(:env) { 'env' }
-  let(:app) { double('app', :call => response) }
+  let(:app) { double('app', call: response) }
+
   before do
-    allow(cache).to receive_messages(:flush => nil, :download => nil)
+    allow(cache).to receive_messages(flush: nil, download: nil)
     allow(poller).to receive(:start_sync).and_return(nil)
   end
-  subject { CopyTunerClient::RequestSync.new(app, :poller => poller, :cache => cache, :interval => 0) }
 
-  it "invokes the upstream app" do
+  it 'invokes the upstream app' do
     expect(app).to receive(:call).with(env)
     result = subject.call(env)
     expect(result).to eq(response)
@@ -20,18 +22,20 @@ describe CopyTunerClient::RequestSync do
 end
 
 describe CopyTunerClient::RequestSync, 'serving assets' do
+  subject { CopyTunerClient::RequestSync.new(app, poller:, cache:, interval: 0) }
+
   let(:env) do
-    { "PATH_INFO" => '/assets/choper.png' }
+    { 'PATH_INFO' => '/assets/choper.png' }
   end
   let(:poller) { {} }
   let(:cache) { {} }
   let(:response) { 'response' }
-  let(:app) { double('app', :call => response) }
+  let(:app) { double('app', call: response) }
+
   before do
-    allow(cache).to receive_messages(:flush => nil, :download => nil)
+    allow(cache).to receive_messages(flush: nil, download: nil)
     allow(poller).to receive(:start_sync).and_return(nil)
   end
-  subject { CopyTunerClient::RequestSync.new(app, :poller => poller, :cache => cache, :interval => 0) }
 
   it "don't start sync" do
     expect(cache).to receive(:download).once
@@ -42,26 +46,28 @@ describe CopyTunerClient::RequestSync, 'serving assets' do
 end
 
 describe CopyTunerClient::RequestSync do
+  subject { CopyTunerClient::RequestSync.new(app, poller:, cache:, interval: 10) }
+
   let(:poller) { {} }
   let(:cache) { {} }
   let(:response) { 'response' }
   let(:env) { 'env' }
-  let(:app) { double('app', :call => response) }
-  subject { CopyTunerClient::RequestSync.new(app, :poller => poller, :cache => cache, :interval => 10) }
+  let(:app) { double('app', call: response) }
+
   before do
-    allow(cache).to receive_messages(:flush => nil, :download => nil)
+    allow(cache).to receive_messages(flush: nil, download: nil)
     allow(poller).to receive(:start_sync).and_return(nil)
   end
 
-  context "first request" do
-    it "download" do
+  context 'first request' do
+    it 'download' do
       expect(cache).to receive(:download).once
       subject.call(env)
     end
   end
 
   context 'in interval request' do
-    it "does not start sync for the second time" do
+    it 'does not start sync for the second time' do
       expect(cache).to receive(:download).once
       subject.call(env)
 
@@ -71,7 +77,7 @@ describe CopyTunerClient::RequestSync do
   end
 
   context 'over interval request' do
-    it "start sync for the second time" do
+    it 'start sync for the second time' do
       expect(cache).to receive(:download).once
       subject.call(env)
 

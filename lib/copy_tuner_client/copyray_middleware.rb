@@ -18,11 +18,11 @@ module CopyTunerClient
         # NOTE: skipped は data-copyray-key を付与できなかったこと（巨大DOM/Nokogiri例外）を表す。
         # JS にこれを伝え、オーバーレイ非対応である旨をツールバーで案内させる。
         body, skipped = CopyTunerClient::Copyray::Rewriter.rewrite(body)
-        body = append_js(body, csp_nonce, skipped: skipped)
+        body = append_js(body, csp_nonce, skipped:)
         content_length = body.bytesize.to_s
         headers['Content-Length'] = content_length
         # maintains compatibility with other middlewares
-        if defined?(ActionDispatch::Response::RackBody) && ActionDispatch::Response::RackBody === response
+        if defined?(ActionDispatch::Response::RackBody) && response.is_a?(ActionDispatch::Response::RackBody)
           ActionDispatch::Response.new(status, headers, [body]).to_a
         else
           [status, headers, [body]]
@@ -65,14 +65,14 @@ module CopyTunerClient
     end
 
     def file?(headers)
-      headers["Content-Transfer-Encoding"] == 'binary'
+      headers['Content-Transfer-Encoding'] == 'binary'
     end
 
     def html_headers?(status, headers)
       [200, 422].include?(status) &&
-      headers['Content-Type'] &&
-      headers['Content-Type'].include?('text/html') &&
-      !file?(headers)
+        headers['Content-Type'] &&
+        headers['Content-Type'].include?('text/html') &&
+        !file?(headers)
     end
 
     def response_body(response)

@@ -1,7 +1,7 @@
 require 'spec_helper'
 
 describe CopyTunerClient::DottedHash do
-  describe ".to_h" do
+  describe '.to_h' do
     subject { CopyTunerClient::DottedHash.to_h(dotted_hash) }
 
     context '空のキーの場合' do
@@ -22,7 +22,7 @@ describe CopyTunerClient::DottedHash do
       it { is_expected.to eq({ 'key' => 'test value', 'other_key' => 'other value' }) }
     end
 
-    context "複数階層のblurbキーの場合" do
+    context '複数階層のblurbキーの場合' do
       let(:dotted_hash) do
         {
           'en.test.key' => 'en test value',
@@ -31,24 +31,24 @@ describe CopyTunerClient::DottedHash do
         }
       end
 
-      it "正しくネストされたハッシュに変換されること" do
-        is_expected.to eq({
-          'en' => {
-            'test' => {
-              'key' => 'en test value',
-              'other_key' => 'en other test value',
-            },
-          },
-          'fr' => {
-            'test' => {
-              'key' => 'fr test value',
-            },
-          },
-        })
+      it '正しくネストされたハッシュに変換されること' do
+        expect(subject).to eq({
+                                'en' => {
+                                  'test' => {
+                                    'key' => 'en test value',
+                                    'other_key' => 'en other test value',
+                                  },
+                                },
+                                'fr' => {
+                                  'test' => {
+                                    'key' => 'fr test value',
+                                  },
+                                },
+                              })
       end
     end
 
-    context "キーの競合がある場合" do
+    context 'キーの競合がある場合' do
       let(:dotted_hash) do
         {
           'en.test' => 'invalid value',
@@ -62,7 +62,7 @@ describe CopyTunerClient::DottedHash do
     # NOTE: number.*.format 配下のキー（precision 等）は I18nBackend の local_first_key? ガードで
     # tree_cache をバイパスしローカル YAML 優先になるため、ここで型変換せず文字列のまま保持する。
     # （number_to_currency が壊れないことは i18n_backend_spec の number ローカル優先テストで担保）
-    context "number.*.format 配下の値を含む場合" do
+    context 'number.*.format 配下の値を含む場合' do
       let(:dotted_hash) do
         {
           'en.number.currency.format.precision' => '2',
@@ -70,18 +70,18 @@ describe CopyTunerClient::DottedHash do
         }
       end
 
-      it "型変換せず値を文字列のまま保持する" do
-        is_expected.to eq({
-          'en' => {
-            'number' => { 'currency' => { 'format' => { 'precision' => '2' } } },
-            'custom' => { 'precision' => 'custom_value' },
-          },
-        })
+      it '型変換せず値を文字列のまま保持する' do
+        expect(subject).to eq({
+                                'en' => {
+                                  'number' => { 'currency' => { 'format' => { 'precision' => '2' } } },
+                                  'custom' => { 'precision' => 'custom_value' },
+                                },
+                              })
       end
     end
   end
 
-  describe ".conflict_keys" do
+  describe '.conflict_keys' do
     subject { CopyTunerClient::DottedHash.conflict_keys(dotted_hash) }
 
     context '有効なキーの場合' do
@@ -106,11 +106,11 @@ describe CopyTunerClient::DottedHash do
         }
       end
 
-      it "競合するキーが正しく検出されること" do
-        is_expected.to eq({
-          'ja.fuga.test' => %w[ja.fuga.test.hoge],
-          'ja.hoge.test' => %w[ja.hoge.test.fuga ja.hoge.test.hoge],
-        })
+      it '競合するキーが正しく検出されること' do
+        expect(subject).to eq({
+                                'ja.fuga.test' => %w[ja.fuga.test.hoge],
+                                'ja.hoge.test' => %w[ja.hoge.test.fuga ja.hoge.test.hoge],
+                              })
       end
     end
   end

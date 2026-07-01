@@ -31,9 +31,7 @@ module CopyTunerClient
       @mutex.synchronize do
         if timeout.nil?
           # wait indefinitely until there is an element in the queue
-          while @queue.empty?
-            @received.wait(@mutex)
-          end
+          @received.wait(@mutex) while @queue.empty?
         elsif @queue.empty? && timeout != 0
           # wait for element or timeout
           timeout_time = timeout + Time.now.to_f
@@ -41,8 +39,9 @@ module CopyTunerClient
             @received.wait(@mutex, remaining_time)
           end
         end
-        #if we're still empty after the timeout, raise exception
-        raise ThreadError, "queue empty" if @queue.empty?
+        # if we're still empty after the timeout, raise exception
+        raise ThreadError, 'queue empty' if @queue.empty?
+
         @queue.shift
       end
     end

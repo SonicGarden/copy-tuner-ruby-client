@@ -4,7 +4,7 @@ describe CopyTunerClient::Poller do
   POLLING_DELAY = 0.5
 
   let(:client) { FakeClient.new }
-  let(:cache) { CopyTunerClient::Cache.new(client, :logger => FakeLogger.new) }
+  let(:cache) { CopyTunerClient::Cache.new(client, logger: FakeLogger.new) }
 
   def build_poller(config = {})
     config[:logger] ||= FakeLogger.new
@@ -27,7 +27,7 @@ describe CopyTunerClient::Poller do
     @pollers.each { |poller| poller.stop }
   end
 
-  it "it polls after being started" do
+  it 'polls after being started' do
     poller = build_poller
     poller.start
 
@@ -37,8 +37,8 @@ describe CopyTunerClient::Poller do
     expect(cache['test.key']).to eq('value')
   end
 
-  it "it doesn't poll before being started" do
-    poller = build_poller
+  it "doesn't poll before being started" do
+    build_poller
     client['test.key'] = 'value'
 
     wait_for_next_sync
@@ -46,7 +46,7 @@ describe CopyTunerClient::Poller do
     expect(cache['test.key']).to be_nil
   end
 
-  it "stops polling when stopped" do
+  it 'stops polling when stopped' do
     poller = build_poller
 
     poller.start
@@ -58,12 +58,12 @@ describe CopyTunerClient::Poller do
     expect(cache['test.key']).to be_nil
   end
 
-  it "stops polling with an invalid api key" do
-    failure = "server is napping"
+  it 'stops polling with an invalid api key' do
+    failure = 'server is napping'
     logger = FakeLogger.new
 
     expect(cache).to receive(:download).and_raise(CopyTunerClient::InvalidApiKey.new(failure))
-    poller = build_poller(:logger => logger)
+    poller = build_poller(logger:)
 
     cache['upload.key'] = 'upload'
     poller.start
@@ -81,16 +81,16 @@ describe CopyTunerClient::Poller do
     expect(Thread).to receive(:new).and_return(nil)
     logger = FakeLogger.new
 
-    build_poller(:logger => logger).start
+    build_poller(logger:).start
 
     expect(logger).to have_entry(:error, "Couldn't start poller thread")
   end
 
-  it "flushes the log when polling" do
+  it 'flushes the log when polling' do
     logger = FakeLogger.new
     expect(logger).to receive(:flush).at_least(:once)
 
-    build_poller(:logger => logger).start
+    build_poller(logger:).start
 
     wait_for_next_sync
   end

@@ -11,10 +11,12 @@ module CopyTunerClient
   # the application will not need to interact with it directly.
   class Client
     # These errors will be rescued when connecting CopyTuner.
-    HTTP_ERRORS = [Timeout::Error, Errno::EINVAL, Errno::ECONNRESET, EOFError,
-                   Net::HTTPBadResponse, Net::HTTPHeaderSyntaxError,
-                   Net::ProtocolError, SocketError, OpenSSL::SSL::SSLError,
-                   Errno::ECONNREFUSED]
+    HTTP_ERRORS = [
+      Timeout::Error, Errno::EINVAL, Errno::ECONNRESET, EOFError,
+      Net::HTTPBadResponse, Net::HTTPHeaderSyntaxError,
+      Net::ProtocolError, SocketError, OpenSSL::SSL::SSLError,
+      Errno::ECONNREFUSED
+    ]
 
     USER_AGENT = "copy_tuner_client #{CopyTunerClient::VERSION}"
 
@@ -36,9 +38,11 @@ module CopyTunerClient
       @etag = nil
       @downloaded_blurbs = {}
 
-      [:api_key, :host, :port, :public, :http_read_timeout,
-        :http_open_timeout, :secure, :logger, :ca_file, :s3_host, :download_cache_dir].each do |option|
-        instance_variable_set "@#{option}", options[option]
+      %i[
+        api_key host port public http_read_timeout
+        http_open_timeout secure logger ca_file s3_host download_cache_dir
+      ].each do |option|
+        instance_variable_set("@#{option}", options[option])
       end
 
       @download_cache_dir.mkpath
@@ -59,19 +63,19 @@ module CopyTunerClient
       connect(s3_host) do |http|
         request = Net::HTTP::Get.new(uri(download_resource))
         request['If-None-Match'] = @etag
-        log 'Start downloading translations'
+        log('Start downloading translations')
         t = Time.now
         response = http.request(request)
         t_ms = ((Time.now - t) * 1000).to_i
         downloaded = check(response)
         if downloaded
           # NOTE: Net::HTTPではgzipが透過的に扱われるため正確なファイルサイズや速度をログに出すのは難しい
-          log "Downloaded translations (#{t_ms}ms)"
+          log("Downloaded translations (#{t_ms}ms)")
           @downloaded_blurbs = JSON.parse(response.body)
           @etag = response['ETag']
           last_download_path.write(JSON.pretty_generate(etag: @etag, downloaded_blurbs: @downloaded_blurbs))
         else
-          log "No new translations (#{t_ms}ms)"
+          log("No new translations (#{t_ms}ms)")
         end
 
         yield(@downloaded_blurbs) if downloaded || cache_fallback
@@ -84,8 +88,8 @@ module CopyTunerClient
     def upload(data)
       connect(host) do |http|
         response = http.post(uri('draft_blurbs'), data.to_json, 'Content-Type' => 'application/json', 'User-Agent' => USER_AGENT)
-        check response
-        log 'Uploaded missing translations'
+        check(response)
+        log('Uploaded missing translations')
       end
     end
 
@@ -94,15 +98,22 @@ module CopyTunerClient
     def deploy
       connect(host) do |http|
         response = http.post(uri('deploys'), '', 'User-Agent' => USER_AGENT)
-        check response
-        log 'Deployed'
+        check(response)
+        log('Deployed')
       end
     end
 
     private
 
-    attr_reader :host, :port, :api_key, :http_read_timeout,
-      :http_open_timeout, :secure, :logger, :ca_file, :s3_host
+    attr_reader :host,
+                :port,
+                :api_key,
+                :http_read_timeout,
+                :http_open_timeout,
+                :secure,
+                :logger,
+                :ca_file,
+                :s3_host
 
     def public?
       @public
@@ -130,7 +141,7 @@ module CopyTunerClient
       cache = JSON.parse(pathname.read.to_s).transform_keys(&:to_sym)
       @etag = cache[:etag]
       @downloaded_blurbs = cache[:downloaded_blurbs]
-      log "Loaded cache data from #{pathname}"
+      log("Loaded cache data from #{pathname}")
     rescue JSON::JSONError, Errno::ENOENT, Errno::ENOTDIR
       nil
     end
@@ -144,9 +155,9 @@ module CopyTunerClient
       http.ca_file = ca_file
 
       begin
-        yield http
-      rescue *HTTP_ERRORS => exception
-        raise ConnectionError, "#{exception.class.name}: #{exception.message}"
+        yield(http)
+      rescue *HTTP_ERRORS => e
+        raise ConnectionError, "#{e.class.name}: #{e.message}"
       end
     end
 

@@ -1,32 +1,32 @@
 class FakeLogger
   def initialize
     @entries = {
-      :info  => [],
-      :debug => [],
-      :warn  => [],
-      :error => [],
-      :fatal => [],
+      info: [],
+      debug: [],
+      warn: [],
+      error: [],
+      fatal: [],
     }
   end
 
-  def info(message = nil, &block)
-    log(:info, message, &block)
+  def info(message = nil, &)
+    log(:info, message, &)
   end
 
-  def debug(message = nil, &block)
-    log(:debug, message, &block)
+  def debug(message = nil, &)
+    log(:debug, message, &)
   end
 
-  def warn(message = nil, &block)
-    log(:warn, message, &block)
+  def warn(message = nil, &)
+    log(:warn, message, &)
   end
 
-  def error(message = nil, &block)
-    log(:error, message, &block)
+  def error(message = nil, &)
+    log(:error, message, &)
   end
 
-  def fatal(message = nil, &block)
-    log(:fatal, message, &block)
+  def fatal(message = nil, &)
+    log(:fatal, message, &)
   end
 
   def log(severity, message = nil, &block)
@@ -56,13 +56,14 @@ RSpec::Matchers.define :have_entry do |severity, entry|
   end
 
   def entries
-    lines = @logger.entries.inject([]) do |result, (severity, entries)|
-      if entries.empty?
-        result
-      else
-        result << "#{severity}:\n#{entries.join("\n")}"
+    lines =
+      @logger.entries.inject([]) do |result, (severity, entries)|
+        if entries.empty?
+          result
+        else
+          result << "#{severity}:\n#{entries.join("\n")}"
+        end
       end
-    end
     lines.join("\n\n")
   end
 end

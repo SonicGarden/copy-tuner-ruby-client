@@ -57,7 +57,7 @@ module CopyTunerClient
 
     private
 
-    def lookup(locale, key, scope = [], options = {}) # rubocop:disable Metrics/MethodLength
+    def lookup(locale, key, scope = [], options = {})
       return nil if !key.is_a?(String) && !key.is_a?(Symbol)
 
       parts = I18n.normalize_keys(locale, key, scope, options[:separator])
@@ -68,21 +68,15 @@ module CopyTunerClient
       # ローカル config/locales（I18n::Backend::Simple）を優先する。段階的にローカルへ移行するための仕組み。
       # ローカルに無い場合は nil（未訳）のまま返し、copy_tuner へのフォールバックも空キー登録も行わない（完全分離）。
       # ignored_keys より先に評価することで、両方にマッチするキーでも確実にローカルへ委譲する。
-      if local_first_key?(key_without_locale)
-        return super
-      end
+      return super if local_first_key?(key_without_locale)
 
       config = CopyTunerClient.configuration
-      if config.ignored_keys.include?(key_without_locale)
-        config.ignored_key_handler.call(IgnoredKey.new("Ignored key: #{key_without_locale}"))
-      end
+      config.ignored_key_handler.call(IgnoredKey.new("Ignored key: #{key_without_locale}")) if config.ignored_keys.include?(key_without_locale)
 
       # NOTE: ハッシュ化した場合に削除されるキーに対応するため、最初に完全一致をチェック（旧クライアントの動作を維持）
       # 例: `en.test.key` が `en.test.key.conflict` のように別のキーで上書きされている場合の対応
       exact_match = cache[key_with_locale]
-      if exact_match
-        return exact_match
-      end
+      return exact_match if exact_match
 
       ensure_tree_cache_current
       tree_result = lookup_in_tree_cache(parts)
@@ -90,9 +84,7 @@ module CopyTunerClient
 
       content = super
 
-      if content.nil?
-        cache[key_with_locale] = nil
-      end
+      cache[key_with_locale] = nil if content.nil?
 
       content
     end
