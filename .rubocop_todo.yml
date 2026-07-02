@@ -122,6 +122,7 @@ RSpec/ContextWording:
     - 'spec/copy_tuner_client/helper_extension_spec.rb'
     - 'spec/copy_tuner_client/i18n_backend_spec.rb'
     - 'spec/copy_tuner_client/request_sync_spec.rb'
+    - 'spec/copy_tuner_client/translation_log_spec.rb'
 
 # Offense count: 9
 RSpec/DescribeMethod:
