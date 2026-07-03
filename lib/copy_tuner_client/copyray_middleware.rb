@@ -11,18 +11,22 @@ module CopyTunerClient
     def call(env)
       CopyTunerClient::TranslationLog.clear
       status, headers, response = @app.call(env)
-      if html_headers?(status, headers) && body = response_body(response)
+      if rewritable?(status, headers) && body = response_body(response)
         csp_nonce = env['action_dispatch.content_security_policy_nonce'] || env['secure_headers_content_security_policy_nonce']
         # NOTE: CSS/JS 挿入の前に Rewriter を通す。serialize 後も </body> は必ず出力されるので
         # append_to_html_body の rindex は機能し、CSS/JS タグはトークン非含有なので二重処理も起きない。
         # NOTE: skipped は data-copyray-key を付与できなかったこと（巨大DOM/Nokogiri例外）を表す。
         # JS にこれを伝え、オーバーレイ非対応である旨をツールバーで案内させる。
-        body, skipped = CopyTunerClient::Copyray::Rewriter.rewrite(body)
-        body = append_js(body, csp_nonce, skipped: skipped)
+        # NOTE: turbo stream はページ断片なので fragment パーサで走査する（html/body ラッパを付けない）。
+        turbo_stream = turbo_stream?(headers)
+        body, skipped = CopyTunerClient::Copyray::Rewriter.rewrite(body, fragment: turbo_stream)
+        # NOTE: ブートストラップ JS はフルページ読み込み時に一度だけ挿入すればよい。turbo stream 断片には
+        # 挿入先の </body> も無く、既に初期化済みのページへマージされるだけなので挿入しない。
+        body = append_js(body, csp_nonce, skipped: skipped) unless turbo_stream
         content_length = body.bytesize.to_s
         headers['Content-Length'] = content_length
         # maintains compatibility with other middlewares
-        if defined?(ActionDispatch::Response::RackBody) && ActionDispatch::Response::RackBody === response
+        if defined?(ActionDispatch::Response::RackBody) && response.is_a?(ActionDispatch::Response::RackBody)
           ActionDispatch::Response.new(status, headers, [body]).to_a
         else
           [status, headers, [body]]
@@ -65,14 +69,19 @@ module CopyTunerClient
     end
 
     def file?(headers)
-      headers["Content-Transfer-Encoding"] == 'binary'
+      headers['Content-Transfer-Encoding'] == 'binary'
     end
 
-    def html_headers?(status, headers)
+    def rewritable?(status, headers)
       [200, 422].include?(status) &&
+        headers['Content-Type'] &&
+        (headers['Content-Type'].include?('text/html') || turbo_stream?(headers)) &&
+        !file?(headers)
+    end
+
+    def turbo_stream?(headers)
       headers['Content-Type'] &&
-      headers['Content-Type'].include?('text/html') &&
-      !file?(headers)
+        headers['Content-Type'].include?('text/vnd.turbo-stream.html')
     end
 
     def response_body(response)

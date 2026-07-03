@@ -202,6 +202,22 @@ describe CopyTunerClient::Copyray::Rewriter do
       end
     end
 
+    context 'fragment: true（turbo stream などの HTML 断片）' do
+      let(:html) { %(<turbo-stream action="replace" target="x"><template><p>#{marker('a.b')}Hello</p></template></turbo-stream>) }
+      subject(:result) { described_class.rewrite(html, fragment: true).first }
+
+      it 'html/body ラッパを足さず断片のまま返す' do
+        expect(result).not_to include('<html>')
+        expect(result).not_to include('<body>')
+        expect(result).to start_with('<turbo-stream')
+      end
+
+      it 'template 内の要素に data-copyray-key を付与しトークンを除去する' do
+        expect(result).to include('data-copyray-key="a.b"')
+        expect(result).not_to match CopyTunerClient::Copyray::Marker::SCAN_REGEXP
+      end
+    end
+
     context '出力にマーカートークンが一切残らない' do
       let(:html) do
         "<html><head><title>#{marker('t')}T</title></head>" \
