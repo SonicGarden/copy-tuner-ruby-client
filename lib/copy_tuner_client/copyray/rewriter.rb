@@ -19,7 +19,10 @@ module CopyTunerClient
         # NOTE: 戻り値は [html, skipped]。skipped は data-copyray-key を付与できなかったことを表す
         # （巨大DOMでのスキップ・Nokogiri 例外の双方で true）。ミドルウェアがこれを JS に伝え、
         # オーバーレイ非対応である旨をツールバーで案内する。
-        def rewrite(html)
+        # NOTE: fragment: true は turbo stream など body に差し込む HTML 断片向け。
+        # Nokogiri::HTML だと html/body/DOCTYPE ラッパが付いて断片が壊れるため、
+        # fragment パーサでラッパを付けずに走査・除去する。
+        def rewrite(html, fragment: false)
           # NOTE: ボディが ASCII-8BIT に転落していると UTF-8 の Marker::PREFIX との include? 比較が
           # Encoding::CompatibilityError を投げる（ミドルウェアのボディ連結で非ASCIIバイトを含む
           # ASCII-8BIT チャンクが混じると発生）。実バイト列は本来 UTF-8 なので判定用に UTF-8 とみなす。
@@ -35,7 +38,7 @@ module CopyTunerClient
           # NOTE: 閾値超は Nokogiri を通さず可視トークン除去のみ。skipped=true で編集導線を諦めた旨を伝える。
           return [strip_markers(scannable), true] if scannable.bytesize > MAX_REWRITE_BYTESIZE
 
-          [rewrite_with_nokogiri(scannable), false]
+          [rewrite_with_nokogiri(scannable, fragment: fragment), false]
         rescue StandardError => e
           # NOTE: Copyray は開発支援機能なので、壊れた HTML 等で Nokogiri 処理が落ちても
           # ページを 500 にしない。data-copyray-key 付与（編集導線）は諦め、最低限可視トークンだけ除去する。
@@ -51,8 +54,8 @@ module CopyTunerClient
           scannable.gsub(Marker::SCAN_REGEXP, '')
         end
 
-        def rewrite_with_nokogiri(scannable)
-          doc = Nokogiri::HTML(scannable)
+        def rewrite_with_nokogiri(scannable, fragment: false)
+          doc = fragment ? Nokogiri::HTML.fragment(scannable) : Nokogiri::HTML(scannable)
 
           doc.traverse do |node|
             if node.text?
