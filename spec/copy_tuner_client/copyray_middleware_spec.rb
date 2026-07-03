@@ -41,6 +41,40 @@ describe CopyTunerClient::CopyrayMiddleware do
     end
   end
 
+  context 'turbo stream レスポンスのとき' do
+    let(:headers) { { 'Content-Type' => 'text/vnd.turbo-stream.html' } }
+    let(:body) { %(<turbo-stream action="replace" target="x"><template><p>#{marker('a.b')}Hello</p></template></turbo-stream>) }
+
+    before do
+      # NOTE: append_js のトップレベル no-op スタブを外し、turbo stream では JS を挿入しないことを検証する。
+      allow(middleware).to receive(:append_js).and_call_original
+    end
+
+    it 'マーカーを data-copyray-key 属性に書き換え、トークンを除去する' do
+      _status, _headers, response = middleware.call({})
+      result = response.join
+
+      expect(result).to include('data-copyray-key="a.b"')
+      expect(result).not_to match CopyTunerClient::Copyray::Marker::SCAN_REGEXP
+    end
+
+    it 'html/body ラッパを付けず turbo-stream 断片のまま返す' do
+      _status, _headers, response = middleware.call({})
+      result = response.join
+
+      expect(result).to start_with('<turbo-stream')
+      expect(result).not_to include('<body>')
+    end
+
+    it 'ブートストラップ JS を挿入しない（断片なので）' do
+      _status, _headers, response = middleware.call({})
+      result = response.join
+
+      expect(result).not_to include('window.CopyTuner')
+      expect(result).not_to include('copytuner')
+    end
+  end
+
   context 'HTML 以外のレスポンスのとき' do
     let(:headers) { { 'Content-Type' => 'application/json' } }
     let(:body) { "{\"x\":\"#{marker('a.b')}\"}" }
