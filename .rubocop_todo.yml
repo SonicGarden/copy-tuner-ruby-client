@@ -332,12 +332,3 @@ Style/SpecialGlobalVars:
 Style/StringConcatenation:
   Exclude:
     - 'lib/copy_tuner_client/copyray_middleware.rb'
-
-# Offense count: 2
-# This cop supports unsafe autocorrection (--autocorrect-all).
-# Configuration parameters: AllowMethodsWithArguments, AllowedMethods, AllowedPatterns, AllowComments.
-# AllowedMethods: define_method
-Style/SymbolProc:
-  Exclude:
-    - 'spec/copy_tuner_client/poller_spec.rb'
-    - 'spec/support/fake_copy_tuner_app.rb'

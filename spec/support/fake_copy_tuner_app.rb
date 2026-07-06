@@ -137,9 +137,7 @@ class FakeCopyTunerApp < Sinatra::Base
     end
 
     def self.delete_all
-      open_project_data do |data|
-        data.clear
-      end
+      open_project_data(&:clear)
     end
 
     def self.save(project)
