@@ -6,22 +6,6 @@
 # Note that changes in the inspected code, or installation of new
 # versions of RuboCop, may require this file to be generated again.
 
-# Offense count: 2
-# This cop supports unsafe autocorrection (--autocorrect-all).
-# Configuration parameters: Categories, ExpectedOrder.
-# ExpectedOrder: module_inclusion, constants, public_class_methods, initializer, public_methods, protected_methods, private_methods
-Layout/ClassStructure:
-  Exclude:
-    - 'spec/support/fake_copy_tuner_app.rb'
-
-# Offense count: 3
-# This cop supports unsafe autocorrection (--autocorrect-all).
-# Configuration parameters: AllowSafeAssignment.
-Lint/AssignmentInCondition:
-  Exclude:
-    - 'lib/copy_tuner_client/copyray_middleware.rb'
-    - 'spec/support/fake_copy_tuner_app.rb'
-
 # Offense count: 8
 # Configuration parameters: AllowedMethods.
 # AllowedMethods: enums
@@ -78,14 +62,6 @@ Metrics/PerceivedComplexity:
 Naming/MethodParameterName:
   Exclude:
     - 'lib/copy_tuner_client/queue_with_timeout.rb'
-
-# Offense count: 1
-# Configuration parameters: Mode, AllowedMethods, AllowedPatterns, AllowBangMethods, WaywardPredicates.
-# AllowedMethods: call
-# WaywardPredicates: infinite?, nonzero?
-Naming/PredicateMethod:
-  Exclude:
-    - 'spec/copy_tuner_client/cache_spec.rb'
 
 # Offense count: 26
 # This cop supports unsafe autocorrection (--autocorrect-all).
@@ -205,11 +181,6 @@ RSpec/NamedSubject:
 # Configuration parameters: AllowedGroups.
 RSpec/NestedGroups:
   Max: 4
-
-# Offense count: 1
-RSpec/PendingWithoutReason:
-  Exclude:
-    - 'spec/copy_tuner_client/process_guard_spec.rb'
 
 # Offense count: 2
 # This cop supports unsafe autocorrection (--autocorrect-all).

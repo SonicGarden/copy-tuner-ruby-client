@@ -36,7 +36,7 @@ class FakeCopyTunerApp < Sinatra::Base
   def with_project(api_key)
     if api_key == 'raise_error'
       halt 500, { error: 'Blah ha' }.to_json
-    elsif project = Project.find(api_key)
+    elsif (project = Project.find(api_key))
       yield project
     else
       halt 404, { error: 'No such project' }.to_json
@@ -84,6 +84,52 @@ class FakeCopyTunerApp < Sinatra::Base
   class Project
     attr_reader :draft, :published, :api_key
 
+    MUTEX = Mutex.new
+
+    def self.create(api_key)
+      project = Project.new('api_key' => api_key)
+      save project
+      project
+    end
+
+    def self.find(api_key)
+      open_project_data do |data|
+        if (project_hash = data[api_key])
+          Project.new project_hash.dup
+        end
+      end
+    end
+
+    def self.delete_all
+      open_project_data(&:clear)
+    end
+
+    def self.save(project)
+      open_project_data do |data|
+        data[project.api_key] = project.to_hash
+      end
+    end
+
+    def self.open_project_data
+      MUTEX.synchronize do
+        project_file = File.expand_path('../../tmp/projects.json', __dir__)
+        FileUtils.mkdir_p File.dirname(project_file)
+
+        data =
+          if File.exist? project_file
+            JSON.parse(File.read(project_file))
+          else
+            {}
+          end
+
+        result = yield(data)
+
+        File.write(project_file, data.to_json)
+
+        result
+      end
+    end
+
     def initialize(attrs)
       @api_key = attrs['api_key']
       @draft = attrs['draft'] || {}
@@ -120,51 +166,6 @@ class FakeCopyTunerApp < Sinatra::Base
 
     def etag
       @etag.to_s
-    end
-
-    def self.create(api_key)
-      project = Project.new('api_key' => api_key)
-      save project
-      project
-    end
-
-    def self.find(api_key)
-      open_project_data do |data|
-        if project_hash = data[api_key]
-          Project.new project_hash.dup
-        end
-      end
-    end
-
-    def self.delete_all
-      open_project_data(&:clear)
-    end
-
-    def self.save(project)
-      open_project_data do |data|
-        data[project.api_key] = project.to_hash
-      end
-    end
-
-    MUTEX = Mutex.new
-    def self.open_project_data
-      MUTEX.synchronize do
-        project_file = File.expand_path('../../tmp/projects.json', __dir__)
-        FileUtils.mkdir_p File.dirname(project_file)
-
-        data =
-          if File.exist? project_file
-            JSON.parse(File.read(project_file))
-          else
-            {}
-          end
-
-        result = yield(data)
-
-        File.write(project_file, data.to_json)
-
-        result
-      end
     end
   end
 end
