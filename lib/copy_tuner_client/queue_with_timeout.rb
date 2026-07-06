@@ -35,7 +35,7 @@ module CopyTunerClient
         elsif @queue.empty? && timeout != 0
           # wait for element or timeout
           timeout_time = timeout + Time.now.to_f
-          while @queue.empty? && (remaining_time = timeout_time - Time.now.to_f) > 0
+          while @queue.empty? && (remaining_time = timeout_time - Time.now.to_f).positive?
             @received.wait(@mutex, remaining_time)
           end
         end

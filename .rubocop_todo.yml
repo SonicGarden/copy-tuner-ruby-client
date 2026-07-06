@@ -198,15 +198,6 @@ Style/Documentation:
     - 'lib/copy_tuner_client/simple_form_extention.rb'
     - 'lib/copy_tuner_client/translation_log.rb'
 
-# Offense count: 1
-# This cop supports unsafe autocorrection (--autocorrect-all).
-# Configuration parameters: EnforcedStyle, AllowedMethods, AllowedPatterns.
-# SupportedStyles: predicate, comparison
-Style/NumericPredicate:
-  Exclude:
-    - 'spec/**/*'
-    - 'lib/copy_tuner_client/queue_with_timeout.rb'
-
 # Offense count: 3
 # Configuration parameters: AllowedMethods.
 # AllowedMethods: respond_to_missing?
