@@ -4,7 +4,7 @@ describe CopyTunerClient::ProcessGuard do
   include DefinesConstants
 
   before do
-    @original_process_name = $0
+    @original_process_name = $PROGRAM_NAME
   end
 
   after do

@@ -204,12 +204,3 @@ Style/Send:
     - 'spec/copy_tuner_client/prefixed_logger_spec.rb'
     - 'spec/support/defines_constants.rb'
 
-# Offense count: 9
-# This cop supports unsafe autocorrection (--autocorrect-all).
-# Configuration parameters: RequireEnglish, EnforcedStyle.
-# SupportedStyles: use_perl_names, use_english_names, use_builtin_english_names
-Style/SpecialGlobalVars:
-  Exclude:
-    - 'lib/copy_tuner_client/process_guard.rb'
-    - 'spec/copy_tuner_client/process_guard_spec.rb'
-
