@@ -50,13 +50,6 @@ Metrics/MethodLength:
 Metrics/PerceivedComplexity:
   Max: 18
 
-# Offense count: 2
-# Configuration parameters: MinNameLength, AllowNamesEndingInNumbers, AllowedNames, ForbiddenNames.
-# AllowedNames: as, at, by, cc, db, id, if, in, io, ip, of, on, os, pp, to
-Naming/MethodParameterName:
-  Exclude:
-    - 'lib/copy_tuner_client/queue_with_timeout.rb'
-
 # Offense count: 52
 # Configuration parameters: Prefixes, AllowedPatterns.
 # Prefixes: when, with, without
