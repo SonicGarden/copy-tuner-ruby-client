@@ -137,7 +137,7 @@ describe 'CopyTunerClient::Cache' do
     cache.download
 
     expect(cache['en.test.key']).to eq('test value')
-    expect(cache['en.test.empty']).to eq(nil)
+    expect(cache['en.test.empty']).to be_nil
     expect(cache.blank_keys).to contain_exactly('en.test.empty')
 
     cache['en.test.empty'] = ''
@@ -209,7 +209,7 @@ describe 'CopyTunerClient::Cache' do
 
     sleep(1)
 
-    expect(finished).to eq(true)
+    expect(finished).to be(true)
     expect(logger).not_to have_entry(:info, 'Waiting for first download')
   end
 
@@ -410,7 +410,7 @@ describe 'CopyTunerClient::Cache' do
     end
 
     it 'blurbキーがない場合はyamlを返さないこと' do
-      expect(subject).to eq nil
+      expect(subject).to be_nil
     end
 
     context '1階層のblurbキーがある場合' do

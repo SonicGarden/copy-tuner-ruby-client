@@ -46,21 +46,21 @@ describe CopyTunerClient::Configuration do
   it { is_expected.to have_config_option(:local_first_key_regexp).overridable.default(nil) }
 
   it 'provides default values for secure connections' do
-    config = CopyTunerClient::Configuration.new
+    config = described_class.new
     config.secure = true
     expect(config.port).to eq(443)
     expect(config.protocol).to eq('https')
   end
 
   it 'provides default values for insecure connections' do
-    config = CopyTunerClient::Configuration.new
+    config = described_class.new
     config.secure = false
     expect(config.port).to eq(80)
     expect(config.protocol).to eq('http')
   end
 
   it 'does not cache inferred ports' do
-    config = CopyTunerClient::Configuration.new
+    config = described_class.new
     config.secure = false
     config.port
     config.secure = true
@@ -68,7 +68,7 @@ describe CopyTunerClient::Configuration do
   end
 
   it 'acts like a hash' do
-    config = CopyTunerClient::Configuration.new
+    config = described_class.new
     hash = config.to_hash
 
     %i[
@@ -84,30 +84,30 @@ describe CopyTunerClient::Configuration do
   end
 
   it 'is mergable' do
-    config = CopyTunerClient::Configuration.new
+    config = described_class.new
     hash = config.to_hash
     expect(config.merge(key: 'value')).to eq(hash.merge(key: 'value'))
   end
 
   it 'uses development and staging as development environments by default' do
-    config = CopyTunerClient::Configuration.new
+    config = described_class.new
     expect(config.development_environments).to match_array(%w[development staging])
   end
 
   it 'uses test and cucumber as test environments by default' do
-    config = CopyTunerClient::Configuration.new
+    config = described_class.new
     expect(config.test_environments).to match_array(%w[test cucumber])
   end
 
   it 'is test in a test environment' do
-    config = CopyTunerClient::Configuration.new
+    config = described_class.new
     config.test_environments = %w[test]
     config.environment_name = 'test'
     expect(config).to be_test
   end
 
   it 'is public in a public environment' do
-    config = CopyTunerClient::Configuration.new
+    config = described_class.new
     config.development_environments = %w[development]
     config.environment_name = 'production'
     expect(config).to be_public
@@ -115,7 +115,7 @@ describe CopyTunerClient::Configuration do
   end
 
   it 'is development in a development environment' do
-    config = CopyTunerClient::Configuration.new
+    config = described_class.new
     config.development_environments = %w[staging]
     config.environment_name = 'staging'
     expect(config).to be_development
@@ -123,7 +123,7 @@ describe CopyTunerClient::Configuration do
   end
 
   it 'is public without an environment name' do
-    config = CopyTunerClient::Configuration.new
+    config = described_class.new
     expect(config).to be_public
   end
 
@@ -134,7 +134,7 @@ describe CopyTunerClient::Configuration do
       yielded_configuration = config
     end
 
-    expect(yielded_configuration).to be_a(CopyTunerClient::Configuration)
+    expect(yielded_configuration).to be_a(described_class)
     expect(CopyTunerClient.configuration).to eq(yielded_configuration)
   end
 
@@ -158,13 +158,13 @@ describe CopyTunerClient::Configuration do
   end
 
   it 'starts out unapplied' do
-    expect(CopyTunerClient::Configuration.new).not_to be_applied
+    expect(described_class.new).not_to be_applied
   end
 
   it 'logs to $stdout by default' do
     logger = FakeLogger.new
     expect(Logger).to receive(:new).with($stdout).and_return(logger)
-    config = CopyTunerClient::Configuration.new
+    config = described_class.new
     expect(config.logger.original_logger).to eq(logger)
   end
 
@@ -182,7 +182,7 @@ describe CopyTunerClient::Configuration do
 
   it 'prefixes log entries' do
     logger = FakeLogger.new
-    config = CopyTunerClient::Configuration.new
+    config = described_class.new
 
     config.logger = logger
 
@@ -192,29 +192,29 @@ describe CopyTunerClient::Configuration do
   end
 
   describe '#local_first_key?' do
-    let(:config) { CopyTunerClient::Configuration.new }
+    let(:config) { described_class.new }
 
     it 'returns false when local_first_key_regexp is nil (default)' do
-      expect(config.local_first_key?('views.foo.bar')).to eq false
+      expect(config.local_first_key?('views.foo.bar')).to be false
     end
 
     context 'when local_first_key_regexp is set' do
       before { config.local_first_key_regexp = /\Aviews\./ }
 
       it 'returns true for a matching key' do
-        expect(config.local_first_key?('views.foo.bar')).to eq true
+        expect(config.local_first_key?('views.foo.bar')).to be true
       end
 
       it 'returns false for a non-matching key' do
-        expect(config.local_first_key?('models.foo.bar')).to eq false
+        expect(config.local_first_key?('models.foo.bar')).to be false
       end
 
       it 'returns false for a nil key' do
-        expect(config.local_first_key?(nil)).to eq false
+        expect(config.local_first_key?(nil)).to be false
       end
 
       it 'coerces a Symbol key before matching' do
-        expect(config.local_first_key?(:'views.foo')).to eq true
+        expect(config.local_first_key?(:'views.foo')).to be true
       end
     end
 
@@ -222,40 +222,40 @@ describe CopyTunerClient::Configuration do
     # ユーザー設定の有無によらず常にローカル優先（組み込み判定）になる
     context 'with built-in Rails number format keys' do
       it 'returns true for built-in number format keys even when local_first_key_regexp is nil' do
-        expect(config.local_first_key?('number.format')).to eq true
-        expect(config.local_first_key?('number.currency.format')).to eq true
-        expect(config.local_first_key?('number.currency.format.precision')).to eq true
-        expect(config.local_first_key?('number.percentage.format')).to eq true
-        expect(config.local_first_key?('number.human.format.significant')).to eq true
+        expect(config.local_first_key?('number.format')).to be true
+        expect(config.local_first_key?('number.currency.format')).to be true
+        expect(config.local_first_key?('number.currency.format.precision')).to be true
+        expect(config.local_first_key?('number.percentage.format')).to be true
+        expect(config.local_first_key?('number.human.format.significant')).to be true
       end
 
       it 'returns false for app-defined number keys (not Rails format subtrees)' do
-        expect(config.local_first_key?('number.gift_amount')).to eq false
-        expect(config.local_first_key?('number.my_currency.unit')).to eq false
+        expect(config.local_first_key?('number.gift_amount')).to be false
+        expect(config.local_first_key?('number.my_currency.unit')).to be false
       end
 
       it 'returns false for string-only number subtrees and non-number keys' do
-        expect(config.local_first_key?('number.human.storage_units.units.byte.one')).to eq false
-        expect(config.local_first_key?('date.formats.default')).to eq false
-        expect(config.local_first_key?('time.formats.short')).to eq false
-        expect(config.local_first_key?('datetime.distance_in_words.x')).to eq false
-        expect(config.local_first_key?('views.foo')).to eq false
-        expect(config.local_first_key?('numbers.foo')).to eq false
+        expect(config.local_first_key?('number.human.storage_units.units.byte.one')).to be false
+        expect(config.local_first_key?('date.formats.default')).to be false
+        expect(config.local_first_key?('time.formats.short')).to be false
+        expect(config.local_first_key?('datetime.distance_in_words.x')).to be false
+        expect(config.local_first_key?('views.foo')).to be false
+        expect(config.local_first_key?('numbers.foo')).to be false
       end
 
       it 'keeps protecting built-in keys without breaking a user-set regexp' do
         config.local_first_key_regexp = /\Aviews\./
 
-        expect(config.local_first_key?('number.currency.format')).to eq true
-        expect(config.local_first_key?('views.foo')).to eq true
-        expect(config.local_first_key?('models.foo')).to eq false
+        expect(config.local_first_key?('number.currency.format')).to be true
+        expect(config.local_first_key?('views.foo')).to be true
+        expect(config.local_first_key?('models.foo')).to be false
       end
     end
   end
 
   describe 'project_id の必須化' do
     let(:config) do
-      config = CopyTunerClient::Configuration.new
+      config = described_class.new
       config.api_key = 'abc123'
       config
     end

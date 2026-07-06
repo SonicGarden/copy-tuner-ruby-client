@@ -1,7 +1,7 @@
 require 'spec_helper'
 
 describe CopyTunerClient::PrefixedLogger do
-  subject { CopyTunerClient::PrefixedLogger.new(prefix, output_logger) }
+  subject { described_class.new(prefix, output_logger) }
 
   let(:output_logger) { FakeLogger.new }
   let(:prefix) { '** NOTICE:' }

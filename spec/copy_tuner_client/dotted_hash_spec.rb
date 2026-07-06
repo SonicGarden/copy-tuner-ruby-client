@@ -2,7 +2,7 @@ require 'spec_helper'
 
 describe CopyTunerClient::DottedHash do
   describe '.to_h' do
-    subject { CopyTunerClient::DottedHash.to_h(dotted_hash) }
+    subject { described_class.to_h(dotted_hash) }
 
     context '空のキーの場合' do
       let(:dotted_hash) { {} }
@@ -82,7 +82,7 @@ describe CopyTunerClient::DottedHash do
   end
 
   describe '.conflict_keys' do
-    subject { CopyTunerClient::DottedHash.conflict_keys(dotted_hash) }
+    subject { described_class.conflict_keys(dotted_hash) }
 
     context '有効なキーの場合' do
       let(:dotted_hash) do

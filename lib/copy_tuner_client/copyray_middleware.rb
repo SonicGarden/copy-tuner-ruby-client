@@ -67,7 +67,7 @@ module CopyTunerClient
       return html unless html.include?('</body>')
 
       position = html.rindex('</body>')
-      html.insert(position, content + "\n")
+      html.insert(position, "#{content}\n")
     end
 
     def file?(headers)

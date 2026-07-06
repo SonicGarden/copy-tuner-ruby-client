@@ -21,12 +21,6 @@ Lint/EmptyBlock:
   Exclude:
     - 'spec/copy_tuner_client/client_spec.rb'
 
-# Offense count: 1
-# Configuration parameters: AllowedMethods, AllowedPatterns, CountRepeatedAttributes, Max.
-Metrics/AbcSize:
-  Exclude:
-    - 'lib/copy_tuner_client/helper_extension.rb'
-
 # Offense count: 2
 # Configuration parameters: CountComments, CountAsOne, AllowedMethods, AllowedPatterns, inherit_mode.
 # AllowedMethods: refine
@@ -63,14 +57,6 @@ Naming/MethodParameterName:
   Exclude:
     - 'lib/copy_tuner_client/queue_with_timeout.rb'
 
-# Offense count: 26
-# This cop supports unsafe autocorrection (--autocorrect-all).
-RSpec/BeEq:
-  Exclude:
-    - 'spec/copy_tuner_client/cache_spec.rb'
-    - 'spec/copy_tuner_client/client_spec.rb'
-    - 'spec/copy_tuner_client/configuration_spec.rb'
-
 # Offense count: 52
 # Configuration parameters: Prefixes, AllowedPatterns.
 # Prefixes: when, with, without
@@ -91,20 +77,6 @@ RSpec/DescribeMethod:
   Exclude:
     - 'spec/copy_tuner_client/configuration_spec.rb'
     - 'spec/copy_tuner_client/request_sync_spec.rb'
-
-# Offense count: 32
-# This cop supports unsafe autocorrection (--autocorrect-all).
-# Configuration parameters: SkipBlocks, EnforcedStyle, OnlyStaticConstants.
-# SupportedStyles: described_class, explicit
-RSpec/DescribedClass:
-  Exclude:
-    - 'spec/copy_tuner_client/configuration_spec.rb'
-    - 'spec/copy_tuner_client/copyray_spec.rb'
-    - 'spec/copy_tuner_client/dotted_hash_spec.rb'
-    - 'spec/copy_tuner_client/helper_extension_spec.rb'
-    - 'spec/copy_tuner_client/prefixed_logger_spec.rb'
-    - 'spec/copy_tuner_client/request_sync_spec.rb'
-    - 'spec/copy_tuner_client_spec.rb'
 
 # Offense count: 45
 # Configuration parameters: CountAsOne.
@@ -284,9 +256,3 @@ Style/SpecialGlobalVars:
     - 'lib/copy_tuner_client/process_guard.rb'
     - 'spec/copy_tuner_client/process_guard_spec.rb'
 
-# Offense count: 1
-# This cop supports unsafe autocorrection (--autocorrect-all).
-# Configuration parameters: Mode.
-Style/StringConcatenation:
-  Exclude:
-    - 'lib/copy_tuner_client/copyray_middleware.rb'
