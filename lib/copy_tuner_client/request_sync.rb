@@ -145,7 +145,7 @@ module CopyTunerClient
     end
 
     def next_sync_at
-      @last_synced + @interval if @last_synced and @interval
+      @last_synced + @interval if @last_synced && @interval
     end
 
     def update_last_synced
