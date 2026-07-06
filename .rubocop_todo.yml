@@ -125,11 +125,6 @@ RSpec/NamedSubject:
     - 'spec/copy_tuner_client/prefixed_logger_spec.rb'
     - 'spec/copy_tuner_client/request_sync_spec.rb'
 
-# Offense count: 2
-# Configuration parameters: AllowedGroups.
-RSpec/NestedGroups:
-  Max: 4
-
 # Offense count: 6
 RSpec/StubbedMock:
   Exclude:
