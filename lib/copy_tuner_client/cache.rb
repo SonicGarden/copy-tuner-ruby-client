@@ -57,7 +57,9 @@ module CopyTunerClient
       # NOTE: local_first キー（組み込みの Rails number.*.format + ユーザー設定）は copy_tuner と完全分離するためアップロードしない
       return if local_first_key?(key_without_locale)
 
-      @ignored_key_handler.call(IgnoredKey.new("Ignored key: #{key_without_locale}")) if @ignored_keys.include?(key_without_locale)
+      if @ignored_keys.include?(key_without_locale)
+        @ignored_key_handler.call(IgnoredKey.new("Ignored key: #{key_without_locale}"))
+      end
 
       lock do
         return if @blank_keys.member?(key) || @blurbs.key?(key)

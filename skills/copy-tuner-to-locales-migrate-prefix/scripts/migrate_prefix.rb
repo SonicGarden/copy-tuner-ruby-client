@@ -40,7 +40,9 @@ end
 options = {}
 parser =
   OptionParser.new do |opts|
-    opts.banner = 'Usage: bin/rails runner migrate_prefix.rb -- --prefix PREFIX --export PATH --out PATH [--regexp PATTERN] [--originals-glob GLOB]'
+    opts.banner =
+      'Usage: bin/rails runner migrate_prefix.rb -- --prefix PREFIX --export PATH --out PATH ' \
+      '[--regexp PATTERN] [--originals-glob GLOB]'
     opts.on('--prefix PREFIX', 'ドット区切りの対象 prefix（例: date / activerecord.attributes）') { |v| options[:prefix] = v }
     opts.on('--export PATH', '全件 export YAML（手順3で出力）') { |v| options[:export] = v }
     opts.on('--out PATH', '移行分の出力先（例: config/locales/0010_date.yml）') { |v| options[:out] = v }
@@ -206,7 +208,10 @@ merged_by_locale.each do |locale, merged|
   non_matching = leaf_entries(merged).keys.grep_v(regexp)
   next if non_matching.empty?
 
-  die("locale #{locale}: regexp #{regexp.inspect} にマッチしない leaf キーがある（regexp/prefix 不一致）:\n  #{non_matching.join("\n  ")}")
+  die(
+    "locale #{locale}: regexp #{regexp.inspect} にマッチしない leaf キーがある（regexp/prefix 不一致）:\n  " \
+    "#{non_matching.join("\n  ")}"
+  )
 end
 
 # 書き出し（ここまでの検証を通過してから）。merged_by_locale は { "ja" => {...}, "en" => {...} } 形なので

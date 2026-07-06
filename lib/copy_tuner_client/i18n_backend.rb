@@ -71,7 +71,9 @@ module CopyTunerClient
       return super if local_first_key?(key_without_locale)
 
       config = CopyTunerClient.configuration
-      config.ignored_key_handler.call(IgnoredKey.new("Ignored key: #{key_without_locale}")) if config.ignored_keys.include?(key_without_locale)
+      if config.ignored_keys.include?(key_without_locale)
+        config.ignored_key_handler.call(IgnoredKey.new("Ignored key: #{key_without_locale}"))
+      end
 
       # NOTE: ハッシュ化した場合に削除されるキーに対応するため、最初に完全一致をチェック（旧クライアントの動作を維持）
       # 例: `en.test.key` が `en.test.key.conflict` のように別のキーで上書きされている場合の対応

@@ -260,7 +260,8 @@ module CopyTunerClient
 
       self.locales ||= self.locales =
         if defined?(::Rails)
-          ::Rails.application.config.i18n.available_locales.presence || Array(::Rails.application.config.i18n.default_locale)
+          rails_i18n = ::Rails.application.config.i18n
+          rails_i18n.available_locales.presence || Array(rails_i18n.default_locale)
         else
           [:en]
         end

@@ -12,7 +12,8 @@ module CopyTunerClient
       CopyTunerClient::TranslationLog.clear
       status, headers, response = @app.call(env)
       if rewritable?(status, headers) && body = response_body(response)
-        csp_nonce = env['action_dispatch.content_security_policy_nonce'] || env['secure_headers_content_security_policy_nonce']
+        csp_nonce = env['action_dispatch.content_security_policy_nonce'] ||
+                    env['secure_headers_content_security_policy_nonce']
         # NOTE: CSS/JS 挿入の前に Rewriter を通す。serialize 後も </body> は必ず出力されるので
         # append_to_html_body の rindex は機能し、CSS/JS タグはトークン非含有なので二重処理も起きない。
         # NOTE: skipped は data-copyray-key を付与できなかったこと（巨大DOM/Nokogiri例外）を表す。
