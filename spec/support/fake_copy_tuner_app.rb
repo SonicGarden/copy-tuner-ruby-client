@@ -36,7 +36,7 @@ class FakeCopyTunerApp < Sinatra::Base
   def with_project(api_key)
     if api_key == 'raise_error'
       halt 500, { error: 'Blah ha' }.to_json
-    elsif project = Project.find(api_key)
+    elsif (project = Project.find(api_key))
       yield project
     else
       halt 404, { error: 'No such project' }.to_json
@@ -94,7 +94,7 @@ class FakeCopyTunerApp < Sinatra::Base
 
     def self.find(api_key)
       open_project_data do |data|
-        if project_hash = data[api_key]
+        if (project_hash = data[api_key])
           Project.new project_hash.dup
         end
       end

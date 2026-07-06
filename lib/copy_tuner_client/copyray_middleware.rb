@@ -11,7 +11,7 @@ module CopyTunerClient
     def call(env)
       CopyTunerClient::TranslationLog.clear
       status, headers, response = @app.call(env)
-      if rewritable?(status, headers) && body = response_body(response)
+      if rewritable?(status, headers) && (body = response_body(response))
         csp_nonce = env['action_dispatch.content_security_policy_nonce'] ||
                     env['secure_headers_content_security_policy_nonce']
         # NOTE: CSS/JS 挿入の前に Rewriter を通す。serialize 後も </body> は必ず出力されるので
