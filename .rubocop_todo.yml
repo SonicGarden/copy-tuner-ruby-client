@@ -69,7 +69,6 @@ RSpec/ContextWording:
 RSpec/DescribeMethod:
   Exclude:
     - 'spec/copy_tuner_client/configuration_spec.rb'
-    - 'spec/copy_tuner_client/request_sync_spec.rb'
 
 # Offense count: 45
 # Configuration parameters: CountAsOne.
@@ -113,7 +112,6 @@ RSpec/MessageSpies:
 RSpec/MultipleDescribes:
   Exclude:
     - 'spec/copy_tuner_client/configuration_spec.rb'
-    - 'spec/copy_tuner_client/request_sync_spec.rb'
 
 # Offense count: 70
 RSpec/MultipleExpectations:
@@ -136,11 +134,6 @@ RSpec/NamedSubject:
 # Configuration parameters: AllowedGroups.
 RSpec/NestedGroups:
   Max: 4
-
-# Offense count: 2
-RSpec/RepeatedExampleGroupDescription:
-  Exclude:
-    - 'spec/copy_tuner_client/request_sync_spec.rb'
 
 # Offense count: 6
 RSpec/StubbedMock:
