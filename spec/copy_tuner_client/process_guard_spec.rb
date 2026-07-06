@@ -79,8 +79,7 @@ describe CopyTunerClient::ProcessGuard do
     unicorn.spawn
   end
 
-  # FIXME: ruby@2.7以降で失敗するようになっているがテストコードの問題っぽいのでスキップしている
-  xit 'flushes when the process terminates' do
+  it 'flushes when the process terminates', skip: 'ruby@2.7以降で失敗するようになっているがテストコードの問題っぽいのでスキップしている' do
     cache = WritingCache.new
     fork do
       process_guard = build_process_guard(cache:, preserve_exit_hook: true)

@@ -182,11 +182,6 @@ RSpec/NamedSubject:
 RSpec/NestedGroups:
   Max: 4
 
-# Offense count: 1
-RSpec/PendingWithoutReason:
-  Exclude:
-    - 'spec/copy_tuner_client/process_guard_spec.rb'
-
 # Offense count: 2
 # This cop supports unsafe autocorrection (--autocorrect-all).
 RSpec/ReceiveMessages:
