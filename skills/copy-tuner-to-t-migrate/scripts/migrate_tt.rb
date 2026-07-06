@@ -86,7 +86,7 @@ RELATIVE_KEY_RE = /\btt\b\s*(?:\(\s*)?['":]\s*\./
 # Rewriter(大文字 ⟦CT: 固定)の除去網をすり抜け画面に残る。I18n.t 化では直らない。
 # 正しい修正は method 名を第一引数・表示テキストを第二引数へ分離すること。
 LABEL_FIRST_ARG_RE = /
-  (?: (?<![\w.])\w+\.label\b | \blabel_tag\b | (?<![\w.])label(?![\w]) )
+  (?: (?<![\w.])\w+\.label\b | \blabel_tag\b | (?<![\w.])label(?!\w) )
   \s*\(?\s*
   tt\b (?=\s*[("':@])
 /x
@@ -110,7 +110,7 @@ def scan_file(path, in_app:)
     next unless line =~ TT_CALL
 
     entry = { file: rel, lineno: idx + 1, code: line.rstrip }
-    yield(classify_line(line, entry, in_app: in_app))
+    yield(classify_line(line, entry, in_app:))
   end
 rescue StandardError
   nil
@@ -143,15 +143,16 @@ def classify_line(line, entry, in_app:)
 
   entry[:kind] = :string_manipulation
   entry[:relative_key] = line.match?(RELATIVE_KEY_RE)
-  entry[:hint] = if entry[:relative_key]
-                   'I18n.t へ。相対キー(.foo)は絶対キーへ書き換えが必要'
-                 else
-                   'I18n.t(絶対キー) へ置換を検討'
-                 end
+  entry[:hint] =
+    if entry[:relative_key]
+      'I18n.t へ。相対キー(.foo)は絶対キーへ書き換えが必要'
+    else
+      'I18n.t(絶対キー) へ置換を検討'
+    end
   [:suspicious, entry]
 end
 
-buckets = { safe: safe, suspicious: suspicious, other: other }
+buckets = { safe:, suspicious:, other: }
 Dir.glob(ALL_GLOB).each do |path|
   # vendor / node_modules / tmp 等のノイズを除外
   next if relative(path).start_with?('vendor/', 'node_modules/', 'tmp/', '.git/')
@@ -163,7 +164,7 @@ end
 
 if options[:json]
   require 'json'
-  puts JSON.pretty_generate(safe: safe, suspicious: suspicious, other: other)
+  puts JSON.pretty_generate(safe:, suspicious:, other:)
   exit(0)
 end
 
@@ -172,13 +173,14 @@ def print_section(title, entries)
   entries.each do |e|
     # hint があれば必ず kind も付く（classify_line で対で設定）ので素直に出す。
     # suspicious 内のサブ種別(label_arg / string_manipulation)を可視化する。
-    suffix = if e[:hint]
-               "  # [#{e[:kind]}] #{e[:hint]}"
-             elsif e[:reason]
-               "  # #{e[:reason]}"
-             else
-               ''
-             end
+    suffix =
+      if e[:hint]
+        "  # [#{e[:kind]}] #{e[:hint]}"
+      elsif e[:reason]
+        "  # #{e[:reason]}"
+      else
+        ''
+      end
     puts "#{e[:file]}:#{e[:lineno]}: #{e[:code].strip}#{suffix}"
   end
 end

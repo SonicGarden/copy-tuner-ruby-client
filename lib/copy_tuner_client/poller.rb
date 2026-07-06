@@ -1,4 +1,3 @@
-require 'thread'
 require 'copy_tuner_client/cache'
 require 'copy_tuner_client/queue_with_timeout'
 
@@ -59,8 +58,8 @@ module CopyTunerClient
         end
       end
       @logger.info 'stop poller thread'
-    rescue InvalidApiKey => error
-      logger.error(error.message)
+    rescue InvalidApiKey => e
+      logger.error(e.message)
     end
   end
 end

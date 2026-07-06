@@ -1,7 +1,6 @@
 require 'spec_helper'
 
 describe CopyTunerClient do
-
   before do
     allow(CopyTunerClient.configuration).to receive_messages(cache: 'cache', client: 'client')
   end

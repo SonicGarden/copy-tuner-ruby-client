@@ -23,6 +23,8 @@ module CopyTunerClient
 
     def self.install_hook
       I18n.class_eval do
+        # alias_method が参照するため、alias_method 群より先に定義する必要がある
+        # rubocop:disable Style/ClassMethodsDefinitions
         class << self
           def translate_with_copy_tuner_hook(key = nil, **options)
             scope = options[:scope]
@@ -40,9 +42,10 @@ module CopyTunerClient
           if CopyTunerClient.configuration.enable_middleware?
             alias_method :translate_without_copy_tuner_hook, :translate
             alias_method :translate, :translate_with_copy_tuner_hook
-            alias :t :translate
+            alias_method :t, :translate
           end
         end
+        # rubocop:enable Style/ClassMethodsDefinitions
       end
     end
   end

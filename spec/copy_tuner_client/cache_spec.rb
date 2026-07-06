@@ -158,7 +158,7 @@ describe 'CopyTunerClient::Cache' do
     failure = 'server is napping'
     logger = FakeLogger.new
     expect(client).to receive(:upload).and_raise(CopyTunerClient::ConnectionError.new(failure))
-    cache = build_cache(logger: logger)
+    cache = build_cache(logger:)
     cache['upload.key'] = 'upload'
 
     cache.flush
@@ -170,7 +170,7 @@ describe 'CopyTunerClient::Cache' do
     failure = 'server is napping'
     logger = FakeLogger.new
     expect(client).to receive(:download).and_raise(CopyTunerClient::ConnectionError.new(failure))
-    cache = build_cache(logger: logger, ready: true)
+    cache = build_cache(logger:, ready: true)
 
     cache.download
 
@@ -181,14 +181,15 @@ describe 'CopyTunerClient::Cache' do
     logger = FakeLogger.new
     expect(logger).to receive(:flush)
     client.delay = true
-    cache = build_cache(logger: logger)
+    cache = build_cache(logger:)
 
     t_download = Thread.new { cache.download }
     sleep 0.1 until cache.pending?
 
-    t_wait = Thread.new do
-      cache.wait_for_download
-    end
+    t_wait =
+      Thread.new do
+        cache.wait_for_download
+      end
     sleep 0.1 until logger.has_entry?(:info, 'Waiting for first download')
     client.go
     expect(t_download.join(1)).not_to be_nil
@@ -198,7 +199,7 @@ describe 'CopyTunerClient::Cache' do
 
   it 'ダウンロード前はブロックしないこと' do
     logger = FakeLogger.new
-    cache = build_cache(logger: logger)
+    cache = build_cache(logger:)
 
     finished = false
     Thread.new do
@@ -292,7 +293,7 @@ describe 'CopyTunerClient::Cache' do
     end
 
     it 'データがない場合は空ハッシュを返すこと' do
-      is_expected.to eq({})
+      expect(subject).to eq({})
     end
 
     context 'フラットなキーの場合' do
@@ -303,17 +304,17 @@ describe 'CopyTunerClient::Cache' do
       end
 
       it 'ツリー構造に変換されること' do
-        is_expected.to eq({
-          'ja' => {
-            'views' => {
-              'hoge' => 'test',
-              'fuga' => 'test2'
-            }
-          },
-          'en' => {
-            'hello' => 'world'
-          }
-        })
+        expect(subject).to eq({
+                                'ja' => {
+                                  'views' => {
+                                    'hoge' => 'test',
+                                    'fuga' => 'test2',
+                                  },
+                                },
+                                'en' => {
+                                  'hello' => 'world',
+                                },
+                              })
       end
     end
 
@@ -326,26 +327,26 @@ describe 'CopyTunerClient::Cache' do
       end
 
       it '正しいツリー構造になること' do
-        is_expected.to eq({
-          'ja' => {
-            'views' => {
-              'users' => {
-                'index' => 'user index',
-                'show' => 'user show'
-              },
-              'posts' => {
-                'index' => 'post index'
-              }
-            }
-          },
-          'en' => {
-            'common' => {
-              'buttons' => {
-                'save' => 'Save'
-              }
-            }
-          }
-        })
+        expect(subject).to eq({
+                                'ja' => {
+                                  'views' => {
+                                    'users' => {
+                                      'index' => 'user index',
+                                      'show' => 'user show',
+                                    },
+                                    'posts' => {
+                                      'index' => 'post index',
+                                    },
+                                  },
+                                },
+                                'en' => {
+                                  'common' => {
+                                    'buttons' => {
+                                      'save' => 'Save',
+                                    },
+                                  },
+                                },
+                              })
       end
     end
   end
@@ -409,7 +410,7 @@ describe 'CopyTunerClient::Cache' do
     end
 
     it 'blurbキーがない場合はyamlを返さないこと' do
-      is_expected.to eq nil
+      expect(subject).to eq nil
     end
 
     context '1階層のblurbキーがある場合' do

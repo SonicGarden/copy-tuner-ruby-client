@@ -14,8 +14,9 @@ describe CopyTunerClient::Copyray::Rewriter do
   describe '.rewrite' do
     # NOTE: rewrite は [html, skipped] を返すが、既存テストの大半は html だけを検証する。
     # 1 回の呼び出しを let でメモ化して共有し、result は html、skipped は 2 要素目を指す。
-    let(:rewritten) { described_class.rewrite(html) }
     subject(:result) { rewritten.first }
+
+    let(:rewritten) { described_class.rewrite(html) }
     let(:skipped) { rewritten.last }
 
     context '要素直下の単純なテキストノード' do

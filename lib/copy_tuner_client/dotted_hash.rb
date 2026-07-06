@@ -15,18 +15,17 @@ module CopyTunerClient
 
       all_keys.each_with_index do |key, index|
         prefix = "#{key}."
-        conflict_keys = ((index + 1)..Float::INFINITY)
-                        .take_while { |i| all_keys[i]&.start_with?(prefix) }
-                        .map { |i| all_keys[i] }
+        conflict_keys =
+          ((index + 1)..Float::INFINITY)
+          .take_while { |i| all_keys[i]&.start_with?(prefix) }
+          .map { |i| all_keys[i] }
 
-        if conflict_keys.present?
-          results[key] = conflict_keys
-        end
+        results[key] = conflict_keys if conflict_keys.present?
       end
 
       results
     end
 
-    module_function :to_h, :conflict_keys # rubocop:disable Style/AccessModifierDeclarations
+    module_function :to_h, :conflict_keys
   end
 end

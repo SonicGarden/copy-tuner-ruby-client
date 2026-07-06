@@ -17,11 +17,11 @@ class FakePassenger
   end
 
   def become_master
-    $0 = "PassengerApplicationSpawner"
+    $0 = 'PassengerApplicationSpawner'
   end
 
   def spawn
-    $0 = "PassengerFork"
+    $0 = 'PassengerFork'
     call_event(:starting_worker_process, true)
   end
 end

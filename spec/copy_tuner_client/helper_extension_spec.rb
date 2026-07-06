@@ -15,11 +15,12 @@ describe CopyTunerClient::HelperExtension do
 
   # NOTE: request.format で描画フォーマットを判定するため、format を差し替えられる
   # 最小のフェイク request / controller を用意する。mailer 判定は controller の型で行う。
-  Format = Struct.new(:type) do
-    def html?
-      type == :html
+  Format =
+    Struct.new(:type) do
+      def html?
+        type == :html
+      end
     end
-  end
   Request = Struct.new(:format)
   Controller = Struct.new(:request)
 

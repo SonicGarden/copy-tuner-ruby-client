@@ -186,9 +186,7 @@ LOCALES.each do |locale|
 end
 
 # 全 locale でスキップ＝当該 prefix がどこにも存在しない（prefix の typo）。
-if merged_by_locale.empty?
-  die("prefix '#{PREFIX}' のキーが export にもオリジナルにも見つからない。prefix を確認すること。")
-end
+die("prefix '#{PREFIX}' のキーが export にもオリジナルにも見つからない。prefix を確認すること。") if merged_by_locale.empty?
 
 # ---- (2) 静的ガード（書き出し前にできる検証を先に。中途半端な --out を残さない）----
 # --out が次回起動時に Rails の i18n glob でロードされる場所か（採番ミス・配置ミスの検出）。

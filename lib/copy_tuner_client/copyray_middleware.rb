@@ -22,7 +22,7 @@ module CopyTunerClient
         body, skipped = CopyTunerClient::Copyray::Rewriter.rewrite(body, fragment: turbo_stream)
         # NOTE: ブートストラップ JS はフルページ読み込み時に一度だけ挿入すればよい。turbo stream 断片には
         # 挿入先の </body> も無く、既に初期化済みのページへマージされるだけなので挿入しない。
-        body = append_js(body, csp_nonce, skipped: skipped) unless turbo_stream
+        body = append_js(body, csp_nonce, skipped:) unless turbo_stream
         content_length = body.bytesize.to_s
         headers['Content-Length'] = content_length
         # maintains compatibility with other middlewares
