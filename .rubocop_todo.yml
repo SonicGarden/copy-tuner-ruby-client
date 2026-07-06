@@ -297,12 +297,6 @@ Style/Documentation:
 
 # Offense count: 1
 # This cop supports unsafe autocorrection (--autocorrect-all).
-Style/FileNull:
-  Exclude:
-    - 'lib/copy_tuner_client/rails.rb'
-
-# Offense count: 1
-# This cop supports unsafe autocorrection (--autocorrect-all).
 # Configuration parameters: InverseMethods, InverseBlocks.
 Style/InverseMethods:
   Exclude:

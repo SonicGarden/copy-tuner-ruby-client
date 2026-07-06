@@ -8,7 +8,7 @@ module CopyTunerClient
         config.environment_name = ::Rails.env
         config.logger           =
           if defined?(::Rails::Console)
-            Logger.new('/dev/null')
+            Logger.new(File::NULL)
           elsif defined?(::Rails) && ::Rails.env.development?
             Logger.new('log/copy_tuner.log')
           else
