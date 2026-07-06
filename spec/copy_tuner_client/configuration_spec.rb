@@ -280,14 +280,13 @@ shared_context 'stubbed configuration' do
 
   let(:backend) { double('i18n-backend') }
   let(:cache) { double('cache', download: 'download') }
-  let(:client) { double('client') }
   let(:logger) { FakeLogger.new }
   let(:poller) { double('poller') }
   let(:process_guard) { double('process_guard', start: nil) }
 
   before do
     allow(CopyTunerClient::I18nBackend).to receive(:new).and_return(backend)
-    allow(CopyTunerClient::Client).to receive(:new).and_return(client)
+    allow(CopyTunerClient::Client).to receive(:new).and_return(double('client'))
     allow(CopyTunerClient::Cache).to receive(:new).and_return(cache)
     allow(CopyTunerClient::Poller).to receive(:new).and_return(poller)
     allow(CopyTunerClient::ProcessGuard).to receive(:new).and_return(process_guard)
