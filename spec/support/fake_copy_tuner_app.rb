@@ -154,7 +154,7 @@ class FakeCopyTunerApp < Sinatra::Base
 
         data =
           if File.exist? project_file
-            JSON.parse(IO.read(project_file))
+            JSON.parse(File.read(project_file))
           else
             {}
           end

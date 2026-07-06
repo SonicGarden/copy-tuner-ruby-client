@@ -4,7 +4,7 @@ class WritingCache
   end
 
   def written?
-    IO.read(path) == object_id.to_s
+    File.read(path) == object_id.to_s
   end
 
   private
