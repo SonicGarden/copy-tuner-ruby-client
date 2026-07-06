@@ -47,7 +47,7 @@ describe CopyTunerClient::HelperExtension do
     include KeywordArgumentsHelper
   end
 
-  CopyTunerClient::HelperExtension.hook_translation_helper(KeywordArgumentsHelper, middleware_enabled: true)
+  described_class.hook_translation_helper(KeywordArgumentsHelper, middleware_enabled: true)
 
   let(:view) { KeywordArgumentsView.new }
 

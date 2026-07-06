@@ -46,21 +46,21 @@ describe CopyTunerClient::Configuration do
   it { is_expected.to have_config_option(:local_first_key_regexp).overridable.default(nil) }
 
   it 'provides default values for secure connections' do
-    config = CopyTunerClient::Configuration.new
+    config = described_class.new
     config.secure = true
     expect(config.port).to eq(443)
     expect(config.protocol).to eq('https')
   end
 
   it 'provides default values for insecure connections' do
-    config = CopyTunerClient::Configuration.new
+    config = described_class.new
     config.secure = false
     expect(config.port).to eq(80)
     expect(config.protocol).to eq('http')
   end
 
   it 'does not cache inferred ports' do
-    config = CopyTunerClient::Configuration.new
+    config = described_class.new
     config.secure = false
     config.port
     config.secure = true
@@ -68,7 +68,7 @@ describe CopyTunerClient::Configuration do
   end
 
   it 'acts like a hash' do
-    config = CopyTunerClient::Configuration.new
+    config = described_class.new
     hash = config.to_hash
 
     %i[
@@ -84,30 +84,30 @@ describe CopyTunerClient::Configuration do
   end
 
   it 'is mergable' do
-    config = CopyTunerClient::Configuration.new
+    config = described_class.new
     hash = config.to_hash
     expect(config.merge(key: 'value')).to eq(hash.merge(key: 'value'))
   end
 
   it 'uses development and staging as development environments by default' do
-    config = CopyTunerClient::Configuration.new
+    config = described_class.new
     expect(config.development_environments).to match_array(%w[development staging])
   end
 
   it 'uses test and cucumber as test environments by default' do
-    config = CopyTunerClient::Configuration.new
+    config = described_class.new
     expect(config.test_environments).to match_array(%w[test cucumber])
   end
 
   it 'is test in a test environment' do
-    config = CopyTunerClient::Configuration.new
+    config = described_class.new
     config.test_environments = %w[test]
     config.environment_name = 'test'
     expect(config).to be_test
   end
 
   it 'is public in a public environment' do
-    config = CopyTunerClient::Configuration.new
+    config = described_class.new
     config.development_environments = %w[development]
     config.environment_name = 'production'
     expect(config).to be_public
@@ -115,7 +115,7 @@ describe CopyTunerClient::Configuration do
   end
 
   it 'is development in a development environment' do
-    config = CopyTunerClient::Configuration.new
+    config = described_class.new
     config.development_environments = %w[staging]
     config.environment_name = 'staging'
     expect(config).to be_development
@@ -123,7 +123,7 @@ describe CopyTunerClient::Configuration do
   end
 
   it 'is public without an environment name' do
-    config = CopyTunerClient::Configuration.new
+    config = described_class.new
     expect(config).to be_public
   end
 
@@ -134,7 +134,7 @@ describe CopyTunerClient::Configuration do
       yielded_configuration = config
     end
 
-    expect(yielded_configuration).to be_a(CopyTunerClient::Configuration)
+    expect(yielded_configuration).to be_a(described_class)
     expect(CopyTunerClient.configuration).to eq(yielded_configuration)
   end
 
@@ -158,13 +158,13 @@ describe CopyTunerClient::Configuration do
   end
 
   it 'starts out unapplied' do
-    expect(CopyTunerClient::Configuration.new).not_to be_applied
+    expect(described_class.new).not_to be_applied
   end
 
   it 'logs to $stdout by default' do
     logger = FakeLogger.new
     expect(Logger).to receive(:new).with($stdout).and_return(logger)
-    config = CopyTunerClient::Configuration.new
+    config = described_class.new
     expect(config.logger.original_logger).to eq(logger)
   end
 
@@ -182,7 +182,7 @@ describe CopyTunerClient::Configuration do
 
   it 'prefixes log entries' do
     logger = FakeLogger.new
-    config = CopyTunerClient::Configuration.new
+    config = described_class.new
 
     config.logger = logger
 
@@ -192,7 +192,7 @@ describe CopyTunerClient::Configuration do
   end
 
   describe '#local_first_key?' do
-    let(:config) { CopyTunerClient::Configuration.new }
+    let(:config) { described_class.new }
 
     it 'returns false when local_first_key_regexp is nil (default)' do
       expect(config.local_first_key?('views.foo.bar')).to be false
@@ -255,7 +255,7 @@ describe CopyTunerClient::Configuration do
 
   describe 'project_id の必須化' do
     let(:config) do
-      config = CopyTunerClient::Configuration.new
+      config = described_class.new
       config.api_key = 'abc123'
       config
     end

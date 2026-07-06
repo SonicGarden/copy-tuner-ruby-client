@@ -1,7 +1,7 @@
 require 'spec_helper'
 
 describe CopyTunerClient::RequestSync do
-  subject { CopyTunerClient::RequestSync.new(app, poller:, cache:, interval: 0) }
+  subject { described_class.new(app, poller:, cache:, interval: 0) }
 
   let(:poller) { {} }
   let(:cache) { {} }
@@ -22,7 +22,7 @@ describe CopyTunerClient::RequestSync do
 end
 
 describe CopyTunerClient::RequestSync, 'serving assets' do
-  subject { CopyTunerClient::RequestSync.new(app, poller:, cache:, interval: 0) }
+  subject { described_class.new(app, poller:, cache:, interval: 0) }
 
   let(:env) do
     { 'PATH_INFO' => '/assets/choper.png' }
@@ -46,7 +46,7 @@ describe CopyTunerClient::RequestSync, 'serving assets' do
 end
 
 describe CopyTunerClient::RequestSync do
-  subject { CopyTunerClient::RequestSync.new(app, poller:, cache:, interval: 10) }
+  subject { described_class.new(app, poller:, cache:, interval: 10) }
 
   let(:poller) { {} }
   let(:cache) { {} }

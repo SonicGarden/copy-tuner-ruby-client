@@ -3,7 +3,7 @@ require 'copy_tuner_client/copyray'
 
 describe CopyTunerClient::Copyray do
   describe '.augment_template' do
-    subject { CopyTunerClient::Copyray.augment_template(source, key) }
+    subject { described_class.augment_template(source, key) }
 
     let(:key) { 'en.test.key' }
 
@@ -41,11 +41,11 @@ describe CopyTunerClient::Copyray do
       before { CopyTunerClient.configuration.local_first_key_regexp = /\Aviews\./ }
 
       it 'does not inject the marker into a plain source' do
-        expect(CopyTunerClient::Copyray.augment_template('Hello', key)).to eq 'Hello'
+        expect(described_class.augment_template('Hello', key)).to eq 'Hello'
       end
 
       it 'does not inject the marker into an html_safe source' do
-        expect(CopyTunerClient::Copyray.augment_template('Hello'.html_safe, key)).to eq 'Hello'
+        expect(described_class.augment_template('Hello'.html_safe, key)).to eq 'Hello'
       end
     end
   end

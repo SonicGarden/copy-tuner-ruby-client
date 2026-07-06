@@ -84,20 +84,6 @@ RSpec/DescribeMethod:
     - 'spec/copy_tuner_client/configuration_spec.rb'
     - 'spec/copy_tuner_client/request_sync_spec.rb'
 
-# Offense count: 32
-# This cop supports unsafe autocorrection (--autocorrect-all).
-# Configuration parameters: SkipBlocks, EnforcedStyle, OnlyStaticConstants.
-# SupportedStyles: described_class, explicit
-RSpec/DescribedClass:
-  Exclude:
-    - 'spec/copy_tuner_client/configuration_spec.rb'
-    - 'spec/copy_tuner_client/copyray_spec.rb'
-    - 'spec/copy_tuner_client/dotted_hash_spec.rb'
-    - 'spec/copy_tuner_client/helper_extension_spec.rb'
-    - 'spec/copy_tuner_client/prefixed_logger_spec.rb'
-    - 'spec/copy_tuner_client/request_sync_spec.rb'
-    - 'spec/copy_tuner_client_spec.rb'
-
 # Offense count: 45
 # Configuration parameters: CountAsOne.
 RSpec/ExampleLength:
