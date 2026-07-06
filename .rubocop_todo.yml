@@ -148,13 +148,6 @@ RSpec/DescribedClass:
 RSpec/ExampleLength:
   Max: 21
 
-# Offense count: 1
-# This cop supports safe autocorrection (--autocorrect).
-RSpec/ExpectActual:
-  Exclude:
-    - '**/spec/routing/**/*'
-    - 'spec/copy_tuner_client/copyray/marker_spec.rb'
-
 # Offense count: 8
 # Configuration parameters: AssignmentOnly.
 RSpec/InstanceVariable:
@@ -315,13 +308,6 @@ Style/Documentation:
 Style/FileNull:
   Exclude:
     - 'lib/copy_tuner_client/rails.rb'
-
-# Offense count: 4
-# This cop supports safe autocorrection (--autocorrect).
-# Configuration parameters: MaxUnannotatedPlaceholdersAllowed, Mode, AllowedMethods, AllowedPatterns.
-# SupportedStyles: annotated, template, unannotated
-Style/FormatStringToken:
-  EnforcedStyle: template
 
 # Offense count: 1
 # This cop supports unsafe autocorrection (--autocorrect-all).

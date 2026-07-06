@@ -131,11 +131,12 @@ describe 'CopyTunerClient::I18nBackend' do
   end
 
   it '補間付きで未登録キーをキューイングすること' do
-    default = 'default %{interpolate}'
+    # I18n の補間構文 %{interpolate} であり Kernel#format 用の printf トークンではないため annotated 化は不適切
+    default = 'default %{interpolate}' # rubocop:disable Style/FormatStringToken
 
     expect(subject.translate('en', 'test.key', default:, interpolate: 'interpolated')).to eq 'default interpolated'
 
-    expect(cache['en.test.key']).to eq 'default %{interpolate}'
+    expect(cache['en.test.key']).to eq 'default %{interpolate}' # rubocop:disable Style/FormatStringToken
   end
 
   # NOTE: backend は html_safe 化をしない（.html/_html キーの html_safe 化は ActionView の
@@ -177,10 +178,11 @@ describe 'CopyTunerClient::I18nBackend' do
     end
 
     it '補間マーカーを保持したまま保存できること' do
-      subject.store_translations('en', 'test' => { 'key' => '%{interpolate}' })
+      # I18n の補間構文 %{interpolate} であり Kernel#format 用の printf トークンではないため annotated 化は不適切
+      subject.store_translations('en', 'test' => { 'key' => '%{interpolate}' }) # rubocop:disable Style/FormatStringToken
       expect(subject.translate('en', 'test.key', interpolate: 'interpolated'))
         .to include('interpolated')
-      expect(cache['en.test.key']).to eq('%{interpolate}')
+      expect(cache['en.test.key']).to eq('%{interpolate}') # rubocop:disable Style/FormatStringToken
     end
 
     it 'store_translationsでキーがなければdefaultを利用すること' do
