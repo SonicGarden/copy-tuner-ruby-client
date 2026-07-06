@@ -228,7 +228,7 @@ describe 'CopyTunerClient::Cache' do
         sleep(0.1)
 
         if thread.status == false
-          violated('アンロック前に終了してしまった')
+          violated?('アンロック前に終了してしまった')
         else
           mutex.unlock
           sleep(0.1)
@@ -236,12 +236,12 @@ describe 'CopyTunerClient::Cache' do
           if thread.status == false
             true
           else
-            violated('アンロック後もスレッドが終了しない')
+            violated?('アンロック後もスレッドが終了しない')
           end
         end
       end
 
-      def violated(failure)
+      def violated?(failure)
         @failure_message = failure
         false
       end
