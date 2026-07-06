@@ -227,13 +227,13 @@ describe 'CopyTunerClient::Cache' do
       match do |thread|
         sleep(0.1)
 
-        if thread.status === false
+        if thread.status == false
           violated('アンロック前に終了してしまった')
         else
           mutex.unlock
           sleep(0.1)
 
-          if thread.status === false
+          if thread.status == false
             true
           else
             violated('アンロック後もスレッドが終了しない')
