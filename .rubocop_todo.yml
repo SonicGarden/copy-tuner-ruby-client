@@ -21,12 +21,6 @@ Lint/EmptyBlock:
   Exclude:
     - 'spec/copy_tuner_client/client_spec.rb'
 
-# Offense count: 1
-# Configuration parameters: AllowedMethods, AllowedPatterns, CountRepeatedAttributes, Max.
-Metrics/AbcSize:
-  Exclude:
-    - 'lib/copy_tuner_client/helper_extension.rb'
-
 # Offense count: 2
 # Configuration parameters: CountComments, CountAsOne, AllowedMethods, AllowedPatterns, inherit_mode.
 # AllowedMethods: refine
