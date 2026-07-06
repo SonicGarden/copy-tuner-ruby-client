@@ -8,6 +8,6 @@ class MiddlewareStack
   end
 
   def include?(klass)
-    @middlewares.any? { |middleware| klass === middleware }
+    @middlewares.any?(klass)
   end
 end

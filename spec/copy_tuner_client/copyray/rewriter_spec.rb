@@ -204,8 +204,11 @@ describe CopyTunerClient::Copyray::Rewriter do
     end
 
     context 'fragment: true（turbo stream などの HTML 断片）' do
-      let(:html) { %(<turbo-stream action="replace" target="x"><template><p>#{marker('a.b')}Hello</p></template></turbo-stream>) }
       subject(:result) { described_class.rewrite(html, fragment: true).first }
+
+      let(:html) do
+        %(<turbo-stream action="replace" target="x"><template><p>#{marker('a.b')}Hello</p></template></turbo-stream>)
+      end
 
       it 'html/body ラッパを足さず断片のまま返す' do
         expect(result).not_to include('<html>')

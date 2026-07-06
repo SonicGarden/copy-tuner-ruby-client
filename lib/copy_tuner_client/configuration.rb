@@ -260,7 +260,8 @@ module CopyTunerClient
 
       self.locales ||= self.locales =
         if defined?(::Rails)
-          ::Rails.application.config.i18n.available_locales.presence || Array(::Rails.application.config.i18n.default_locale)
+          rails_i18n = ::Rails.application.config.i18n
+          rails_i18n.available_locales.presence || Array(rails_i18n.default_locale)
         else
           [:en]
         end
@@ -273,7 +274,12 @@ module CopyTunerClient
 
       if enable_middleware?
         logger.info 'Using copytuner sync middleware'
-        request_sync_options = { poller: @poller, cache:, interval: sync_interval, ignore_regex: sync_ignore_path_regex }
+        request_sync_options = {
+          poller: @poller,
+          cache:,
+          interval: sync_interval,
+          ignore_regex: sync_ignore_path_regex,
+        }
         if middleware_position.is_a?(Hash) && middleware_position[:before]
           middleware.insert_before(middleware_position[:before], RequestSync, request_sync_options)
           middleware.insert_before(middleware_position[:before], CopyTunerClient::CopyrayMiddleware)
