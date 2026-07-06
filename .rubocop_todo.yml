@@ -108,11 +108,6 @@ RSpec/MessageSpies:
     - 'spec/copy_tuner_client/request_sync_spec.rb'
     - 'spec/copy_tuner_client_spec.rb'
 
-# Offense count: 2
-RSpec/MultipleDescribes:
-  Exclude:
-    - 'spec/copy_tuner_client/configuration_spec.rb'
-
 # Offense count: 70
 RSpec/MultipleExpectations:
   Max: 6
