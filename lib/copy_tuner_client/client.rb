@@ -16,9 +16,9 @@ module CopyTunerClient
       Net::HTTPBadResponse, Net::HTTPHeaderSyntaxError,
       Net::ProtocolError, SocketError, OpenSSL::SSL::SSLError,
       Errno::ECONNREFUSED
-    ]
+    ].freeze
 
-    USER_AGENT = "copy_tuner_client #{CopyTunerClient::VERSION}"
+    USER_AGENT = "copy_tuner_client #{CopyTunerClient::VERSION}".freeze
 
     # ETags を外部から取得可能にする
     # @return [String, nil] 現在のETag値

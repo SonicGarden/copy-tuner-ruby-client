@@ -280,14 +280,6 @@ Style/Documentation:
     - 'lib/copy_tuner_client/simple_form_extention.rb'
     - 'lib/copy_tuner_client/translation_log.rb'
 
-# Offense count: 2
-# This cop supports unsafe autocorrection (--autocorrect-all).
-# Configuration parameters: EnforcedStyle, Recursive.
-# SupportedStyles: literals, strict
-Style/MutableConstant:
-  Exclude:
-    - 'lib/copy_tuner_client/client.rb'
-
 # Offense count: 1
 # This cop supports unsafe autocorrection (--autocorrect-all).
 # Configuration parameters: EnforcedStyle, AllowedMethods, AllowedPatterns.
