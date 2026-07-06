@@ -52,7 +52,7 @@ describe 'CopyTunerClient' do
       project = add_project
       client = build_client(api_key: project.api_key, secure: true)
       client.download { |ignore| }
-      expect(http.use_ssl?).to eq(true)
+      expect(http.use_ssl?).to be(true)
       expect(http.verify_mode).to eq(OpenSSL::SSL::VERIFY_PEER)
     end
 
@@ -60,7 +60,7 @@ describe 'CopyTunerClient' do
       project = add_project
       client = build_client(api_key: project.api_key, secure: false)
       client.download { |ignore| }
-      expect(http.use_ssl?).to eq(false)
+      expect(http.use_ssl?).to be(false)
     end
 
     it 'HTTPエラーをConnectionErrorでラップすること' do

@@ -63,14 +63,6 @@ Naming/MethodParameterName:
   Exclude:
     - 'lib/copy_tuner_client/queue_with_timeout.rb'
 
-# Offense count: 26
-# This cop supports unsafe autocorrection (--autocorrect-all).
-RSpec/BeEq:
-  Exclude:
-    - 'spec/copy_tuner_client/cache_spec.rb'
-    - 'spec/copy_tuner_client/client_spec.rb'
-    - 'spec/copy_tuner_client/configuration_spec.rb'
-
 # Offense count: 52
 # Configuration parameters: Prefixes, AllowedPatterns.
 # Prefixes: when, with, without

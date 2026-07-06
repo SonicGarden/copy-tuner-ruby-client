@@ -195,26 +195,26 @@ describe CopyTunerClient::Configuration do
     let(:config) { CopyTunerClient::Configuration.new }
 
     it 'returns false when local_first_key_regexp is nil (default)' do
-      expect(config.local_first_key?('views.foo.bar')).to eq false
+      expect(config.local_first_key?('views.foo.bar')).to be false
     end
 
     context 'when local_first_key_regexp is set' do
       before { config.local_first_key_regexp = /\Aviews\./ }
 
       it 'returns true for a matching key' do
-        expect(config.local_first_key?('views.foo.bar')).to eq true
+        expect(config.local_first_key?('views.foo.bar')).to be true
       end
 
       it 'returns false for a non-matching key' do
-        expect(config.local_first_key?('models.foo.bar')).to eq false
+        expect(config.local_first_key?('models.foo.bar')).to be false
       end
 
       it 'returns false for a nil key' do
-        expect(config.local_first_key?(nil)).to eq false
+        expect(config.local_first_key?(nil)).to be false
       end
 
       it 'coerces a Symbol key before matching' do
-        expect(config.local_first_key?(:'views.foo')).to eq true
+        expect(config.local_first_key?(:'views.foo')).to be true
       end
     end
 
@@ -222,33 +222,33 @@ describe CopyTunerClient::Configuration do
     # ユーザー設定の有無によらず常にローカル優先（組み込み判定）になる
     context 'with built-in Rails number format keys' do
       it 'returns true for built-in number format keys even when local_first_key_regexp is nil' do
-        expect(config.local_first_key?('number.format')).to eq true
-        expect(config.local_first_key?('number.currency.format')).to eq true
-        expect(config.local_first_key?('number.currency.format.precision')).to eq true
-        expect(config.local_first_key?('number.percentage.format')).to eq true
-        expect(config.local_first_key?('number.human.format.significant')).to eq true
+        expect(config.local_first_key?('number.format')).to be true
+        expect(config.local_first_key?('number.currency.format')).to be true
+        expect(config.local_first_key?('number.currency.format.precision')).to be true
+        expect(config.local_first_key?('number.percentage.format')).to be true
+        expect(config.local_first_key?('number.human.format.significant')).to be true
       end
 
       it 'returns false for app-defined number keys (not Rails format subtrees)' do
-        expect(config.local_first_key?('number.gift_amount')).to eq false
-        expect(config.local_first_key?('number.my_currency.unit')).to eq false
+        expect(config.local_first_key?('number.gift_amount')).to be false
+        expect(config.local_first_key?('number.my_currency.unit')).to be false
       end
 
       it 'returns false for string-only number subtrees and non-number keys' do
-        expect(config.local_first_key?('number.human.storage_units.units.byte.one')).to eq false
-        expect(config.local_first_key?('date.formats.default')).to eq false
-        expect(config.local_first_key?('time.formats.short')).to eq false
-        expect(config.local_first_key?('datetime.distance_in_words.x')).to eq false
-        expect(config.local_first_key?('views.foo')).to eq false
-        expect(config.local_first_key?('numbers.foo')).to eq false
+        expect(config.local_first_key?('number.human.storage_units.units.byte.one')).to be false
+        expect(config.local_first_key?('date.formats.default')).to be false
+        expect(config.local_first_key?('time.formats.short')).to be false
+        expect(config.local_first_key?('datetime.distance_in_words.x')).to be false
+        expect(config.local_first_key?('views.foo')).to be false
+        expect(config.local_first_key?('numbers.foo')).to be false
       end
 
       it 'keeps protecting built-in keys without breaking a user-set regexp' do
         config.local_first_key_regexp = /\Aviews\./
 
-        expect(config.local_first_key?('number.currency.format')).to eq true
-        expect(config.local_first_key?('views.foo')).to eq true
-        expect(config.local_first_key?('models.foo')).to eq false
+        expect(config.local_first_key?('number.currency.format')).to be true
+        expect(config.local_first_key?('views.foo')).to be true
+        expect(config.local_first_key?('models.foo')).to be false
       end
     end
   end
