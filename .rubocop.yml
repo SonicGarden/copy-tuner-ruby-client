@@ -21,3 +21,10 @@ AllCops:
 Gemspec/DevelopmentDependencies:
   Exclude:
     - 'copy_tuner_client.gemspec'
+
+# middleware（テスト対象自身）の private メソッド append_js / helpers を no-op や
+# フェイクに差し替えないと、Rails の ActionController::Base.helpers 依存を外して
+# Rewriter の効果だけを検証できないため対象外。
+RSpec/SubjectStub:
+  Exclude:
+    - 'spec/copy_tuner_client/copyray_middleware_spec.rb'
