@@ -79,8 +79,9 @@ describe CopyTunerClient::ProcessGuard do
     unicorn.spawn
   end
 
-  it 'flushes when the process terminates', skip: 'ruby@2.7以降で失敗するようになっているがテストコードの問題っぽいのでスキップしている' do
+  it 'flushes when the process terminates' do
     cache = WritingCache.new
+    FileUtils.rm_f(File.join(PROJECT_ROOT, 'tmp', 'written_cache'))
     fork do
       process_guard = build_process_guard(cache:, preserve_exit_hook: true)
       process_guard.start
