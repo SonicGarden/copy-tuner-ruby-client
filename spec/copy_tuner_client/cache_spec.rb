@@ -193,7 +193,7 @@ describe 'CopyTunerClient::Cache' do
     sleep 0.1 until logger.has_entry?(:info, 'Waiting for first download')
     client.go
     expect(t_download.join(1)).not_to be_nil
-    expect(cache.pending?).to be_falsey
+    expect(cache).not_to be_pending
     expect(t_wait.join(1)).not_to be_nil
   end
 

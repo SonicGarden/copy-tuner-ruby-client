@@ -217,14 +217,6 @@ RSpec/PendingWithoutReason:
   Exclude:
     - 'spec/copy_tuner_client/process_guard_spec.rb'
 
-# Offense count: 1
-# This cop supports unsafe autocorrection (--autocorrect-all).
-# Configuration parameters: Strict, EnforcedStyle, AllowedExplicitMatchers.
-# SupportedStyles: inflected, explicit
-RSpec/PredicateMatcher:
-  Exclude:
-    - 'spec/copy_tuner_client/cache_spec.rb'
-
 # Offense count: 2
 # This cop supports unsafe autocorrection (--autocorrect-all).
 RSpec/ReceiveMessages:
