@@ -421,19 +421,13 @@ describe CopyTunerClient::Configuration, 'applied with locale filter' do
 end
 
 describe CopyTunerClient::Configuration, 'applied with Rails i18n config' do
-  let!(:rails_defined) { Object.const_defined?(:Rails) }
-
   def self.with_config(i18n_options)
     before do
-      Object.const_set :Rails, Module.new unless rails_defined
+      stub_const('Rails', Module.new)
       i18n = double('i18n', i18n_options)
       config = double('config', i18n:)
       application = double('application', config:)
       allow(Rails).to receive(:application).and_return(application)
-    end
-
-    after do
-      Object.send(:remove_const, :Rails) unless rails_defined
     end
   end
 
