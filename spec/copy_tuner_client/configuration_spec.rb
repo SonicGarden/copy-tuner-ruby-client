@@ -427,7 +427,9 @@ describe CopyTunerClient::Configuration, 'applied with Rails i18n config' do
     before do
       Object.const_set :Rails, Module.new unless rails_defined
       i18n = double('i18n', i18n_options)
-      allow(Rails).to receive_message_chain(:application, :config, :i18n) { i18n }
+      config = double('config', i18n:)
+      application = double('application', config:)
+      allow(Rails).to receive(:application).and_return(application)
     end
 
     after do
