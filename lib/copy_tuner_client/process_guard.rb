@@ -38,7 +38,7 @@ module CopyTunerClient
     end
 
     def unicorn_spawner?
-      defined?(Unicorn::HttpServer) && $0.include?('unicorn') && !caller.any? { |line| line.include?('worker_loop') }
+      defined?(Unicorn::HttpServer) && $0.include?('unicorn') && caller.none? { |line| line.include?('worker_loop') }
     end
 
     def puma_spawner?
