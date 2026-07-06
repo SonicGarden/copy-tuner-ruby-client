@@ -276,9 +276,3 @@ Style/SpecialGlobalVars:
     - 'lib/copy_tuner_client/process_guard.rb'
     - 'spec/copy_tuner_client/process_guard_spec.rb'
 
-# Offense count: 1
-# This cop supports unsafe autocorrection (--autocorrect-all).
-# Configuration parameters: Mode.
-Style/StringConcatenation:
-  Exclude:
-    - 'lib/copy_tuner_client/copyray_middleware.rb'
