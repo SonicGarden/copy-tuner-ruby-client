@@ -70,10 +70,7 @@ module CopyTunerClient
       # ignored_keys より先に評価することで、両方にマッチするキーでも確実にローカルへ委譲する。
       return super if local_first_key?(key_without_locale)
 
-      config = CopyTunerClient.configuration
-      if config.ignored_keys.include?(key_without_locale)
-        config.ignored_key_handler.call(IgnoredKey.new("Ignored key: #{key_without_locale}"))
-      end
+      handle_ignored_key(key_without_locale)
 
       # NOTE: ハッシュ化した場合に削除されるキーに対応するため、最初に完全一致をチェック（旧クライアントの動作を維持）
       # 例: `en.test.key` が `en.test.key.conflict` のように別のキーで上書きされている場合の対応
@@ -89,6 +86,13 @@ module CopyTunerClient
       cache[key_with_locale] = nil if content.nil?
 
       content
+    end
+
+    def handle_ignored_key(key_without_locale)
+      config = CopyTunerClient.configuration
+      return unless config.ignored_keys.include?(key_without_locale)
+
+      config.ignored_key_handler.call(IgnoredKey.new("Ignored key: #{key_without_locale}"))
     end
 
     def ensure_tree_cache_current

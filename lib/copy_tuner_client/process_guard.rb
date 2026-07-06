@@ -3,7 +3,7 @@ module CopyTunerClient
   # process (such as in Unicorn or Passenger). Also registers hooks for exiting
   # processes and completing background jobs. Applications using the client
   # will not need to interact with this class directly.
-  class ProcessGuard
+  class ProcessGuard # rubocop:disable Metrics/ClassLength
     # @param options [Hash]
     # @option options [Logger] :logger where errors should be logged
     def initialize(cache, poller, options)

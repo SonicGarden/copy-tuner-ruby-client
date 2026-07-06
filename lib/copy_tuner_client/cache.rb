@@ -48,18 +48,14 @@ module CopyTunerClient
     # @param key [String] the key of the blurb to update
     # @param value [String] the new contents of the blurb
     def []=(key, value)
-      return unless key.include?('.')
-      return if @locales.present? && !@locales.member?(key.split('.').first)
-      return if @upload_disabled
+      return if skip_upload?(key)
 
       # NOTE: config/locales以下のファイルに除外キーが残っていた場合の対応
       key_without_locale = key.split('.')[1..].join('.')
       # NOTE: local_first キー（組み込みの Rails number.*.format + ユーザー設定）は copy_tuner と完全分離するためアップロードしない
       return if local_first_key?(key_without_locale)
 
-      if @ignored_keys.include?(key_without_locale)
-        @ignored_key_handler.call(IgnoredKey.new("Ignored key: #{key_without_locale}"))
-      end
+      handle_ignored_key(key_without_locale)
 
       lock do
         return if @blank_keys.member?(key) || @blurbs.key?(key)
@@ -165,10 +161,23 @@ module CopyTunerClient
 
     # NOTE: 組み込みの Rails number.*.format キーは lookup 経路（Configuration#local_first_key?）と
     # アップロード抑止経路（ここ）で同じ判定を共有する。判定本体は Configuration に集約し付け忘れの穴を防ぐ。
+    def skip_upload?(key)
+      return true unless key.include?('.')
+      return true if @locales.present? && !@locales.member?(key.split('.').first)
+
+      @upload_disabled
+    end
+
     def local_first_key?(key_without_locale)
       return true if Configuration.builtin_local_first_key?(key_without_locale)
 
       @local_first_key_regexp && key_without_locale.match?(@local_first_key_regexp)
+    end
+
+    def handle_ignored_key(key_without_locale)
+      return unless @ignored_keys.include?(key_without_locale)
+
+      @ignored_key_handler.call(IgnoredKey.new("Ignored key: #{key_without_locale}"))
     end
 
     def with_queued_changes

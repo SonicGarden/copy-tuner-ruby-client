@@ -9,7 +9,7 @@ module CopyTunerClient
   #
   # A client is usually instantiated when {Configuration#apply} is called, and
   # the application will not need to interact with it directly.
-  class Client
+  class Client # rubocop:disable Metrics/ClassLength
     # These errors will be rescued when connecting CopyTuner.
     HTTP_ERRORS = [
       Timeout::Error, Errno::EINVAL, Errno::ECONNRESET, EOFError,
