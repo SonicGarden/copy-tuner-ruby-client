@@ -65,7 +65,7 @@ Metrics/BlockLength:
 # Offense count: 3
 # Configuration parameters: CountComments, CountAsOne.
 Metrics/ClassLength:
-  Max: 118
+  Max: 119
 
 # Offense count: 9
 # Configuration parameters: AllowedMethods, AllowedPatterns.
@@ -143,11 +143,6 @@ RSpec/DescribedClass:
     - 'spec/copy_tuner_client/request_sync_spec.rb'
     - 'spec/copy_tuner_client_spec.rb'
 
-# Offense count: 1
-# This cop supports safe autocorrection (--autocorrect).
-RSpec/EmptyLineAfterFinalLet:
-  Exclude:
-    - 'spec/copy_tuner_client/copyray/rewriter_spec.rb'
 
 # Offense count: 45
 # Configuration parameters: CountAsOne.
@@ -158,7 +153,6 @@ RSpec/ExampleLength:
 # This cop supports safe autocorrection (--autocorrect).
 RSpec/ExpectActual:
   Exclude:
-    - '**/spec/routing/**/*'
     - 'spec/copy_tuner_client/copyray/marker_spec.rb'
 
 # Offense count: 8
@@ -170,11 +164,6 @@ RSpec/InstanceVariable:
     - 'spec/copy_tuner_client/poller_spec.rb'
     - 'spec/copy_tuner_client/process_guard_spec.rb'
 
-# Offense count: 1
-# This cop supports safe autocorrection (--autocorrect).
-RSpec/LeadingSubject:
-  Exclude:
-    - 'spec/copy_tuner_client/copyray/rewriter_spec.rb'
 
 # Offense count: 9
 RSpec/LeakyConstantDeclaration:
@@ -342,21 +331,8 @@ Style/FileNull:
 # SupportedStyles: annotated, template, unannotated
 Style/FormatStringToken:
   EnforcedStyle: template
-
-# Offense count: 1
-# This cop supports safe autocorrection (--autocorrect).
-# Configuration parameters: EnforcedStyle, EnforcedShorthandSyntax, UseHashRocketsWithSymbolValues, PreferHashRocketsForNonAlnumEndingSymbols.
-# SupportedStyles: ruby19, hash_rockets, no_mixed_keys, ruby19_no_mixed_keys
-# SupportedShorthandSyntax: always, never, either, consistent, either_consistent
-Style/HashSyntax:
   Exclude:
-    - 'lib/copy_tuner_client/copyray/rewriter.rb'
-
-# Offense count: 1
-# This cop supports safe autocorrection (--autocorrect).
-Style/IfUnlessModifier:
-  Exclude:
-    - 'lib/copy_tuner_client/translation_log.rb'
+    - 'spec/copy_tuner_client/i18n_backend_spec.rb'
 
 # Offense count: 1
 # This cop supports unsafe autocorrection (--autocorrect-all).
@@ -436,9 +412,14 @@ Style/SymbolProc:
     - 'spec/copy_tuner_client/poller_spec.rb'
     - 'spec/support/fake_copy_tuner_app.rb'
 
-# Offense count: 16
+# Offense count: 4
 # This cop supports safe autocorrection (--autocorrect).
 # Configuration parameters: AllowHeredoc, AllowURI, AllowQualifiedName, URISchemes, AllowRBSInlineAnnotation, AllowCopDirectives, AllowedPatterns, SplitStrings.
 # URISchemes: http, https
 Layout/LineLength:
   Max: 148
+  Exclude:
+    - 'lib/copy_tuner_client/configuration.rb'
+    - 'lib/copy_tuner_client/copyray_middleware.rb'
+    - 'lib/copy_tuner_client/process_guard.rb'
+    - 'skills/copy-tuner-to-locales-migrate-prefix/scripts/migrate_prefix.rb'

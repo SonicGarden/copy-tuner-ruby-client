@@ -57,7 +57,8 @@ module CopyTunerClient
           keysSkipped: #{skipped},
         }
       SCRIPT
-      append_to_html_body(html, helpers.javascript_include_tag('copytuner', type: 'module', crossorigin: 'anonymous', nonce: csp_nonce))
+      tag = helpers.javascript_include_tag('copytuner', type: 'module', crossorigin: 'anonymous', nonce: csp_nonce)
+      append_to_html_body(html, tag)
     end
 
     def append_to_html_body(html, content)

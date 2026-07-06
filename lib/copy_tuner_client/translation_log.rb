@@ -31,10 +31,11 @@ module CopyTunerClient
             scope = scope.dup if scope.is_a?(Array) || scope.is_a?(String)
             result = translate_without_copy_tuner_hook(key, **options)
 
-            if key.is_a?(Array)
-              key.zip(result).each { |k, v| CopyTunerClient::TranslationLog.add(I18n.normalize_keys(nil, k, scope).compact.join('.'), v) unless v.is_a?(Array) }
-            else
-              CopyTunerClient::TranslationLog.add(I18n.normalize_keys(nil, key, scope).compact.join('.'), result) unless result.is_a?(Array)
+            pairs = key.is_a?(Array) ? key.zip(result) : [[key, result]]
+            pairs.each do |k, v|
+              next if v.is_a?(Array)
+
+              CopyTunerClient::TranslationLog.add(I18n.normalize_keys(nil, k, scope).compact.join('.'), v)
             end
             result
           end

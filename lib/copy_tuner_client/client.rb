@@ -87,7 +87,8 @@ module CopyTunerClient
     # @raise [ConnectionError] if the connection fails
     def upload(data)
       connect(host) do |http|
-        response = http.post(uri('draft_blurbs'), data.to_json, 'Content-Type' => 'application/json', 'User-Agent' => USER_AGENT)
+        headers = { 'Content-Type' => 'application/json', 'User-Agent' => USER_AGENT }
+        response = http.post(uri('draft_blurbs'), data.to_json, headers)
         check(response)
         log('Uploaded missing translations')
       end

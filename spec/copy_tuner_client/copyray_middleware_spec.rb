@@ -43,7 +43,9 @@ describe CopyTunerClient::CopyrayMiddleware do
 
   context 'turbo stream レスポンスのとき' do
     let(:headers) { { 'Content-Type' => 'text/vnd.turbo-stream.html' } }
-    let(:body) { %(<turbo-stream action="replace" target="x"><template><p>#{marker('a.b')}Hello</p></template></turbo-stream>) }
+    let(:body) do
+      %(<turbo-stream action="replace" target="x"><template><p>#{marker('a.b')}Hello</p></template></turbo-stream>)
+    end
 
     before do
       # NOTE: append_js のトップレベル no-op スタブを外し、turbo stream では JS を挿入しないことを検証する。

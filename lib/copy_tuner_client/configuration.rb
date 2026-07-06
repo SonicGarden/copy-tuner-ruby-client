@@ -273,7 +273,12 @@ module CopyTunerClient
 
       if enable_middleware?
         logger.info 'Using copytuner sync middleware'
-        request_sync_options = { poller: @poller, cache:, interval: sync_interval, ignore_regex: sync_ignore_path_regex }
+        request_sync_options = {
+          poller: @poller,
+          cache:,
+          interval: sync_interval,
+          ignore_regex: sync_ignore_path_regex,
+        }
         if middleware_position.is_a?(Hash) && middleware_position[:before]
           middleware.insert_before(middleware_position[:before], RequestSync, request_sync_options)
           middleware.insert_before(middleware_position[:before], CopyTunerClient::CopyrayMiddleware)

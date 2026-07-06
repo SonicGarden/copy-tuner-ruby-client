@@ -121,7 +121,8 @@ module CopyTunerClient
     # you have to pass a binding to this (a proc) so that ERB can have
     # access to helper functions and local variables
     def render_without_layout(view, binding)
-      ERB.new(File.read(File.join(VIEW_PATH, 'copytuner', view.to_s + '.html.erb')), eoutvar: 'frobnitz').result(binding)
+      path = File.join(VIEW_PATH, 'copytuner', "#{view}.html.erb")
+      ERB.new(File.read(path), eoutvar: 'frobnitz').result(binding)
     end
 
     def cancel_sync?(env)

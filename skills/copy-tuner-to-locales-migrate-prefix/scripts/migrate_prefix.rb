@@ -45,7 +45,9 @@ parser =
     opts.on('--export PATH', '全件 export YAML（手順3で出力）') { |v| options[:export] = v }
     opts.on('--out PATH', '移行分の出力先（例: config/locales/0010_date.yml）') { |v| options[:out] = v }
     opts.on('--regexp PATTERN', 'leaf キー検証用の正規表現（省略時は prefix から \A<prefix>\. を生成）') { |v| options[:regexp] = v }
-    opts.on('--originals-glob GLOB', 'オリジナルファイルの glob（既定: config/locales/0000_original_*.yml）') { |v| options[:originals_glob] = v }
+    opts.on('--originals-glob GLOB', 'オリジナルファイルの glob（既定: config/locales/0000_original_*.yml）') do |v|
+      options[:originals_glob] = v
+    end
     opts.on('--locales LIST', 'カンマ区切りの対象 locale（既定: I18n.available_locales。検証用の上書き）') { |v| options[:locales] = v }
   end
 # `bin/rails runner script -- ...` の `--` 以降だけを渡したいが、runner が剥がさない環境もあるため両対応。
@@ -215,7 +217,9 @@ puts "配置: #{out_path} （locale #{merged_by_locale.keys.join(',')} / leaf �
 
 # YAML ラウンドトリップ（to_yaml → 再読込で各 locale の merged と一致するか）。
 merged_by_locale.each do |locale, merged|
-  die("YAML ラウンドトリップ不一致。書き出し結果が壊れている: #{out_path} (locale #{locale})") unless load_locale_tree(out_path, locale) == merged
+  next if load_locale_tree(out_path, locale) == merged
+
+  die("YAML ラウンドトリップ不一致。書き出し結果が壊れている: #{out_path} (locale #{locale})")
 end
 
 # ---- (3) 移行漏れ検証（削除をメモリ上でシミュレート）----
