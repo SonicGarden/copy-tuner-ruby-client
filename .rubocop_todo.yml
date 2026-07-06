@@ -143,12 +143,6 @@ RSpec/NestedGroups:
   Max: 4
 
 # Offense count: 2
-# This cop supports unsafe autocorrection (--autocorrect-all).
-RSpec/ReceiveMessages:
-  Exclude:
-    - 'spec/copy_tuner_client/i18n_backend_spec.rb'
-
-# Offense count: 2
 RSpec/RemoveConst:
   Exclude:
     - 'spec/copy_tuner_client/configuration_spec.rb'

@@ -400,9 +400,9 @@ describe 'CopyTunerClient::I18nBackend' do
 
       it 'ignored_keysの機能がツリーlookupでも維持されること' do
         # ignored_keys 設定
-        allow(CopyTunerClient.configuration).to receive(:ignored_keys).and_return(['views.secret'])
         handler = double('ignored_key_handler')
-        allow(CopyTunerClient.configuration).to receive(:ignored_key_handler).and_return(handler)
+        allow(CopyTunerClient.configuration).to receive_messages(ignored_keys: ['views.secret'],
+                                                                 ignored_key_handler: handler)
 
         cache['ja.views.public'] = 'public'
         cache['ja.views.secret'] = 'secret'
