@@ -82,8 +82,7 @@ module CopyTunerClient
     end
 
     def turbo_stream?(headers)
-      headers['Content-Type'] &&
-        headers['Content-Type'].include?('text/vnd.turbo-stream.html')
+      headers['Content-Type']&.include?('text/vnd.turbo-stream.html')
     end
 
     def response_body(response)

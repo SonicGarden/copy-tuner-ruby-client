@@ -195,16 +195,6 @@ Style/OptionalBooleanParameter:
     - 'lib/copy_tuner_client/queue_with_timeout.rb'
     - 'lib/copy_tuner_client/request_sync.rb'
 
-# Offense count: 3
-# This cop supports unsafe autocorrection (--autocorrect-all).
-# Configuration parameters: ConvertCodeThatCanStartToReturnNil, AllowedMethods, MaxChainLength.
-# AllowedMethods: present?, blank?, presence, try, try!
-Style/SafeNavigation:
-  Exclude:
-    - 'lib/copy_tuner_client/copyray_middleware.rb'
-    - 'lib/copy_tuner_client/poller.rb'
-    - 'spec/support/fake_passenger.rb'
-
 # Offense count: 9
 Style/Send:
   Exclude:

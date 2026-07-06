@@ -29,7 +29,7 @@ module CopyTunerClient
     def stop
       @mutex.synchronize do
         @command_queue.uniq_push(:stop)
-        @thread.join if @thread
+        @thread&.join
         @thread = nil
       end
     end
