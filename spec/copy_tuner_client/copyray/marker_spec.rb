@@ -35,7 +35,8 @@ describe CopyTunerClient::Copyray::Marker do
     end
 
     it 'プレーンテキストにはマッチしない' do
-      expect('just a normal sentence with CT: and brackets [x]').not_to match described_class::SCAN_REGEXP
+      # 「このリテラルが正規表現にマッチしないこと」を検証する意図的なテストのため、actual/expected の入れ替え提案は不適切
+      expect('just a normal sentence with CT: and brackets [x]').not_to match described_class::SCAN_REGEXP # rubocop:disable RSpec/ExpectActual
     end
   end
 end

@@ -24,7 +24,7 @@ describe CopyTunerClient::Poller do
   end
 
   after do
-    @pollers.each { |poller| poller.stop }
+    @pollers.each(&:stop)
   end
 
   it 'polls after being started' do
