@@ -7,17 +7,17 @@ module CopyTunerClient
       @received = ConditionVariable.new
     end
 
-    def <<(x)
+    def <<(item)
       @mutex.synchronize do
-        @queue << x
+        @queue << item
         @received.signal
       end
     end
 
-    def uniq_push(x)
+    def uniq_push(item)
       @mutex.synchronize do
-        unless @queue.member?(x)
-          @queue << x
+        unless @queue.member?(item)
+          @queue << item
           @received.signal
         end
       end
@@ -35,7 +35,7 @@ module CopyTunerClient
         elsif @queue.empty? && timeout != 0
           # wait for element or timeout
           timeout_time = timeout + Time.now.to_f
-          while @queue.empty? && (remaining_time = timeout_time - Time.now.to_f) > 0
+          while @queue.empty? && (remaining_time = timeout_time - Time.now.to_f).positive?
             @received.wait(@mutex, remaining_time)
           end
         end

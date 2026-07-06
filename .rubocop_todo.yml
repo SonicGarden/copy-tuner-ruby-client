@@ -50,13 +50,6 @@ Metrics/MethodLength:
 Metrics/PerceivedComplexity:
   Max: 18
 
-# Offense count: 2
-# Configuration parameters: MinNameLength, AllowNamesEndingInNumbers, AllowedNames, ForbiddenNames.
-# AllowedNames: as, at, by, cc, db, id, if, in, io, ip, of, on, os, pp, to
-Naming/MethodParameterName:
-  Exclude:
-    - 'lib/copy_tuner_client/queue_with_timeout.rb'
-
 # Offense count: 52
 # Configuration parameters: Prefixes, AllowedPatterns.
 # Prefixes: when, with, without
@@ -98,11 +91,6 @@ RSpec/LeakyConstantDeclaration:
     - 'spec/copy_tuner_client/helper_extension_spec.rb'
     - 'spec/copy_tuner_client/i18n_backend_spec.rb'
     - 'spec/copy_tuner_client/poller_spec.rb'
-
-# Offense count: 1
-RSpec/MessageChain:
-  Exclude:
-    - 'spec/copy_tuner_client/configuration_spec.rb'
 
 # Offense count: 33
 # Configuration parameters: EnforcedStyle.
@@ -155,18 +143,6 @@ RSpec/NestedGroups:
   Max: 4
 
 # Offense count: 2
-# This cop supports unsafe autocorrection (--autocorrect-all).
-RSpec/ReceiveMessages:
-  Exclude:
-    - 'spec/copy_tuner_client/i18n_backend_spec.rb'
-
-# Offense count: 2
-RSpec/RemoveConst:
-  Exclude:
-    - 'spec/copy_tuner_client/configuration_spec.rb'
-    - 'spec/support/defines_constants.rb'
-
-# Offense count: 2
 RSpec/RepeatedExampleGroupDescription:
   Exclude:
     - 'spec/copy_tuner_client/request_sync_spec.rb'
@@ -209,15 +185,6 @@ Style/Documentation:
     - 'lib/copy_tuner_client/prefixed_logger.rb'
     - 'lib/copy_tuner_client/simple_form_extention.rb'
     - 'lib/copy_tuner_client/translation_log.rb'
-
-# Offense count: 1
-# This cop supports unsafe autocorrection (--autocorrect-all).
-# Configuration parameters: EnforcedStyle, AllowedMethods, AllowedPatterns.
-# SupportedStyles: predicate, comparison
-Style/NumericPredicate:
-  Exclude:
-    - 'spec/**/*'
-    - 'lib/copy_tuner_client/queue_with_timeout.rb'
 
 # Offense count: 3
 # Configuration parameters: AllowedMethods.
