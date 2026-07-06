@@ -38,12 +38,6 @@ Lint/EmptyBlock:
     - 'spec/copy_tuner_client/client_spec.rb'
 
 # Offense count: 1
-# Configuration parameters: AllowComments, AllowNil.
-Lint/SuppressedException:
-  Exclude:
-    - 'lib/copy_tuner_client/simple_form_extention.rb'
-
-# Offense count: 1
 # Configuration parameters: AllowedMethods, AllowedPatterns, CountRepeatedAttributes, Max.
 Metrics/AbcSize:
   Exclude:

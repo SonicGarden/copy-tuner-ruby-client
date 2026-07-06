@@ -3,6 +3,7 @@ require 'copy_tuner_client/copyray'
 begin
   require 'simple_form'
 rescue LoadError
+  # simple_form は任意依存のため、未導入環境では以降の拡張定義自体をスキップする
 end
 
 if defined?(SimpleForm)
