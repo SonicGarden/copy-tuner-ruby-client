@@ -117,7 +117,7 @@ rescue StandardError
 end
 
 # ヒット 1 行を分類し、[:safe | :suspicious | :other, entry] を返す。
-def classify_line(line, entry, in_app:)
+def classify_line(line, entry, in_app:) # rubocop:disable Metrics/CyclomaticComplexity, Metrics/MethodLength, Metrics/PerceivedComplexity
   # tt の定義（def/alias）は呼び出しではない。t( へ置換すると Rails の t を壊すので絶対に自動変換しない。
   if line.match?(TT_DEFINITION)
     entry[:reason] = 'tt の定義（def/alias）。自動変換禁止。呼び出しを全て t へ移した後に手動で削除する'

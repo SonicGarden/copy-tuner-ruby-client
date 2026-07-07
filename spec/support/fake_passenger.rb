@@ -9,10 +9,8 @@ class FakePassenger
   end
 
   def call_event(name, *args)
-    if @handlers[name]
-      @handlers[name].each do |handler|
-        handler.call(*args)
-      end
+    @handlers[name]&.each do |handler|
+      handler.call(*args)
     end
   end
 

@@ -1,4 +1,4 @@
-namespace :copy_tuner do
+namespace :copy_tuner do # rubocop:disable Metrics/BlockLength
   desc 'Notify CopyTuner of a new deploy.'
   task deploy: :environment do
     CopyTunerClient.deploy

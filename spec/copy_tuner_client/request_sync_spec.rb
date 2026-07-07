@@ -1,32 +1,6 @@
 require 'spec_helper'
 
 describe CopyTunerClient::RequestSync do
-  subject { described_class.new(app, poller:, cache:, interval: 0) }
-
-  let(:poller) { {} }
-  let(:cache) { {} }
-  let(:response) { 'response' }
-  let(:env) { 'env' }
-  let(:app) { double('app', call: response) }
-
-  before do
-    allow(cache).to receive_messages(flush: nil, download: nil)
-    allow(poller).to receive(:start_sync).and_return(nil)
-  end
-
-  it 'invokes the upstream app' do
-    expect(app).to receive(:call).with(env)
-    result = subject.call(env)
-    expect(result).to eq(response)
-  end
-end
-
-describe CopyTunerClient::RequestSync, 'serving assets' do
-  subject { described_class.new(app, poller:, cache:, interval: 0) }
-
-  let(:env) do
-    { 'PATH_INFO' => '/assets/choper.png' }
-  end
   let(:poller) { {} }
   let(:cache) { {} }
   let(:response) { 'response' }
@@ -37,53 +11,64 @@ describe CopyTunerClient::RequestSync, 'serving assets' do
     allow(poller).to receive(:start_sync).and_return(nil)
   end
 
-  it "don't start sync" do
-    expect(cache).to receive(:download).once
-    subject.call(env)
-    expect(poller).not_to receive(:start_sync)
-    subject.call(env)
-  end
-end
+  context 'interval が 0 の場合' do
+    subject { described_class.new(app, poller:, cache:, interval: 0) }
 
-describe CopyTunerClient::RequestSync do
-  subject { described_class.new(app, poller:, cache:, interval: 10) }
+    let(:env) { 'env' }
 
-  let(:poller) { {} }
-  let(:cache) { {} }
-  let(:response) { 'response' }
-  let(:env) { 'env' }
-  let(:app) { double('app', call: response) }
-
-  before do
-    allow(cache).to receive_messages(flush: nil, download: nil)
-    allow(poller).to receive(:start_sync).and_return(nil)
-  end
-
-  context 'first request' do
-    it 'download' do
-      expect(cache).to receive(:download).once
-      subject.call(env)
+    it 'invokes the upstream app' do
+      expect(app).to receive(:call).with(env)
+      result = subject.call(env)
+      expect(result).to eq(response)
     end
   end
 
-  context 'in interval request' do
-    it 'does not start sync for the second time' do
+  context 'when serving assets' do
+    subject { described_class.new(app, poller:, cache:, interval: 0) }
+
+    let(:env) do
+      { 'PATH_INFO' => '/assets/choper.png' }
+    end
+
+    it "don't start sync" do
       expect(cache).to receive(:download).once
       subject.call(env)
-
       expect(poller).not_to receive(:start_sync)
       subject.call(env)
     end
   end
 
-  context 'over interval request' do
-    it 'start sync for the second time' do
-      expect(cache).to receive(:download).once
-      subject.call(env)
+  context 'interval が 10 の場合' do
+    subject { described_class.new(app, poller:, cache:, interval: 10) }
 
-      expect(poller).to receive(:start_sync).once
-      subject.last_synced = Time.now - 60
-      subject.call(env)
+    let(:env) { 'env' }
+
+    context 'first request' do
+      it 'download' do
+        expect(cache).to receive(:download).once
+        subject.call(env)
+      end
+    end
+
+    context 'in interval request' do
+      it 'does not start sync for the second time' do
+        expect(cache).to receive(:download).once
+        subject.call(env)
+
+        expect(poller).not_to receive(:start_sync)
+        subject.call(env)
+      end
+    end
+
+    context 'over interval request' do
+      it 'start sync for the second time' do
+        expect(cache).to receive(:download).once
+        subject.call(env)
+
+        expect(poller).to receive(:start_sync).once
+        subject.last_synced = Time.now - 60
+        subject.call(env)
+      end
     end
   end
 end

@@ -8,7 +8,7 @@ module CopyTunerClient
   # Rack middleware that synchronizes with CopyTuner during each request.
   #
   # This is injected into the Rails middleware stack in development environments.
-  class RequestSync
+  class RequestSync # rubocop:disable Metrics/ClassLength
     VIEW_PATH = File.expand_path('../../ui/views', __dir__)
 
     # @param app [Rack] the upstream app into whose responses to inject the editor
@@ -74,7 +74,7 @@ module CopyTunerClient
       ::Rack::Response.new { |r| r.redirect('/copytuner/') }.finish
     end
 
-    def render(view, layout = true)
+    def render(view, layout = true) # rubocop:disable Metrics/CyclomaticComplexity, Metrics/MethodLength, Metrics/PerceivedComplexity
       add_rack_array = true
       if view.is_a?(Hash)
         layout = false

@@ -29,20 +29,31 @@ module CopyTunerClient
 
     def pop_with_timeout(timeout = nil)
       @mutex.synchronize do
-        if timeout.nil?
-          # wait indefinitely until there is an element in the queue
-          @received.wait(@mutex) while @queue.empty?
-        elsif @queue.empty? && timeout != 0
-          # wait for element or timeout
-          timeout_time = timeout + Time.now.to_f
-          while @queue.empty? && (remaining_time = timeout_time - Time.now.to_f).positive?
-            @received.wait(@mutex, remaining_time)
-          end
-        end
+        wait_for_item(timeout)
+
         # if we're still empty after the timeout, raise exception
         raise ThreadError, 'queue empty' if @queue.empty?
 
         @queue.shift
+      end
+    end
+
+    private
+
+    def wait_for_item(timeout)
+      if timeout.nil?
+        # wait indefinitely until there is an element in the queue
+        @received.wait(@mutex) while @queue.empty?
+      elsif @queue.empty? && timeout != 0
+        wait_with_timeout(timeout)
+      end
+    end
+
+    def wait_with_timeout(timeout)
+      # wait for element or timeout
+      timeout_time = timeout + Time.now.to_f
+      while @queue.empty? && (remaining_time = timeout_time - Time.now.to_f).positive?
+        @received.wait(@mutex, remaining_time)
       end
     end
   end

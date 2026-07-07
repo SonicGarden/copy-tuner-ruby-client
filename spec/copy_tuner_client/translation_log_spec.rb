@@ -5,7 +5,21 @@ describe CopyTunerClient::TranslationLog do
   before { described_class.clear }
 
   describe '.add' do
-    context '初期化済みの場合' do
+    context '初期化済みかつキーが local_first_key_regexp にマッチする場合' do
+      before { CopyTunerClient.configuration.local_first_key_regexp = /\Aviews\./ }
+
+      it 'マッチしたキーを記録しないこと' do
+        described_class.add('views.foo', 'Hello')
+        expect(described_class.translations).to be_empty
+      end
+
+      it 'マッチしないキーは記録すること' do
+        described_class.add('messages.greeting', 'Hi')
+        expect(described_class.translations).to eq('messages.greeting' => 'Hi')
+      end
+    end
+
+    context '初期化済みかつ local_first_key_regexp が未設定の場合' do
       it 'キーを記録すること' do
         described_class.add('views.foo', 'Hello')
         expect(described_class.translations).to eq('views.foo' => 'Hello')
@@ -15,27 +29,6 @@ describe CopyTunerClient::TranslationLog do
         described_class.add('views.foo', 'Hello')
         described_class.add('views.foo', 'World')
         expect(described_class.translations['views.foo']).to eq 'Hello'
-      end
-
-      context 'キーが local_first_key_regexp にマッチする場合' do
-        before { CopyTunerClient.configuration.local_first_key_regexp = /\Aviews\./ }
-
-        it 'マッチしたキーを記録しないこと' do
-          described_class.add('views.foo', 'Hello')
-          expect(described_class.translations).to be_empty
-        end
-
-        it 'マッチしないキーは記録すること' do
-          described_class.add('messages.greeting', 'Hi')
-          expect(described_class.translations).to eq('messages.greeting' => 'Hi')
-        end
-      end
-
-      context 'local_first_key_regexp が未設定の場合' do
-        it '全てのキーを記録すること' do
-          described_class.add('views.foo', 'Hello')
-          expect(described_class.translations).to eq('views.foo' => 'Hello')
-        end
       end
     end
 

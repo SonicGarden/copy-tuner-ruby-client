@@ -3,7 +3,7 @@ module CopyTunerClient
   # process (such as in Unicorn or Passenger). Also registers hooks for exiting
   # processes and completing background jobs. Applications using the client
   # will not need to interact with this class directly.
-  class ProcessGuard
+  class ProcessGuard # rubocop:disable Metrics/ClassLength
     # @param options [Hash]
     # @option options [Logger] :logger where errors should be logged
     def initialize(cache, poller, options)
@@ -34,15 +34,15 @@ module CopyTunerClient
 
     def passenger_spawner?
       defined?(PhusionPassenger) &&
-        ($0.include?('Passenger AppPreloader') || $0.include?('ApplicationSpawner') || $0.include?('rack-preloader'))
+        ['Passenger AppPreloader', 'ApplicationSpawner', 'rack-preloader'].any? { |name| $PROGRAM_NAME.include?(name) }
     end
 
     def unicorn_spawner?
-      defined?(Unicorn::HttpServer) && $0.include?('unicorn') && caller.none? { |line| line.include?('worker_loop') }
+      defined?(Unicorn::HttpServer) && $PROGRAM_NAME.include?('unicorn') && caller.none? { |line| line.include?('worker_loop') }
     end
 
     def puma_spawner?
-      defined?(Puma::Runner) && $0.include?('puma')
+      defined?(Puma::Runner) && $PROGRAM_NAME.include?('puma')
     end
 
     def delayed_job_spawner?
@@ -50,11 +50,11 @@ module CopyTunerClient
       # - bin/delayed_job start
       # - bin/rake jobs:work
       # 前者の呼び出しでのみジョブ処理用の子プロセスが作られるため、　poller を作るフックを仕込む必要がある。
-      defined?(Delayed::Worker) && $0.include?('delayed_job')
+      defined?(Delayed::Worker) && $PROGRAM_NAME.include?('delayed_job')
     end
 
     def good_job_spawner?
-      $0.include?('good_job') && defined?(GoodJob) && ARGV.include?('--daemonize')
+      $PROGRAM_NAME.include?('good_job') && defined?(GoodJob) && ARGV.include?('--daemonize')
     end
 
     def register_spawn_hooks
@@ -118,7 +118,7 @@ module CopyTunerClient
     def register_puma_hook
       # If Puma is clustered mode without preload_app, this method is called on worker process.
       # Just start poller and return.
-      if $0.include?('cluster worker')
+      if $PROGRAM_NAME.include?('cluster worker')
         @logger.info('Puma would be clustered mode without preload_app')
         @poller.start
         return

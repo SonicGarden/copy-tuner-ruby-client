@@ -254,17 +254,11 @@ module CopyTunerClient
     # This creates the {I18nBackend} and puts them together.
     #
     # When {#test?} returns +false+, the poller will be started.
-    def apply # rubocop:disable Metrics/AbcSize, Metrics/MethodLength
+    def apply # rubocop:disable Metrics/AbcSize
       # NOTE: project_id は必須。未設定なら apply 時点で明示的に失敗させる
       validate_project_id!
 
-      self.locales ||= self.locales =
-        if defined?(::Rails)
-          rails_i18n = ::Rails.application.config.i18n
-          rails_i18n.available_locales.presence || Array(rails_i18n.default_locale)
-        else
-          [:en]
-        end
+      self.locales ||= default_locales
 
       self.client ||= Client.new(to_hash)
       self.cache ||= Cache.new(client, to_hash)
@@ -272,32 +266,10 @@ module CopyTunerClient
       process_guard = ProcessGuard.new(cache, @poller, to_hash)
       I18n.backend = I18nBackend.new(cache)
 
-      if enable_middleware?
-        logger.info 'Using copytuner sync middleware'
-        request_sync_options = {
-          poller: @poller,
-          cache:,
-          interval: sync_interval,
-          ignore_regex: sync_ignore_path_regex,
-        }
-        if middleware_position.is_a?(Hash) && middleware_position[:before]
-          middleware.insert_before(middleware_position[:before], RequestSync, request_sync_options)
-          middleware.insert_before(middleware_position[:before], CopyTunerClient::CopyrayMiddleware)
-        elsif middleware_position.is_a?(Hash) && middleware_position[:after]
-          middleware.insert_after(middleware_position[:after], RequestSync, request_sync_options)
-          middleware.insert_after(middleware_position[:after], CopyTunerClient::CopyrayMiddleware)
-        else
-          middleware.use(RequestSync, request_sync_options)
-          middleware.use(CopyTunerClient::CopyrayMiddleware)
-        end
-      else
-        logger.info '[[[Warn]]] Not using copytuner sync middleware' unless middleware
-      end
+      setup_middleware
 
       @applied = true
-      logger.info "Client #{VERSION} ready (s3_download)"
-      logger.info "Environment Info: #{environment_info}"
-      logger.info "Available locales: #{locales.join(' ')}"
+      log_applied
 
       process_guard.start unless test?
 
@@ -375,6 +347,49 @@ module CopyTunerClient
     end
 
     private
+
+    def default_locales
+      if defined?(::Rails)
+        rails_i18n = ::Rails.application.config.i18n
+        rails_i18n.available_locales.presence || Array(rails_i18n.default_locale)
+      else
+        [:en]
+      end
+    end
+
+    def setup_middleware
+      if enable_middleware?
+        logger.info 'Using copytuner sync middleware'
+        insert_middleware
+      else
+        logger.info '[[[Warn]]] Not using copytuner sync middleware' unless middleware
+      end
+    end
+
+    def log_applied
+      logger.info "Client #{VERSION} ready (s3_download)"
+      logger.info "Environment Info: #{environment_info}"
+      logger.info "Available locales: #{locales.join(' ')}"
+    end
+
+    def insert_middleware # rubocop:disable Metrics/AbcSize
+      request_sync_options = {
+        poller: @poller,
+        cache:,
+        interval: sync_interval,
+        ignore_regex: sync_ignore_path_regex,
+      }
+      if middleware_position.is_a?(Hash) && middleware_position[:before]
+        middleware.insert_before(middleware_position[:before], RequestSync, request_sync_options)
+        middleware.insert_before(middleware_position[:before], CopyTunerClient::CopyrayMiddleware)
+      elsif middleware_position.is_a?(Hash) && middleware_position[:after]
+        middleware.insert_after(middleware_position[:after], RequestSync, request_sync_options)
+        middleware.insert_after(middleware_position[:after], CopyTunerClient::CopyrayMiddleware)
+      else
+        middleware.use(RequestSync, request_sync_options)
+        middleware.use(CopyTunerClient::CopyrayMiddleware)
+      end
+    end
 
     # project_id は必須。未設定なら明示的に失敗させる。
     # apply（起動時の全体検証）と project_url（apply を経ない経路へのセーフネット）の両方から呼ぶ。

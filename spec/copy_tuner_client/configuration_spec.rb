@@ -1,5 +1,56 @@
 require 'spec_helper'
 
+shared_context 'stubbed configuration' do
+  subject { CopyTunerClient::Configuration.new }
+
+  let(:backend) { double('i18n-backend') }
+  let(:cache) { double('cache', download: 'download') }
+  let(:logger) { FakeLogger.new }
+  let(:poller) { double('poller') }
+  let(:process_guard) { double('process_guard', start: nil) }
+
+  before do
+    allow(CopyTunerClient::I18nBackend).to receive(:new).and_return(backend)
+    allow(CopyTunerClient::Client).to receive(:new).and_return(double('client'))
+    allow(CopyTunerClient::Cache).to receive(:new).and_return(cache)
+    allow(CopyTunerClient::Poller).to receive(:new).and_return(poller)
+    allow(CopyTunerClient::ProcessGuard).to receive(:new).and_return(process_guard)
+    subject.logger = logger
+    # NOTE: apply は project_id 必須になったため、未設定だと raise する。applied 系テストは
+    #       project_id 自体を検証しないので適当な値を補っておく
+    subject.project_id ||= 1
+    apply
+  end
+end
+
+shared_examples_for 'applied configuration' do
+  include_context 'stubbed configuration'
+
+  it { is_expected.to be_applied }
+
+  it 'builds and assigns an I18n backend' do
+    expect(CopyTunerClient::I18nBackend).to have_received(:new).with(cache)
+    expect(I18n.backend).to eq(backend)
+  end
+
+  it 'builds and assigns a poller' do
+    expect(CopyTunerClient::Poller).to have_received(:new).with(cache, subject.to_hash)
+  end
+
+  it 'builds a process guard' do
+    expect(CopyTunerClient::ProcessGuard).to have_received(:new)
+      .with(cache, poller, subject.to_hash)
+  end
+
+  it 'logs that it is ready' do
+    expect(logger).to have_entry(:info, "Client #{CopyTunerClient::VERSION} ready")
+  end
+
+  it 'logs environment info' do
+    expect(logger).to have_entry(:info, "Environment Info: #{subject.environment_info}")
+  end
+end
+
 describe CopyTunerClient::Configuration do
   RSpec::Matchers.define :have_config_option do |option|
     match do |config|
@@ -273,183 +324,131 @@ describe CopyTunerClient::Configuration do
       expect(config.project_url).to include('/projects/77')
     end
   end
-end
 
-shared_context 'stubbed configuration' do
-  subject { CopyTunerClient::Configuration.new }
+  context 'applied when testing' do
+    it_behaves_like 'applied configuration' do
+      it 'does not start the process guard' do
+        expect(process_guard).not_to receive(:start)
+      end
+    end
 
-  let(:backend) { double('i18n-backend') }
-  let(:cache) { double('cache', download: 'download') }
-  let(:client) { double('client') }
-  let(:logger) { FakeLogger.new }
-  let(:poller) { double('poller') }
-  let(:process_guard) { double('process_guard', start: nil) }
-
-  before do
-    allow(CopyTunerClient::I18nBackend).to receive(:new).and_return(backend)
-    allow(CopyTunerClient::Client).to receive(:new).and_return(client)
-    allow(CopyTunerClient::Cache).to receive(:new).and_return(cache)
-    allow(CopyTunerClient::Poller).to receive(:new).and_return(poller)
-    allow(CopyTunerClient::ProcessGuard).to receive(:new).and_return(process_guard)
-    subject.logger = logger
-    # NOTE: apply は project_id 必須になったため、未設定だと raise する。applied 系テストは
-    #       project_id 自体を検証しないので適当な値を補っておく
-    subject.project_id ||= 1
-    apply
-  end
-end
-
-shared_examples_for 'applied configuration' do
-  include_context 'stubbed configuration'
-
-  it { is_expected.to be_applied }
-
-  it 'builds and assigns an I18n backend' do
-    expect(CopyTunerClient::I18nBackend).to have_received(:new).with(cache)
-    expect(I18n.backend).to eq(backend)
-  end
-
-  it 'builds and assigns a poller' do
-    expect(CopyTunerClient::Poller).to have_received(:new).with(cache, subject.to_hash)
-  end
-
-  it 'builds a process guard' do
-    expect(CopyTunerClient::ProcessGuard).to have_received(:new)
-      .with(cache, poller, subject.to_hash)
-  end
-
-  it 'logs that it is ready' do
-    expect(logger).to have_entry(:info, "Client #{CopyTunerClient::VERSION} ready")
-  end
-
-  it 'logs environment info' do
-    expect(logger).to have_entry(:info, "Environment Info: #{subject.environment_info}")
-  end
-end
-
-describe CopyTunerClient::Configuration, 'applied when testing' do
-  it_behaves_like 'applied configuration' do
-    it 'does not start the process guard' do
-      expect(process_guard).not_to receive(:start)
+    def apply
+      subject.environment_name = 'test'
+      subject.apply
     end
   end
 
-  def apply
-    subject.environment_name = 'test'
-    subject.apply
-  end
-end
+  context 'applied when not testing' do
+    it_behaves_like 'applied configuration' do
+      it 'starts the process guard' do
+        expect(process_guard).to have_received(:start)
+      end
+    end
 
-describe CopyTunerClient::Configuration, 'applied when not testing' do
-  it_behaves_like 'applied configuration' do
-    it 'starts the process guard' do
-      expect(process_guard).to have_received(:start)
+    def apply
+      subject.environment_name = 'development'
+      subject.apply
     end
   end
 
-  def apply
-    subject.environment_name = 'development'
-    subject.apply
-  end
-end
+  context 'applied when developing with middleware' do
+    it_behaves_like 'applied configuration' do
+      it 'adds the sync middleware' do
+        expect(middleware).to include(CopyTunerClient::RequestSync)
+      end
+    end
 
-describe CopyTunerClient::Configuration, 'applied when developing with middleware' do
-  it_behaves_like 'applied configuration' do
-    it 'adds the sync middleware' do
-      expect(middleware).to include(CopyTunerClient::RequestSync)
+    let(:middleware) { MiddlewareStack.new }
+
+    def apply
+      subject.middleware = middleware
+      subject.environment_name = 'development'
+      subject.apply
     end
   end
 
-  let(:middleware) { MiddlewareStack.new }
+  context 'applied when developing without middleware' do
+    it_behaves_like 'applied configuration'
 
-  def apply
-    subject.middleware = middleware
-    subject.environment_name = 'development'
-    subject.apply
-  end
-end
-
-describe CopyTunerClient::Configuration, 'applied when developing without middleware' do
-  it_behaves_like 'applied configuration'
-
-  def apply
-    subject.middleware = nil
-    subject.environment_name = 'development'
-    subject.apply
-  end
-end
-
-describe CopyTunerClient::Configuration, 'applied with middleware when not developing' do
-  let(:middleware) { MiddlewareStack.new }
-
-  it_behaves_like 'applied configuration'
-
-  def apply
-    subject.middleware = middleware
-    subject.environment_name = 'test'
-    subject.apply
-  end
-
-  it 'does not add the sync middleware' do
-    expect(middleware).not_to include(CopyTunerClient::RequestSync)
-  end
-end
-
-describe CopyTunerClient::Configuration, 'applied without locale filter' do
-  include_context 'stubbed configuration'
-
-  def apply
-    subject.apply
-  end
-
-  it 'has locales [:en]' do
-    expect(subject.locales).to eq [:en]
-  end
-end
-
-describe CopyTunerClient::Configuration, 'applied with locale filter' do
-  include_context 'stubbed configuration'
-
-  def apply
-    subject.locales = %i[en ja]
-    subject.apply
-  end
-
-  it 'has locales %i(en ja)' do
-    expect(subject.locales).to eq %i[en ja]
-  end
-end
-
-describe CopyTunerClient::Configuration, 'applied with Rails i18n config' do
-  def self.with_config(i18n_options)
-    before do
-      stub_const('Rails', Module.new)
-      i18n = double('i18n', i18n_options)
-      config = double('config', i18n:)
-      application = double('application', config:)
-      allow(Rails).to receive(:application).and_return(application)
+    def apply
+      subject.middleware = nil
+      subject.environment_name = 'development'
+      subject.apply
     end
   end
 
-  def apply
-    subject.apply
+  context 'applied with middleware when not developing' do
+    let(:middleware) { MiddlewareStack.new }
+
+    it_behaves_like 'applied configuration'
+
+    def apply
+      subject.middleware = middleware
+      subject.environment_name = 'test'
+      subject.apply
+    end
+
+    it 'does not add the sync middleware' do
+      expect(middleware).not_to include(CopyTunerClient::RequestSync)
+    end
   end
 
-  context 'with available_locales' do
-    with_config(available_locales: %i[en ja])
+  context 'applied without locale filter' do
     include_context 'stubbed configuration'
+
+    def apply
+      subject.apply
+    end
+
+    it 'has locales [:en]' do
+      expect(subject.locales).to eq [:en]
+    end
+  end
+
+  context 'applied with locale filter' do
+    include_context 'stubbed configuration'
+
+    def apply
+      subject.locales = %i[en ja]
+      subject.apply
+    end
 
     it 'has locales %i(en ja)' do
       expect(subject.locales).to eq %i[en ja]
     end
   end
 
-  context 'with default_locale' do
-    with_config(available_locales: %i[ja])
-    include_context 'stubbed configuration'
+  context 'applied with Rails i18n config' do
+    def self.with_config(i18n_options)
+      before do
+        stub_const('Rails', Module.new)
+        i18n = double('i18n', i18n_options)
+        config = double('config', i18n:)
+        application = double('application', config:)
+        allow(Rails).to receive(:application).and_return(application)
+      end
+    end
 
-    it 'has locales %i(ja)' do
-      expect(subject.locales).to eq %i[ja]
+    def apply
+      subject.apply
+    end
+
+    context 'with available_locales' do
+      with_config(available_locales: %i[en ja])
+      include_context 'stubbed configuration'
+
+      it 'has locales %i(en ja)' do
+        expect(subject.locales).to eq %i[en ja]
+      end
+    end
+
+    context 'with default_locale' do
+      with_config(available_locales: %i[ja])
+      include_context 'stubbed configuration'
+
+      it 'has locales %i(ja)' do
+        expect(subject.locales).to eq %i[ja]
+      end
     end
   end
 end
