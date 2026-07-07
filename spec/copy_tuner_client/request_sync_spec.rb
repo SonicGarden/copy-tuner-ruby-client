@@ -11,7 +11,7 @@ describe CopyTunerClient::RequestSync do
     allow(poller).to receive(:start_sync).and_return(nil)
   end
 
-  context 'with interval 0' do
+  context 'interval が 0 の場合' do
     subject { described_class.new(app, poller:, cache:, interval: 0) }
 
     let(:env) { 'env' }
@@ -38,7 +38,7 @@ describe CopyTunerClient::RequestSync do
     end
   end
 
-  context 'with interval 10' do
+  context 'interval が 10 の場合' do
     subject { described_class.new(app, poller:, cache:, interval: 10) }
 
     let(:env) { 'env' }

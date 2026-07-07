@@ -159,8 +159,6 @@ module CopyTunerClient
 
     attr_reader :client, :logger
 
-    # NOTE: 組み込みの Rails number.*.format キーは lookup 経路（Configuration#local_first_key?）と
-    # アップロード抑止経路（ここ）で同じ判定を共有する。判定本体は Configuration に集約し付け忘れの穴を防ぐ。
     def skip_upload?(key)
       return true unless key.include?('.')
       return true if @locales.present? && !@locales.member?(key.split('.').first)
@@ -168,6 +166,8 @@ module CopyTunerClient
       @upload_disabled
     end
 
+    # NOTE: 組み込みの Rails number.*.format キーは lookup 経路（Configuration#local_first_key?）と
+    # アップロード抑止経路（ここ）で同じ判定を共有する。判定本体は Configuration に集約し付け忘れの穴を防ぐ。
     def local_first_key?(key_without_locale)
       return true if Configuration.builtin_local_first_key?(key_without_locale)
 
