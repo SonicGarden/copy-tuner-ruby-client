@@ -86,14 +86,6 @@ RSpec/VerifiedDoubles:
     - 'spec/copy_tuner_client/process_guard_spec.rb'
     - 'spec/copy_tuner_client/request_sync_spec.rb'
 
-# Offense count: 6
-# This cop supports unsafe autocorrection (--autocorrect-all).
-Sgcop/HashFetchDefault:
-  Exclude:
-    - 'lib/copy_tuner_client/copyray_middleware.rb'
-    - 'lib/copy_tuner_client/helper_extension.rb'
-    - 'spec/support/fake_copy_tuner_app.rb'
-
 # Offense count: 2
 Sgcop/Rspec/ConditionalExample:
   Exclude:

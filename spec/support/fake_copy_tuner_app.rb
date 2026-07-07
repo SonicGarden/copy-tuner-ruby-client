@@ -18,7 +18,7 @@ class FakeCopyTunerApp < Sinatra::Base
   end
 
   def self.port
-    (ENV['COPY_TUNER_PORT'] || 3002).to_i
+    ENV.fetch('COPY_TUNER_PORT', 3002).to_i
   end
 
   def self.add_project(api_key)
@@ -132,9 +132,9 @@ class FakeCopyTunerApp < Sinatra::Base
 
     def initialize(attrs)
       @api_key = attrs['api_key']
-      @draft = attrs['draft'] || {}
-      @etag = attrs['etag'] || 1
-      @published = attrs['published'] || {}
+      @draft = attrs.fetch('draft', {})
+      @etag = attrs.fetch('etag', 1)
+      @published = attrs.fetch('published', {})
     end
 
     def to_hash
