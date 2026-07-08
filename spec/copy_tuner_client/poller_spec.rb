@@ -64,7 +64,7 @@ describe CopyTunerClient::Poller do
     failure = 'server is napping'
     logger = FakeLogger.new
 
-    expect(cache).to receive(:download).and_raise(CopyTunerClient::InvalidApiKey.new(failure))
+    allow(cache).to receive(:download).and_raise(CopyTunerClient::InvalidApiKey.new(failure))
     poller = build_poller(logger:)
 
     cache['upload.key'] = 'upload'
@@ -80,7 +80,7 @@ describe CopyTunerClient::Poller do
   end
 
   it "logs an error if the background thread can't start" do
-    expect(Thread).to receive(:new).and_return(nil)
+    allow(Thread).to receive(:new).and_return(nil)
     logger = FakeLogger.new
 
     build_poller(logger:).start
@@ -90,10 +90,12 @@ describe CopyTunerClient::Poller do
 
   it 'flushes the log when polling' do
     logger = FakeLogger.new
-    expect(logger).to receive(:flush).at_least(:once)
+    allow(logger).to receive(:flush)
 
     build_poller(logger:).start
 
     wait_for_next_sync
+
+    expect(logger).to have_received(:flush).at_least(:once)
   end
 end

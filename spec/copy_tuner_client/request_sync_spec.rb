@@ -17,8 +17,8 @@ describe CopyTunerClient::RequestSync do
     let(:env) { 'env' }
 
     it 'invokes the upstream app' do
-      expect(app).to receive(:call).with(env)
       result = request_sync.call(env)
+      expect(app).to have_received(:call).with(env)
       expect(result).to eq(response)
     end
   end
@@ -31,10 +31,11 @@ describe CopyTunerClient::RequestSync do
     end
 
     it "don't start sync" do
-      expect(cache).to receive(:download).once
       request_sync.call(env)
-      expect(poller).not_to receive(:start_sync)
       request_sync.call(env)
+
+      expect(cache).to have_received(:download).once
+      expect(poller).not_to have_received(:start_sync)
     end
   end
 
@@ -45,29 +46,30 @@ describe CopyTunerClient::RequestSync do
 
     context 'first request' do
       it 'download' do
-        expect(cache).to receive(:download).once
         request_sync.call(env)
+        expect(cache).to have_received(:download).once
       end
     end
 
     context 'in interval request' do
       it 'does not start sync for the second time' do
-        expect(cache).to receive(:download).once
+        request_sync.call(env)
         request_sync.call(env)
 
-        expect(poller).not_to receive(:start_sync)
-        request_sync.call(env)
+        expect(cache).to have_received(:download).once
+        expect(poller).not_to have_received(:start_sync)
       end
     end
 
     context 'over interval request' do
       it 'start sync for the second time' do
-        expect(cache).to receive(:download).once
         request_sync.call(env)
 
-        expect(poller).to receive(:start_sync).once
         request_sync.last_synced = Time.now - 60
         request_sync.call(env)
+
+        expect(cache).to have_received(:download).once
+        expect(poller).to have_received(:start_sync).once
       end
     end
   end

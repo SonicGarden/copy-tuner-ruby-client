@@ -216,7 +216,7 @@ describe CopyTunerClient::Configuration do
 
   it 'logs to $stdout by default' do
     logger = FakeLogger.new
-    expect(Logger).to receive(:new).with($stdout).and_return(logger)
+    allow(Logger).to receive(:new).with($stdout).and_return(logger)
     config = described_class.new
     expect(config.logger.original_logger).to eq(logger)
   end
@@ -330,7 +330,7 @@ describe CopyTunerClient::Configuration do
   context 'applied when testing' do
     it_behaves_like 'applied configuration' do
       it 'does not start the process guard' do
-        expect(process_guard).not_to receive(:start)
+        expect(process_guard).not_to have_received(:start)
       end
     end
 

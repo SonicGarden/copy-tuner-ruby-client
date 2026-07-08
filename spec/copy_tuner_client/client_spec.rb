@@ -209,9 +209,11 @@ describe 'CopyTunerClient' do
       config.project_id = 1
       config.client = client
     end
-    expect(client).to receive(:deploy)
+    allow(client).to receive(:deploy)
 
     CopyTunerClient.deploy
+
+    expect(client).to have_received(:deploy)
   end
 
   it 'deployが実行できること' do

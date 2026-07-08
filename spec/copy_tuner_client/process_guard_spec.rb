@@ -24,13 +24,13 @@ describe CopyTunerClient::ProcessGuard do
   end
 
   it 'starts polling from a worker process' do
-    expect(poller).to receive(:start)
     process_guard = build_process_guard
     process_guard.start
+
+    expect(poller).to have_received(:start)
   end
 
   it 'registers passenger hooks from the passenger master' do
-    expect(poller).not_to receive(:start)
     logger = FakeLogger.new
     passenger = define_constant('PhusionPassenger', FakePassenger.new)
     passenger.become_master
@@ -38,11 +38,11 @@ describe CopyTunerClient::ProcessGuard do
     process_guard = build_process_guard(logger:)
     process_guard.start
 
+    expect(poller).not_to have_received(:start)
     expect(logger).to have_entry(:info, 'Registered Phusion Passenger fork hook')
   end
 
   it 'starts polling from a passenger worker' do
-    expect(poller).to receive(:start)
     logger = FakeLogger.new
     passenger = define_constant('PhusionPassenger', FakePassenger.new)
     passenger.become_master
@@ -50,10 +50,11 @@ describe CopyTunerClient::ProcessGuard do
 
     process_guard.start
     passenger.spawn
+
+    expect(poller).to have_received(:start)
   end
 
   it 'registers unicorn hooks from the unicorn master' do
-    expect(poller).not_to receive(:start)
     logger = FakeLogger.new
     define_constant('Unicorn', Module.new)
     http_server = Class.new(FakeUnicornServer)
@@ -63,11 +64,11 @@ describe CopyTunerClient::ProcessGuard do
     process_guard = build_process_guard(logger:)
     process_guard.start
 
+    expect(poller).not_to have_received(:start)
     expect(logger).to have_entry(:info, 'Registered Unicorn fork hook')
   end
 
   it 'starts polling from a unicorn worker' do
-    expect(poller).to receive(:start)
     logger = FakeLogger.new
     define_constant('Unicorn', Module.new)
     http_server = Class.new(FakeUnicornServer)
@@ -77,6 +78,8 @@ describe CopyTunerClient::ProcessGuard do
 
     process_guard.start
     unicorn.spawn
+
+    expect(poller).to have_received(:start)
   end
 
   it 'flushes when the process terminates' do

@@ -6,12 +6,12 @@ describe CopyTunerClient do
   end
 
   it 'delegates cache to the configuration object' do
-    expect(described_class.configuration).to receive(:cache).once
     expect(described_class.cache).to eq('cache')
+    expect(described_class.configuration).to have_received(:cache).once
   end
 
   it 'delegates client to the configuration object' do
-    expect(described_class.configuration).to receive(:client).once
     expect(described_class.client).to eq('client')
+    expect(described_class.configuration).to have_received(:client).once
   end
 end

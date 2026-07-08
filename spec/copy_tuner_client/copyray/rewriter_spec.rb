@@ -192,8 +192,9 @@ describe CopyTunerClient::Copyray::Rewriter do
       it 'logger.warn で例外内容を記録する' do
         logger = double('logger')
         allow(CopyTunerClient.configuration).to receive(:logger).and_return(logger)
-        expect(logger).to receive(:warn).with(/Rewriter failed.*RuntimeError.*boom/)
+        allow(logger).to receive(:warn)
         result
+        expect(logger).to have_received(:warn).with(/Rewriter failed.*RuntimeError.*boom/)
       end
 
       it 'logger が nil でもフォールバックが落ちない' do
