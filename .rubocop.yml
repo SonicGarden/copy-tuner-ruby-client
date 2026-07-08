@@ -30,3 +30,25 @@ Gemspec/DevelopmentDependencies:
 RSpec/SubjectStub:
   Exclude:
     - 'spec/copy_tuner_client/copyray_middleware_spec.rb'
+
+# Ruby 標準 Queue#pop(non_block=false) のインターフェースに意図的に合わせた実装のため、
+# キーワード引数化すると標準 Queue との互換性が崩れる。
+Style/OptionalBooleanParameter:
+  Exclude:
+    - 'lib/copy_tuner_client/queue_with_timeout.rb'
+
+# Client#download は yield 前提の実装で、ブロックを渡さないと downloaded 時に
+# LocalJumpError になる。ダウンロード結果自体を検証しないテストでは空ブロックが必須。
+Lint/EmptyBlock:
+  Exclude:
+    - 'spec/copy_tuner_client/client_spec.rb'
+
+# 要判断: configuration_spec.rb の i18n/config/application は Rails gem 自体を
+# stub_const('Rails', Module.new) で丸ごと偽装するための double。ActiveSupport::OrderedOptions
+# は method_missing 経由でアクセサを実装するため instance_double では検証できない。
+# request_sync_spec.rb の app は Rack app プロトコル（call(env) を実装する任意オブジェクト）で
+# 対応する具体的なクラスが存在しないため、Duck Typing 前提の double が妥当。
+RSpec/VerifiedDoubles:
+  Exclude:
+    - 'spec/copy_tuner_client/configuration_spec.rb'
+    - 'spec/copy_tuner_client/request_sync_spec.rb'

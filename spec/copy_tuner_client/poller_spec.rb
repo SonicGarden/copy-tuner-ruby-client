@@ -3,6 +3,7 @@ require 'spec_helper'
 describe CopyTunerClient::Poller do
   let(:client) { FakeClient.new }
   let(:cache) { CopyTunerClient::Cache.new(client, logger: FakeLogger.new) }
+  let!(:pollers) { [] }
 
   def polling_delay
     0.5
@@ -13,7 +14,7 @@ describe CopyTunerClient::Poller do
     config[:polling_delay] = polling_delay
     default_config = CopyTunerClient::Configuration.new.to_hash
     poller = CopyTunerClient::Poller.new(cache, default_config.update(config))
-    @pollers << poller
+    pollers << poller
     poller
   end
 
@@ -21,12 +22,8 @@ describe CopyTunerClient::Poller do
     sleep(polling_delay * 3)
   end
 
-  before do
-    @pollers = []
-  end
-
   after do
-    @pollers.each(&:stop)
+    pollers.each(&:stop)
   end
 
   it 'polls after being started' do

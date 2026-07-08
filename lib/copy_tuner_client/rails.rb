@@ -4,7 +4,7 @@ module CopyTunerClient
     # Sets up the logger, environment, name, project root, and framework name
     # for Rails applications. Must be called after framework initialization.
     def self.initialize
-      CopyTunerClient.configure(false) do |config|
+      CopyTunerClient.configure(apply: false) do |config|
         config.environment_name = ::Rails.env
         config.logger           =
           if defined?(::Rails::Console)

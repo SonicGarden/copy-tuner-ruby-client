@@ -1,4 +1,5 @@
 module CopyTunerClient
+  # `a.b.c` 形式のドット区切りキーを持つ Hash とネストした Hash を相互変換する
   module DottedHash
     def to_h(dotted_hash)
       hash = {}

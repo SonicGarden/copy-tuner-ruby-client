@@ -74,7 +74,7 @@ module CopyTunerClient
       ::Rack::Response.new { |r| r.redirect('/copytuner/') }.finish
     end
 
-    def render(view, layout = true) # rubocop:disable Metrics/CyclomaticComplexity, Metrics/MethodLength, Metrics/PerceivedComplexity
+    def render(view, layout: true) # rubocop:disable Metrics/CyclomaticComplexity, Metrics/MethodLength, Metrics/PerceivedComplexity
       add_rack_array = true
       if view.is_a?(Hash)
         layout = false

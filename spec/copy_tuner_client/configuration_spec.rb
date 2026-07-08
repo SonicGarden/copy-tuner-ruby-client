@@ -3,15 +3,15 @@ require 'spec_helper'
 shared_context 'stubbed configuration' do
   subject(:configuration) { CopyTunerClient::Configuration.new }
 
-  let(:backend) { double('i18n-backend') }
-  let(:cache) { double('cache', download: 'download') }
+  let(:backend) { instance_double(CopyTunerClient::I18nBackend) }
+  let(:cache) { instance_double(CopyTunerClient::Cache, download: 'download') }
   let(:logger) { FakeLogger.new }
-  let(:poller) { double('poller') }
-  let(:process_guard) { double('process_guard', start: nil) }
+  let(:poller) { instance_double(CopyTunerClient::Poller) }
+  let(:process_guard) { instance_double(CopyTunerClient::ProcessGuard, start: nil) }
 
   before do
     allow(CopyTunerClient::I18nBackend).to receive(:new).and_return(backend)
-    allow(CopyTunerClient::Client).to receive(:new).and_return(double('client'))
+    allow(CopyTunerClient::Client).to receive(:new).and_return(instance_double(CopyTunerClient::Client))
     allow(CopyTunerClient::Cache).to receive(:new).and_return(cache)
     allow(CopyTunerClient::Poller).to receive(:new).and_return(poller)
     allow(CopyTunerClient::ProcessGuard).to receive(:new).and_return(process_guard)
@@ -58,12 +58,12 @@ describe CopyTunerClient::Configuration do
     match do |config|
       expect(config).to respond_to(option)
 
-      expect(config.send(option)).to eq(@default) if instance_variables.include?(:@default)
+      expect(config.public_send(option)).to eq(@default) if instance_variables.include?(:@default)
 
       if @overridable
         value = 'a value'
-        config.send(:"#{option}=", value)
-        expect(config.send(option)).to eq(value)
+        config.public_send(:"#{option}=", value)
+        expect(config.public_send(option)).to eq(value)
       end
     end
 
@@ -183,7 +183,7 @@ describe CopyTunerClient::Configuration do
   it 'yields and save a configuration when configuring' do
     yielded_configuration = nil
 
-    CopyTunerClient.configure(false) do |config|
+    CopyTunerClient.configure(apply: false) do |config|
       yielded_configuration = config
     end
 
@@ -193,7 +193,7 @@ describe CopyTunerClient::Configuration do
 
   it 'does not apply the configuration when asked not to' do
     logger = FakeLogger.new
-    CopyTunerClient.configure(false) { |config| config.logger = logger }
+    CopyTunerClient.configure(apply: false) { |config| config.logger = logger }
     expect(CopyTunerClient.configuration).not_to be_applied
     expect(logger.entries[:info]).to be_empty
   end
@@ -201,11 +201,11 @@ describe CopyTunerClient::Configuration do
   it 'does not remove existing config options when configuring twice' do
     first_config = nil
 
-    CopyTunerClient.configure(false) do |config|
+    CopyTunerClient.configure(apply: false) do |config|
       first_config = config
     end
 
-    CopyTunerClient.configure(false) do |config|
+    CopyTunerClient.configure(apply: false) do |config|
       expect(config).to eq(first_config)
     end
   end

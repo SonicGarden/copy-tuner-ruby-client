@@ -55,7 +55,7 @@ module CopyTunerClient
   # @param apply [Boolean] (internal) whether the configuration should be applied yet.
   #
   # @yield [Configuration] the configuration to be modified
-  def self.configure(apply = true)
+  def self.configure(apply: true)
     self.configuration ||= Configuration.new
     yield(configuration)
 

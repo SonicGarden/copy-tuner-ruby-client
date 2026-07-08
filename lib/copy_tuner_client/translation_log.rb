@@ -1,4 +1,5 @@
 module CopyTunerClient
+  # リクエスト中に翻訳されたキーと結果をスレッドローカルに記録する（Copyray オーバーレイの JSON 出力に使う）
   class TranslationLog
     def self.translations
       Thread.current[:translations]

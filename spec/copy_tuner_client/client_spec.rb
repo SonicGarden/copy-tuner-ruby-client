@@ -37,21 +37,21 @@ describe 'CopyTunerClient' do
     it '接続時のタイムアウトが設定されていること' do
       project = add_project
       client = build_client(api_key: project.api_key, http_open_timeout: 4)
-      client.download { |ignore| }
+      client.download {}
       expect(http.open_timeout).to eq(4)
     end
 
     it '読み込み時のタイムアウトが設定されていること' do
       project = add_project
       client = build_client(api_key: project.api_key, http_read_timeout: 4)
-      client.download { |ignore| }
+      client.download {}
       expect(http.read_timeout).to eq(4)
     end
 
     it 'secureがtrueの場合はSSL検証付きで接続すること' do
       project = add_project
       client = build_client(api_key: project.api_key, secure: true)
-      client.download { |ignore| }
+      client.download {}
       expect(http.use_ssl?).to be(true)
       expect(http.verify_mode).to eq(OpenSSL::SSL::VERIFY_PEER)
     end
@@ -59,7 +59,7 @@ describe 'CopyTunerClient' do
     it 'secureがfalseの場合はSSLを使用しないこと' do
       project = add_project
       client = build_client(api_key: project.api_key, secure: false)
-      client.download { |ignore| }
+      client.download {}
       expect(http.use_ssl?).to be(false)
     end
 
@@ -81,7 +81,7 @@ describe 'CopyTunerClient' do
         expected_message = "#{original_error.class.name}: #{original_error.message}"
         allow(http).to receive(:request).and_raise(original_error)
         client = build_client_with_project
-        expect { client.download { |ignore| } }
+        expect { client.download {} }
           .to raise_error(CopyTunerClient::ConnectionError) { |error|
             expect(error.message).to eq(expected_message)
           }
@@ -90,7 +90,7 @@ describe 'CopyTunerClient' do
 
     it 'ダウンロード時に500エラーが発生した場合はConnectionErrorになること' do
       client = build_client(api_key: 'raise_error')
-      expect { client.download { |ignore| } }
+      expect { client.download {} }
         .to raise_error(CopyTunerClient::ConnectionError)
     end
 
@@ -101,7 +101,7 @@ describe 'CopyTunerClient' do
 
     it 'ダウンロード時に404エラーが発生した場合はInvalidApiKeyになること' do
       client = build_client(api_key: 'bogus')
-      expect { client.download { |ignore| } }
+      expect { client.download {} }
         .to raise_error(CopyTunerClient::InvalidApiKey)
     end
 
@@ -137,7 +137,7 @@ describe 'CopyTunerClient' do
   it 'ダウンロードを実行したことをログに出力すること' do
     logger = FakeLogger.new
     client = build_client_with_project(logger:)
-    client.download { |ignore| }
+    client.download {}
     expect(logger).to have_entry(:info, 'Downloaded translations')
   end
 
@@ -264,7 +264,7 @@ describe 'CopyTunerClient' do
       allow(response).to receive(:body).and_return('{}')
       allow(response).to receive(:[]).with('ETag').and_return('"abc123"')
 
-      http = double('http')
+      http = instance_double(Net::HTTP)
       allow(Net::HTTP).to receive(:new).and_return(http)
       allow(http).to receive(:open_timeout=)
       allow(http).to receive(:read_timeout=)
@@ -273,7 +273,7 @@ describe 'CopyTunerClient' do
       allow(http).to receive(:ca_file=)
       allow(http).to receive(:request).and_return(response)
 
-      client.download { |blurbs| }
+      client.download {}
       expect(client.etag).to eq('"abc123"')
     end
   end

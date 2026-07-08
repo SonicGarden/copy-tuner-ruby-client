@@ -34,6 +34,7 @@ describe 'CopyTunerClient::I18nBackend' do
   subject(:backend) { build_backend }
 
   let(:cache) { test_cache_class.new }
+  let!(:default_backend) { I18n.backend }
 
   def build_backend
     backend = CopyTunerClient::I18nBackend.new(cache)
@@ -41,11 +42,7 @@ describe 'CopyTunerClient::I18nBackend' do
     backend
   end
 
-  before do
-    @default_backend = I18n.backend
-  end
-
-  after { I18n.backend = @default_backend }
+  after { I18n.backend = default_backend }
 
   it 'ロケールファイルをリロードし、ダウンロード完了まで待機すること' do
     allow(I18n).to receive(:load_path).and_return([])
@@ -400,7 +397,7 @@ describe 'CopyTunerClient::I18nBackend' do
 
       it 'ignored_keysの機能がツリーlookupでも維持されること' do
         # ignored_keys 設定
-        handler = double('ignored_key_handler')
+        handler = instance_double(Proc)
         allow(CopyTunerClient.configuration).to receive_messages(ignored_keys: ['views.secret'],
                                                                  ignored_key_handler: handler)
 

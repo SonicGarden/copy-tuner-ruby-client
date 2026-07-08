@@ -1,4 +1,5 @@
 module CopyTunerClient
+  # ActionView の translate/t を alias_method で差し替え、Copyray のオーバーレイマーカーを注入する
   module HelperExtension
     # NOTE: class_eval ブロック内で def すると、ブロック内メソッドの複雑さが
     # hook_translation_helper 自体の Metrics/AbcSize としてカウントされてしまうため、

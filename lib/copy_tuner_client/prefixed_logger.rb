@@ -1,4 +1,5 @@
 module CopyTunerClient
+  # ログ出力にプレフィックスとプロセス/スレッド情報を付加する Logger ラッパー
   class PrefixedLogger
     attr_reader :prefix, :original_logger
 
@@ -35,7 +36,7 @@ module CopyTunerClient
 
     def log(severity, message, &)
       prefixed_message = "#{prefix} #{thread_info} #{message}"
-      original_logger.send(severity, prefixed_message, &)
+      original_logger.public_send(severity, prefixed_message, &)
     end
 
     def thread_info

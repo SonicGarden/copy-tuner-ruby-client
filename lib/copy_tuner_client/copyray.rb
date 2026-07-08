@@ -1,6 +1,7 @@
 require 'copy_tuner_client/copyray/marker'
 
 module CopyTunerClient
+  # 翻訳テキストにオーバーレイ編集用のマーカートークンを埋め込む
   class Copyray
     # This:
     #   message
