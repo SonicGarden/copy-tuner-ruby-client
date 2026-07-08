@@ -13,13 +13,6 @@ Sgcop/Rspec/ConditionalExample:
   Exclude:
     - 'spec/copy_tuner_client/configuration_spec.rb'
 
-# Offense count: 2
-# 要判断: copyray_middleware_spec.rb の headers は親の app let が参照する名前で、
-# turbo stream / json レスポンスを検証するため context ごとに Content-Type を差し替える意図的な設計。
-Sgcop/Rspec/NoLetOverride:
-  Exclude:
-    - 'spec/copy_tuner_client/copyray_middleware_spec.rb'
-
 # Offense count: 3
 # Configuration parameters: TargetMatchers, AllowedPatterns.
 # TargetMatchers: have_content, have_text, have_css, have_selector, have_title, eq, eql, equal, include, match
