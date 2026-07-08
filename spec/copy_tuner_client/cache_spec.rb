@@ -284,7 +284,7 @@ describe 'CopyTunerClient::Cache' do
   end
 
   describe '#to_tree_hash' do
-    subject { cache.to_tree_hash }
+    subject(:tree_hash) { cache.to_tree_hash }
 
     let(:cache) do
       cache = build_cache
@@ -293,7 +293,7 @@ describe 'CopyTunerClient::Cache' do
     end
 
     it 'データがない場合は空ハッシュを返すこと' do
-      expect(subject).to eq({})
+      expect(tree_hash).to eq({})
     end
 
     context 'フラットなキーの場合' do
@@ -304,17 +304,17 @@ describe 'CopyTunerClient::Cache' do
       end
 
       it 'ツリー構造に変換されること' do
-        expect(subject).to eq({
-                                'ja' => {
-                                  'views' => {
-                                    'hoge' => 'test',
-                                    'fuga' => 'test2',
+        expect(tree_hash).to eq({
+                                  'ja' => {
+                                    'views' => {
+                                      'hoge' => 'test',
+                                      'fuga' => 'test2',
+                                    },
                                   },
-                                },
-                                'en' => {
-                                  'hello' => 'world',
-                                },
-                              })
+                                  'en' => {
+                                    'hello' => 'world',
+                                  },
+                                })
       end
     end
 
@@ -327,26 +327,26 @@ describe 'CopyTunerClient::Cache' do
       end
 
       it '正しいツリー構造になること' do
-        expect(subject).to eq({
-                                'ja' => {
-                                  'views' => {
-                                    'users' => {
-                                      'index' => 'user index',
-                                      'show' => 'user show',
-                                    },
-                                    'posts' => {
-                                      'index' => 'post index',
-                                    },
-                                  },
-                                },
-                                'en' => {
-                                  'common' => {
-                                    'buttons' => {
-                                      'save' => 'Save',
+        expect(tree_hash).to eq({
+                                  'ja' => {
+                                    'views' => {
+                                      'users' => {
+                                        'index' => 'user index',
+                                        'show' => 'user show',
+                                      },
+                                      'posts' => {
+                                        'index' => 'post index',
+                                      },
                                     },
                                   },
-                                },
-                              })
+                                  'en' => {
+                                    'common' => {
+                                      'buttons' => {
+                                        'save' => 'Save',
+                                      },
+                                    },
+                                  },
+                                })
       end
     end
   end
@@ -392,7 +392,7 @@ describe 'CopyTunerClient::Cache' do
   end
 
   describe '#export' do
-    subject { cache.export }
+    subject(:export_result) { cache.export }
 
     let(:cache) do
       cache = build_cache
@@ -410,7 +410,7 @@ describe 'CopyTunerClient::Cache' do
     end
 
     it 'blurbキーがない場合はyamlを返さないこと' do
-      expect(subject).to be_nil
+      expect(export_result).to be_nil
     end
 
     context '1階層のblurbキーがある場合' do
