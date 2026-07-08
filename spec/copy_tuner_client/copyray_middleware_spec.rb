@@ -37,7 +37,8 @@ describe CopyTunerClient::CopyrayMiddleware do
 
     it '書き換え後のボディから Content-Length を再計算する' do
       _status, out_headers, response = middleware.call({})
-      expect(out_headers['Content-Length']).to eq response.join.bytesize.to_s
+      expected_length = response.join.bytesize.to_s
+      expect(out_headers['Content-Length']).to eq expected_length
     end
   end
 
