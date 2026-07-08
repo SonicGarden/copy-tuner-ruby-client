@@ -6,15 +6,6 @@
 # Note that changes in the inspected code, or installation of new
 # versions of RuboCop, may require this file to be generated again.
 
-# Offense count: 8
-# Configuration parameters: AllowedMethods.
-# AllowedMethods: enums
-Lint/ConstantDefinitionInBlock:
-  Exclude:
-    - 'spec/copy_tuner_client/helper_extension_spec.rb'
-    - 'spec/copy_tuner_client/i18n_backend_spec.rb'
-    - 'spec/copy_tuner_client/poller_spec.rb'
-
 # Offense count: 9
 # Configuration parameters: AllowComments, AllowEmptyLambdas.
 Lint/EmptyBlock:
@@ -29,13 +20,6 @@ RSpec/InstanceVariable:
     - 'spec/copy_tuner_client/i18n_backend_spec.rb'
     - 'spec/copy_tuner_client/poller_spec.rb'
     - 'spec/copy_tuner_client/process_guard_spec.rb'
-
-# Offense count: 9
-RSpec/LeakyConstantDeclaration:
-  Exclude:
-    - 'spec/copy_tuner_client/helper_extension_spec.rb'
-    - 'spec/copy_tuner_client/i18n_backend_spec.rb'
-    - 'spec/copy_tuner_client/poller_spec.rb'
 
 # Offense count: 33
 # Configuration parameters: EnforcedStyle.
