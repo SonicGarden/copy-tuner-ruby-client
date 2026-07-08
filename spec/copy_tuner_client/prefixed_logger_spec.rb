@@ -25,9 +25,11 @@ describe CopyTunerClient::PrefixedLogger do
   end
 
   it 'calls flush for a logger that responds to flush' do
-    expect(output_logger).to receive(:flush)
+    allow(output_logger).to receive(:flush)
 
     prefixed_logger.flush
+
+    expect(output_logger).to have_received(:flush)
   end
 
   it "doesn't call flush for a logger that doesn't respond to flush" do

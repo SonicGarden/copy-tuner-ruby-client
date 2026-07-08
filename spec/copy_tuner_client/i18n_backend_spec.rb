@@ -48,10 +48,11 @@ describe 'CopyTunerClient::I18nBackend' do
   after { I18n.backend = @default_backend }
 
   it 'ロケールファイルをリロードし、ダウンロード完了まで待機すること' do
-    expect(I18n).to receive(:load_path).and_return([])
+    allow(I18n).to receive(:load_path).and_return([])
     # wait_for_downloadはTestCacheクラス内で呼ばれる
     backend.reload!
     backend.translate('en', 'test.key', default: 'something')
+    expect(I18n).to have_received(:load_path)
   end
 
   it 'i18nのBaseバックエンドを継承していること' do
@@ -330,10 +331,12 @@ describe 'CopyTunerClient::I18nBackend' do
         backend.translate('ja', 'views')
 
         # ツリーキャッシュの再構築が発生しないことを確認
-        expect(cache).not_to receive(:to_tree_hash)
+        allow(cache).to receive(:to_tree_hash)
 
         # 2回目
         backend.translate('ja', 'views')
+
+        expect(cache).not_to have_received(:to_tree_hash)
       end
 
       it 'キャッシュバージョンが変わった場合はツリーキャッシュを再構築すること' do
@@ -369,13 +372,14 @@ describe 'CopyTunerClient::I18nBackend' do
         backend.translate('ja', 'category1')
 
         # ETag が変わらない限り、再構築されない
-        expect(cache).not_to receive(:to_tree_hash)
+        allow(cache).to receive(:to_tree_hash)
 
         # 複数回の lookup が高速で実行される
         start_time = Time.now
         10.times { backend.translate('ja', 'category2') }
         end_time = Time.now
 
+        expect(cache).not_to have_received(:to_tree_hash)
         # 10ms 以下で完了することを確認
         expect((end_time - start_time) * 1000).to be < 10
       end
@@ -404,10 +408,12 @@ describe 'CopyTunerClient::I18nBackend' do
         cache['ja.views.secret'] = 'secret'
 
         # ignored_key_handler が呼ばれることを確認
-        expect(handler).to receive(:call).with(instance_of(CopyTunerClient::IgnoredKey))
+        allow(handler).to receive(:call)
 
         # ignored_keys が動作することを確認
         backend.translate('ja', 'views.secret')
+
+        expect(handler).to have_received(:call).with(instance_of(CopyTunerClient::IgnoredKey))
       end
 
       it 'stringキーが存在する場合のsub-keyアクセスでエラーが発生しないこと' do

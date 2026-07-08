@@ -157,7 +157,7 @@ describe 'CopyTunerClient::Cache' do
   it 'flush時に接続エラーが発生した場合はエラーログを出力すること' do
     failure = 'server is napping'
     logger = FakeLogger.new
-    expect(client).to receive(:upload).and_raise(CopyTunerClient::ConnectionError.new(failure))
+    allow(client).to receive(:upload).and_raise(CopyTunerClient::ConnectionError.new(failure))
     cache = build_cache(logger:)
     cache['upload.key'] = 'upload'
 
@@ -169,7 +169,7 @@ describe 'CopyTunerClient::Cache' do
   it 'download時に接続エラーが発生した場合はエラーログを出力すること' do
     failure = 'server is napping'
     logger = FakeLogger.new
-    expect(client).to receive(:download).and_raise(CopyTunerClient::ConnectionError.new(failure))
+    allow(client).to receive(:download).and_raise(CopyTunerClient::ConnectionError.new(failure))
     cache = build_cache(logger:, ready: true)
 
     cache.download
@@ -179,7 +179,7 @@ describe 'CopyTunerClient::Cache' do
 
   it '最初のダウンロードが完了するまでブロックすること' do
     logger = FakeLogger.new
-    expect(logger).to receive(:flush)
+    allow(logger).to receive(:flush)
     client.delay = true
     cache = build_cache(logger:)
 
@@ -195,6 +195,7 @@ describe 'CopyTunerClient::Cache' do
     expect(t_download.join(1)).not_to be_nil
     expect(cache).not_to be_pending
     expect(t_wait.join(1)).not_to be_nil
+    expect(logger).to have_received(:flush)
   end
 
   it 'ダウンロード前はブロックしないこと' do
@@ -278,9 +279,11 @@ describe 'CopyTunerClient::Cache' do
       config.project_id = 1
       config.cache = cache
     end
-    expect(cache).to receive(:flush).at_least(:once)
+    allow(cache).to receive(:flush)
 
     CopyTunerClient.flush
+
+    expect(cache).to have_received(:flush).at_least(:once)
   end
 
   describe '#to_tree_hash' do
@@ -405,8 +408,10 @@ describe 'CopyTunerClient::Cache' do
         config.project_id = 1
         config.cache = cache
       end
-      expect(cache).to receive(:export)
+      allow(cache).to receive(:export)
       CopyTunerClient.export
+
+      expect(cache).to have_received(:export)
     end
 
     it 'blurbキーがない場合はyamlを返さないこと' do

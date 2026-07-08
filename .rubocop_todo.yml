@@ -21,31 +21,6 @@ RSpec/InstanceVariable:
     - 'spec/copy_tuner_client/poller_spec.rb'
     - 'spec/copy_tuner_client/process_guard_spec.rb'
 
-# Offense count: 33
-# Configuration parameters: EnforcedStyle.
-# SupportedStyles: have_received, receive
-RSpec/MessageSpies:
-  Exclude:
-    - 'spec/copy_tuner_client/cache_spec.rb'
-    - 'spec/copy_tuner_client/client_spec.rb'
-    - 'spec/copy_tuner_client/configuration_spec.rb'
-    - 'spec/copy_tuner_client/copyray/rewriter_spec.rb'
-    - 'spec/copy_tuner_client/helper_extension_spec.rb'
-    - 'spec/copy_tuner_client/i18n_backend_spec.rb'
-    - 'spec/copy_tuner_client/poller_spec.rb'
-    - 'spec/copy_tuner_client/prefixed_logger_spec.rb'
-    - 'spec/copy_tuner_client/process_guard_spec.rb'
-    - 'spec/copy_tuner_client/request_sync_spec.rb'
-    - 'spec/copy_tuner_client_spec.rb'
-
-# Offense count: 6
-RSpec/StubbedMock:
-  Exclude:
-    - 'spec/copy_tuner_client/cache_spec.rb'
-    - 'spec/copy_tuner_client/configuration_spec.rb'
-    - 'spec/copy_tuner_client/i18n_backend_spec.rb'
-    - 'spec/copy_tuner_client/poller_spec.rb'
-
 # Offense count: 14
 # Configuration parameters: IgnoreNameless, IgnoreSymbolicNames.
 RSpec/VerifiedDoubles:

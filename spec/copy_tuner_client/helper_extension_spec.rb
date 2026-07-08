@@ -119,8 +119,9 @@ describe CopyTunerClient::HelperExtension do
   context 'default value registration' do
     it 'registers the default value even when the marker is not injected' do
       view.controller = controller_class.new(request_class.new(format_class.new(:json)))
-      expect(I18n).to receive(:t).with('some.key', hash_including(default: 'Default'))
+      allow(I18n).to receive(:t)
       view.translate('some.key', name: 'World', default: 'Default')
+      expect(I18n).to have_received(:t).with('some.key', hash_including(default: 'Default'))
     end
   end
 end
