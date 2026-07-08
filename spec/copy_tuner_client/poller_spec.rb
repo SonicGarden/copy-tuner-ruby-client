@@ -1,14 +1,16 @@
 require 'spec_helper'
 
 describe CopyTunerClient::Poller do
-  POLLING_DELAY = 0.5
-
   let(:client) { FakeClient.new }
   let(:cache) { CopyTunerClient::Cache.new(client, logger: FakeLogger.new) }
 
+  def polling_delay
+    0.5
+  end
+
   def build_poller(config = {})
     config[:logger] ||= FakeLogger.new
-    config[:polling_delay] = POLLING_DELAY
+    config[:polling_delay] = polling_delay
     default_config = CopyTunerClient::Configuration.new.to_hash
     poller = CopyTunerClient::Poller.new(cache, default_config.update(config))
     @pollers << poller
@@ -16,7 +18,7 @@ describe CopyTunerClient::Poller do
   end
 
   def wait_for_next_sync
-    sleep(POLLING_DELAY * 3)
+    sleep(polling_delay * 3)
   end
 
   before do

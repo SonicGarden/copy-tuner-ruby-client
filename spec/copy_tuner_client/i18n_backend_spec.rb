@@ -2,36 +2,38 @@ require 'spec_helper'
 
 describe 'CopyTunerClient::I18nBackend' do
   # テスト用のキャッシュクラス：既存のHashインターフェースを維持しつつ新機能をサポート
-  class TestCache < Hash
-    def initialize(initial_etag = 'test-etag-1')
-      super()
-      @test_etag = initial_etag
-    end
+  def test_cache_class
+    Class.new(Hash) do
+      def initialize(initial_etag = 'test-etag-1')
+        super()
+        @test_etag = initial_etag
+      end
 
-    def version
-      @test_etag
-    end
+      def version
+        @test_etag
+      end
 
-    def to_tree_hash
-      CopyTunerClient::DottedHash.to_h(self)
-    end
+      def to_tree_hash
+        CopyTunerClient::DottedHash.to_h(self)
+      end
 
-    def wait_for_download
-      # テスト用のスタブメソッド
-    end
+      def wait_for_download
+        # テスト用のスタブメソッド
+      end
 
-    def etag=(value)
-      @test_etag = value
-    end
+      def etag=(value)
+        @test_etag = value
+      end
 
-    def etag
-      @test_etag
+      def etag
+        @test_etag
+      end
     end
   end
 
   subject { build_backend }
 
-  let(:cache) { TestCache.new }
+  let(:cache) { test_cache_class.new }
 
   def build_backend
     backend = CopyTunerClient::I18nBackend.new(cache)
@@ -501,7 +503,7 @@ describe 'CopyTunerClient::I18nBackend' do
       end
 
       it 'views.* がローカルにも cache にも無いとき nil を返し、空キー登録（アップロード）をしないこと' do
-        spy_cache = TestCache.new
+        spy_cache = test_cache_class.new
         allow(spy_cache).to receive(:[]=).and_call_original
         backend = CopyTunerClient::I18nBackend.new(spy_cache)
         I18n.backend = backend
