@@ -36,16 +36,16 @@ describe CopyTunerClient::Copyray do
     end
 
     context 'when the key matches local_first_key_regexp' do
-      let(:key) { 'views.foo' }
+      let(:local_first_key) { 'views.foo' }
 
       before { CopyTunerClient.configuration.local_first_key_regexp = /\Aviews\./ }
 
       it 'does not inject the marker into a plain source' do
-        expect(described_class.augment_template('Hello', key)).to eq 'Hello'
+        expect(described_class.augment_template('Hello', local_first_key)).to eq 'Hello'
       end
 
       it 'does not inject the marker into an html_safe source' do
-        expect(described_class.augment_template('Hello'.html_safe, key)).to eq 'Hello'
+        expect(described_class.augment_template('Hello'.html_safe, local_first_key)).to eq 'Hello'
       end
     end
   end

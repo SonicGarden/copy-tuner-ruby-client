@@ -78,12 +78,12 @@ describe 'CopyTunerClient' do
       ]
 
       errors.each do |original_error|
+        expected_message = "#{original_error.class.name}: #{original_error.message}"
         allow(http).to receive(:request).and_raise(original_error)
         client = build_client_with_project
         expect { client.download { |ignore| } }
           .to raise_error(CopyTunerClient::ConnectionError) { |error|
-            expect(error.message)
-              .to eq("#{original_error.class.name}: #{original_error.message}")
+            expect(error.message).to eq(expected_message)
           }
       end
     end
