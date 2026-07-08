@@ -32,7 +32,7 @@ module CopyTunerClient
       def copyray_scope_key(key, options)
         return scope_key_by_partial(key) if key.to_s.first == '.'
 
-        separator = options[:separator] || I18n.default_separator
+        separator = options.fetch(:separator, I18n.default_separator)
         # NOTE: locale prefix無しのkeyが必要のためこうしている
         I18n.normalize_keys(nil, key, options[:scope], separator).compact.join(separator)
       end
