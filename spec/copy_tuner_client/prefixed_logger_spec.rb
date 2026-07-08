@@ -18,7 +18,7 @@ describe CopyTunerClient::PrefixedLogger do
   %i[debug info warn error fatal].each do |level|
     it "prefixes #{level} log messages" do
       message = 'hello'
-      prefixed_logger.send(level, message)
+      prefixed_logger.public_send(level, message)
 
       expect(output_logger).to have_entry(level, "#{prefix} #{thread_info} #{message}")
     end

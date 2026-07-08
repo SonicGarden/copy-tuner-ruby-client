@@ -357,7 +357,7 @@ describe 'CopyTunerClient::Cache' do
   describe '#version' do
     it 'クライアントのetagを返すこと（効率的なバージョンチェック）' do
       cache = build_cache
-      client_instance = cache.send(:client)
+      client_instance = cache.__send__(:client)
 
       # ETag が設定されている場合
       client_instance.etag = '"abc123"'
@@ -370,7 +370,7 @@ describe 'CopyTunerClient::Cache' do
 
     it 'etagがnilの場合も正常に動作すること' do
       cache = build_cache
-      client_instance = cache.send(:client)
+      client_instance = cache.__send__(:client)
       client_instance.etag = nil
 
       expect(cache.version).to be_nil

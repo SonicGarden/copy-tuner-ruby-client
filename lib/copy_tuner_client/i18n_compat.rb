@@ -1,6 +1,7 @@
 require 'nokogiri'
 
 module CopyTunerClient
+  # `_html` サフィックス無しに HTML タグを含む訳文（i18n の HTML 安全規約違反）を検出する
   module I18nCompat
     def select_html_incompatible_blurbs(blurbs)
       non_html_key_blurbs = blurbs.reject { |key| key.ends_with?('.html') || key.ends_with?('_html') }

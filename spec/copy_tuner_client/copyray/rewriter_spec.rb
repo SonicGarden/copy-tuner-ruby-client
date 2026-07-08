@@ -190,7 +190,7 @@ describe CopyTunerClient::Copyray::Rewriter do
       end
 
       it 'logger.warn で例外内容を記録する' do
-        logger = double('logger')
+        logger = instance_double(Logger)
         allow(CopyTunerClient.configuration).to receive(:logger).and_return(logger)
         allow(logger).to receive(:warn)
         result

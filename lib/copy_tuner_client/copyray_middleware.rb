@@ -3,6 +3,7 @@
 require 'copy_tuner_client/copyray/rewriter'
 
 module CopyTunerClient
+  # レスポンス HTML を Rewriter に通し、マーカートークンを data-copyray-key 属性へ変換する Rack middleware
   class CopyrayMiddleware
     def initialize(app)
       @app = app

@@ -6,31 +6,6 @@
 # Note that changes in the inspected code, or installation of new
 # versions of RuboCop, may require this file to be generated again.
 
-# Offense count: 9
-# Configuration parameters: AllowComments, AllowEmptyLambdas.
-Lint/EmptyBlock:
-  Exclude:
-    - 'spec/copy_tuner_client/client_spec.rb'
-
-# Offense count: 4
-# Configuration parameters: AssignmentOnly.
-RSpec/InstanceVariable:
-  Exclude:
-    - 'spec/copy_tuner_client/i18n_backend_spec.rb'
-    - 'spec/copy_tuner_client/poller_spec.rb'
-    - 'spec/copy_tuner_client/process_guard_spec.rb'
-
-# Offense count: 14
-# Configuration parameters: IgnoreNameless, IgnoreSymbolicNames.
-RSpec/VerifiedDoubles:
-  Exclude:
-    - 'spec/copy_tuner_client/client_spec.rb'
-    - 'spec/copy_tuner_client/configuration_spec.rb'
-    - 'spec/copy_tuner_client/copyray/rewriter_spec.rb'
-    - 'spec/copy_tuner_client/i18n_backend_spec.rb'
-    - 'spec/copy_tuner_client/process_guard_spec.rb'
-    - 'spec/copy_tuner_client/request_sync_spec.rb'
-
 # Offense count: 2
 # 要判断: have_config_option カスタムマッチャーの .default / .overridable オプション有無で
 # 検証内容を切り替えるDSL実装。無条件化すると @default / @overridable 未設定時に誤検証になる。
@@ -55,34 +30,3 @@ Sgcop/Rspec/NoMethodCallInExpectation:
   Exclude:
     - 'spec/copy_tuner_client/configuration_spec.rb'
 
-# Offense count: 8
-# Configuration parameters: AllowedConstants.
-Style/Documentation:
-  Exclude:
-    - 'spec/**/*'
-    - 'test/**/*'
-    - 'lib/copy_tuner_client/copyray.rb'
-    - 'lib/copy_tuner_client/copyray_middleware.rb'
-    - 'lib/copy_tuner_client/dotted_hash.rb'
-    - 'lib/copy_tuner_client/helper_extension.rb'
-    - 'lib/copy_tuner_client/i18n_compat.rb'
-    - 'lib/copy_tuner_client/prefixed_logger.rb'
-    - 'lib/copy_tuner_client/simple_form_extention.rb'
-    - 'lib/copy_tuner_client/translation_log.rb'
-
-# Offense count: 3
-# Configuration parameters: AllowedMethods.
-# AllowedMethods: respond_to_missing?
-Style/OptionalBooleanParameter:
-  Exclude:
-    - 'lib/copy_tuner_client.rb'
-    - 'lib/copy_tuner_client/queue_with_timeout.rb'
-    - 'lib/copy_tuner_client/request_sync.rb'
-
-# Offense count: 7
-Style/Send:
-  Exclude:
-    - 'lib/copy_tuner_client/prefixed_logger.rb'
-    - 'spec/copy_tuner_client/cache_spec.rb'
-    - 'spec/copy_tuner_client/configuration_spec.rb'
-    - 'spec/copy_tuner_client/prefixed_logger_spec.rb'

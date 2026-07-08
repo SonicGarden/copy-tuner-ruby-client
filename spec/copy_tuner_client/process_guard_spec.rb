@@ -3,16 +3,13 @@ require 'spec_helper'
 describe CopyTunerClient::ProcessGuard do
   include DefinesConstants
 
-  before do
-    @original_process_name = $PROGRAM_NAME
-  end
+  let!(:original_process_name) { $PROGRAM_NAME }
+  let(:cache) { instance_double(CopyTunerClient::Cache, flush: nil) }
+  let(:poller) { instance_double(CopyTunerClient::Poller, start: nil) }
 
   after do
-    $0 = @original_process_name
+    $0 = original_process_name
   end
-
-  let(:cache) { double('cache', flush: nil) }
-  let(:poller) { double('poller', start: nil) }
 
   def build_process_guard(options = {})
     preserve_exit_hook = options.delete(:preserve_exit_hook)

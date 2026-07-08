@@ -7,6 +7,7 @@ rescue LoadError
 end
 
 if defined?(SimpleForm)
+  # SimpleForm のラベル生成に Copyray のオーバーレイマーカーを注入する
   module SimpleForm::Components::Labels
     protected
 
