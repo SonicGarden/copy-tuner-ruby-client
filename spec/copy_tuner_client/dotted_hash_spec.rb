@@ -2,7 +2,7 @@ require 'spec_helper'
 
 describe CopyTunerClient::DottedHash do
   describe '.to_h' do
-    subject { described_class.to_h(dotted_hash) }
+    subject(:converted_hash) { described_class.to_h(dotted_hash) }
 
     context '空のキーの場合' do
       let(:dotted_hash) { {} }
@@ -32,19 +32,19 @@ describe CopyTunerClient::DottedHash do
       end
 
       it '正しくネストされたハッシュに変換されること' do
-        expect(subject).to eq({
-                                'en' => {
-                                  'test' => {
-                                    'key' => 'en test value',
-                                    'other_key' => 'en other test value',
-                                  },
-                                },
-                                'fr' => {
-                                  'test' => {
-                                    'key' => 'fr test value',
-                                  },
-                                },
-                              })
+        expect(converted_hash).to eq({
+                                       'en' => {
+                                         'test' => {
+                                           'key' => 'en test value',
+                                           'other_key' => 'en other test value',
+                                         },
+                                       },
+                                       'fr' => {
+                                         'test' => {
+                                           'key' => 'fr test value',
+                                         },
+                                       },
+                                     })
       end
     end
 
@@ -71,18 +71,18 @@ describe CopyTunerClient::DottedHash do
       end
 
       it '型変換せず値を文字列のまま保持する' do
-        expect(subject).to eq({
-                                'en' => {
-                                  'number' => { 'currency' => { 'format' => { 'precision' => '2' } } },
-                                  'custom' => { 'precision' => 'custom_value' },
-                                },
-                              })
+        expect(converted_hash).to eq({
+                                       'en' => {
+                                         'number' => { 'currency' => { 'format' => { 'precision' => '2' } } },
+                                         'custom' => { 'precision' => 'custom_value' },
+                                       },
+                                     })
       end
     end
   end
 
   describe '.conflict_keys' do
-    subject { described_class.conflict_keys(dotted_hash) }
+    subject(:conflicts) { described_class.conflict_keys(dotted_hash) }
 
     context '有効なキーの場合' do
       let(:dotted_hash) do
@@ -107,10 +107,10 @@ describe CopyTunerClient::DottedHash do
       end
 
       it '競合するキーが正しく検出されること' do
-        expect(subject).to eq({
-                                'ja.fuga.test' => %w[ja.fuga.test.hoge],
-                                'ja.hoge.test' => %w[ja.hoge.test.fuga ja.hoge.test.hoge],
-                              })
+        expect(conflicts).to eq({
+                                  'ja.fuga.test' => %w[ja.fuga.test.hoge],
+                                  'ja.hoge.test' => %w[ja.hoge.test.fuga ja.hoge.test.hoge],
+                                })
       end
     end
   end

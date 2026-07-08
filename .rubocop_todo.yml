@@ -38,19 +38,6 @@ RSpec/MessageSpies:
     - 'spec/copy_tuner_client/request_sync_spec.rb'
     - 'spec/copy_tuner_client_spec.rb'
 
-# Offense count: 96
-# Configuration parameters: EnforcedStyle, IgnoreSharedExamples.
-# SupportedStyles: always, named_only
-RSpec/NamedSubject:
-  Exclude:
-    - 'spec/copy_tuner_client/cache_spec.rb'
-    - 'spec/copy_tuner_client/configuration_spec.rb'
-    - 'spec/copy_tuner_client/copyray_spec.rb'
-    - 'spec/copy_tuner_client/dotted_hash_spec.rb'
-    - 'spec/copy_tuner_client/i18n_backend_spec.rb'
-    - 'spec/copy_tuner_client/prefixed_logger_spec.rb'
-    - 'spec/copy_tuner_client/request_sync_spec.rb'
-
 # Offense count: 6
 RSpec/StubbedMock:
   Exclude:

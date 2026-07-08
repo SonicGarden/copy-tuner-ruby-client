@@ -1,7 +1,7 @@
 require 'spec_helper'
 
 shared_context 'stubbed configuration' do
-  subject { CopyTunerClient::Configuration.new }
+  subject(:configuration) { CopyTunerClient::Configuration.new }
 
   let(:backend) { double('i18n-backend') }
   let(:cache) { double('cache', download: 'download') }
@@ -15,10 +15,10 @@ shared_context 'stubbed configuration' do
     allow(CopyTunerClient::Cache).to receive(:new).and_return(cache)
     allow(CopyTunerClient::Poller).to receive(:new).and_return(poller)
     allow(CopyTunerClient::ProcessGuard).to receive(:new).and_return(process_guard)
-    subject.logger = logger
+    configuration.logger = logger
     # NOTE: apply は project_id 必須になったため、未設定だと raise する。applied 系テストは
     #       project_id 自体を検証しないので適当な値を補っておく
-    subject.project_id ||= 1
+    configuration.project_id ||= 1
     apply
   end
 end
@@ -34,12 +34,12 @@ shared_examples_for 'applied configuration' do
   end
 
   it 'builds and assigns a poller' do
-    expect(CopyTunerClient::Poller).to have_received(:new).with(cache, subject.to_hash)
+    expect(CopyTunerClient::Poller).to have_received(:new).with(cache, configuration.to_hash)
   end
 
   it 'builds a process guard' do
     expect(CopyTunerClient::ProcessGuard).to have_received(:new)
-      .with(cache, poller, subject.to_hash)
+      .with(cache, poller, configuration.to_hash)
   end
 
   it 'logs that it is ready' do
@@ -47,11 +47,13 @@ shared_examples_for 'applied configuration' do
   end
 
   it 'logs environment info' do
-    expect(logger).to have_entry(:info, "Environment Info: #{subject.environment_info}")
+    expect(logger).to have_entry(:info, "Environment Info: #{configuration.environment_info}")
   end
 end
 
 describe CopyTunerClient::Configuration do
+  subject(:configuration) { described_class.new }
+
   RSpec::Matchers.define :have_config_option do |option|
     match do |config|
       expect(config).to respond_to(option)
@@ -220,14 +222,14 @@ describe CopyTunerClient::Configuration do
   end
 
   it 'generates environment info without a framework' do
-    subject.environment_name = 'production'
-    expect(subject.environment_info).to eq("[Ruby: #{RUBY_VERSION}] [Env: production]")
+    configuration.environment_name = 'production'
+    expect(configuration.environment_info).to eq("[Ruby: #{RUBY_VERSION}] [Env: production]")
   end
 
   it 'generates environment info with a framework' do
-    subject.environment_name = 'production'
-    subject.framework = 'Sinatra: 1.0.0'
-    expect(subject.environment_info)
+    configuration.environment_name = 'production'
+    configuration.framework = 'Sinatra: 1.0.0'
+    expect(configuration.environment_info)
       .to eq("[Ruby: #{RUBY_VERSION}] [Sinatra: 1.0.0] [Env: production]")
   end
 
@@ -333,8 +335,8 @@ describe CopyTunerClient::Configuration do
     end
 
     def apply
-      subject.environment_name = 'test'
-      subject.apply
+      configuration.environment_name = 'test'
+      configuration.apply
     end
   end
 
@@ -346,8 +348,8 @@ describe CopyTunerClient::Configuration do
     end
 
     def apply
-      subject.environment_name = 'development'
-      subject.apply
+      configuration.environment_name = 'development'
+      configuration.apply
     end
   end
 
@@ -361,9 +363,9 @@ describe CopyTunerClient::Configuration do
     let(:middleware) { MiddlewareStack.new }
 
     def apply
-      subject.middleware = middleware
-      subject.environment_name = 'development'
-      subject.apply
+      configuration.middleware = middleware
+      configuration.environment_name = 'development'
+      configuration.apply
     end
   end
 
@@ -371,9 +373,9 @@ describe CopyTunerClient::Configuration do
     it_behaves_like 'applied configuration'
 
     def apply
-      subject.middleware = nil
-      subject.environment_name = 'development'
-      subject.apply
+      configuration.middleware = nil
+      configuration.environment_name = 'development'
+      configuration.apply
     end
   end
 
@@ -383,9 +385,9 @@ describe CopyTunerClient::Configuration do
     it_behaves_like 'applied configuration'
 
     def apply
-      subject.middleware = middleware
-      subject.environment_name = 'test'
-      subject.apply
+      configuration.middleware = middleware
+      configuration.environment_name = 'test'
+      configuration.apply
     end
 
     it 'does not add the sync middleware' do
@@ -397,11 +399,11 @@ describe CopyTunerClient::Configuration do
     include_context 'stubbed configuration'
 
     def apply
-      subject.apply
+      configuration.apply
     end
 
     it 'has locales [:en]' do
-      expect(subject.locales).to eq [:en]
+      expect(configuration.locales).to eq [:en]
     end
   end
 
@@ -409,12 +411,12 @@ describe CopyTunerClient::Configuration do
     include_context 'stubbed configuration'
 
     def apply
-      subject.locales = %i[en ja]
-      subject.apply
+      configuration.locales = %i[en ja]
+      configuration.apply
     end
 
     it 'has locales %i(en ja)' do
-      expect(subject.locales).to eq %i[en ja]
+      expect(configuration.locales).to eq %i[en ja]
     end
   end
 
@@ -430,7 +432,7 @@ describe CopyTunerClient::Configuration do
     end
 
     def apply
-      subject.apply
+      configuration.apply
     end
 
     context 'with available_locales' do
@@ -438,7 +440,7 @@ describe CopyTunerClient::Configuration do
       include_context 'stubbed configuration'
 
       it 'has locales %i(en ja)' do
-        expect(subject.locales).to eq %i[en ja]
+        expect(configuration.locales).to eq %i[en ja]
       end
     end
 
@@ -447,7 +449,7 @@ describe CopyTunerClient::Configuration do
       include_context 'stubbed configuration'
 
       it 'has locales %i(ja)' do
-        expect(subject.locales).to eq %i[ja]
+        expect(configuration.locales).to eq %i[ja]
       end
     end
   end
