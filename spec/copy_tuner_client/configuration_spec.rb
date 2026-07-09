@@ -58,9 +58,11 @@ describe CopyTunerClient::Configuration do
     match do |config|
       expect(config).to respond_to(option)
 
-      expect(config.public_send(option)).to eq(@default) if instance_variables.include?(:@default)
+      # .default チェーン指定時のみ既定値を検証する DSL のため条件分岐が必須
+      expect(config.public_send(option)).to eq(@default) if instance_variables.include?(:@default) # rubocop:disable Sgcop/Rspec/ConditionalExample
 
-      if @overridable
+      # .overridable チェーン指定時のみ代入可否を検証する DSL のため条件分岐が必須
+      if @overridable # rubocop:disable Sgcop/Rspec/ConditionalExample
         value = 'a value'
         config.public_send(:"#{option}=", value)
         expect(config.public_send(option)).to eq(value)
@@ -124,22 +126,23 @@ describe CopyTunerClient::Configuration do
     config = described_class.new
     hash = config.to_hash
 
+    # hash が元 config の各 option と同期していることを検証するため、比較先をリテラルに書き出せない
     %i[
       api_key environment_name host http_open_timeout
       http_read_timeout client_name client_url client_version port
       protocol proxy_host proxy_pass proxy_port proxy_user secure
       development_environments logger framework ca_file
     ].each do |option|
-      expect(hash[option]).to eq(config[option])
+      expect(hash[option]).to eq(config[option]) # rubocop:disable Sgcop/Rspec/NoMethodCallInExpectation
     end
 
-    expect(hash[:public]).to eq(config.public?)
+    expect(hash[:public]).to eq(config.public?) # rubocop:disable Sgcop/Rspec/NoMethodCallInExpectation
   end
 
   it 'is mergable' do
     config = described_class.new
     hash = config.to_hash
-    expect(config.merge(key: 'value')).to eq(hash.merge(key: 'value'))
+    expect(config.merge(key: 'value')).to eq(hash.merge(key: 'value')) # rubocop:disable Sgcop/Rspec/NoMethodCallInExpectation
   end
 
   it 'uses development and staging as development environments by default' do

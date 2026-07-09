@@ -10,7 +10,6 @@ describe CopyTunerClient::CopyrayMiddleware do
 
   subject(:middleware) { described_class.new(app) }
 
-  let(:headers) { { 'Content-Type' => 'text/html' } }
   let(:app) { ->(_env) { [status, headers, [body]] } }
   let(:status) { 200 }
 
@@ -25,6 +24,7 @@ describe CopyTunerClient::CopyrayMiddleware do
   end
 
   context 'マーカートークンを含む HTML レスポンスのとき' do
+    let(:headers) { { 'Content-Type' => 'text/html' } }
     let(:body) { "<html><body><p>#{marker('a.b')}Hello</p></body></html>" }
 
     it 'マーカーを data-copyray-key 属性に書き換え、トークンを除去する' do
