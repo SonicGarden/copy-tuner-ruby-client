@@ -7,17 +7,17 @@ module CopyTunerClient
       @received = ConditionVariable.new
     end
 
-    def <<(x)
+    def <<(item)
       @mutex.synchronize do
-        @queue << x
+        @queue << item
         @received.signal
       end
     end
 
-    def uniq_push(x)
+    def uniq_push(item)
       @mutex.synchronize do
-        unless @queue.member?(x)
-          @queue << x
+        unless @queue.member?(item)
+          @queue << item
           @received.signal
         end
       end
@@ -29,21 +29,31 @@ module CopyTunerClient
 
     def pop_with_timeout(timeout = nil)
       @mutex.synchronize do
-        if timeout.nil?
-          # wait indefinitely until there is an element in the queue
-          while @queue.empty?
-            @received.wait(@mutex)
-          end
-        elsif @queue.empty? && timeout != 0
-          # wait for element or timeout
-          timeout_time = timeout + Time.now.to_f
-          while @queue.empty? && (remaining_time = timeout_time - Time.now.to_f) > 0
-            @received.wait(@mutex, remaining_time)
-          end
-        end
-        #if we're still empty after the timeout, raise exception
-        raise ThreadError, "queue empty" if @queue.empty?
+        wait_for_item(timeout)
+
+        # if we're still empty after the timeout, raise exception
+        raise ThreadError, 'queue empty' if @queue.empty?
+
         @queue.shift
+      end
+    end
+
+    private
+
+    def wait_for_item(timeout)
+      if timeout.nil?
+        # wait indefinitely until there is an element in the queue
+        @received.wait(@mutex) while @queue.empty?
+      elsif @queue.empty? && timeout != 0
+        wait_with_timeout(timeout)
+      end
+    end
+
+    def wait_with_timeout(timeout)
+      # wait for element or timeout
+      timeout_time = timeout + Time.now.to_f
+      while @queue.empty? && (remaining_time = timeout_time - Time.now.to_f).positive?
+        @received.wait(@mutex, remaining_time)
       end
     end
   end

@@ -1,12 +1,12 @@
 class WritingCache
+  FLUSHED = 'flushed'.freeze
+
   def flush
-    File.open(path, "w") do |file|
-      file.write(object_id.to_s)
-    end
+    File.write(path, FLUSHED)
   end
 
   def written?
-    IO.read(path) == object_id.to_s
+    File.exist?(path) && File.read(path) == FLUSHED
   end
 
   private

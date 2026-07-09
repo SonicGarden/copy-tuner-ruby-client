@@ -13,12 +13,12 @@ class FakeCopyTunerApp < Sinatra::Base
         Thin::Logging.silent = true
       end
 
-      Rack::Handler::Thin.run self, :Port => port
+      Rack::Handler::Thin.run self, Port: port
     end
   end
 
   def self.port
-    (ENV['COPY_TUNER_PORT'] || 3002).to_i
+    ENV.fetch('COPY_TUNER_PORT', 3002).to_i
   end
 
   def self.add_project(api_key)
@@ -35,11 +35,11 @@ class FakeCopyTunerApp < Sinatra::Base
 
   def with_project(api_key)
     if api_key == 'raise_error'
-      halt 500, { :error => 'Blah ha' }.to_json
-    elsif project = Project.find(api_key)
+      halt 500, { error: 'Blah ha' }.to_json
+    elsif (project = Project.find(api_key))
       yield project
     else
-      halt 404, { :error => 'No such project' }.to_json
+      halt 404, { error: 'No such project' }.to_json
     end
   end
 
@@ -84,11 +84,57 @@ class FakeCopyTunerApp < Sinatra::Base
   class Project
     attr_reader :draft, :published, :api_key
 
+    MUTEX = Mutex.new
+
+    def self.create(api_key)
+      project = Project.new('api_key' => api_key)
+      save project
+      project
+    end
+
+    def self.find(api_key)
+      open_project_data do |data|
+        if (project_hash = data[api_key])
+          Project.new project_hash.dup
+        end
+      end
+    end
+
+    def self.delete_all
+      open_project_data(&:clear)
+    end
+
+    def self.save(project)
+      open_project_data do |data|
+        data[project.api_key] = project.to_hash
+      end
+    end
+
+    def self.open_project_data
+      MUTEX.synchronize do
+        project_file = File.expand_path('../../tmp/projects.json', __dir__)
+        FileUtils.mkdir_p File.dirname(project_file)
+
+        data =
+          if File.exist? project_file
+            JSON.parse(File.read(project_file))
+          else
+            {}
+          end
+
+        result = yield(data)
+
+        File.write(project_file, data.to_json)
+
+        result
+      end
+    end
+
     def initialize(attrs)
       @api_key = attrs['api_key']
-      @draft = attrs['draft']  || {}
-      @etag = attrs['etag'] || 1
-      @published = attrs['published'] || {}
+      @draft = attrs.fetch('draft', {})
+      @etag = attrs.fetch('etag', 1)
+      @published = attrs.fetch('published', {})
     end
 
     def to_hash
@@ -96,18 +142,14 @@ class FakeCopyTunerApp < Sinatra::Base
         'api_key' => @api_key,
         'etag' => @etag,
         'draft' => @draft,
-        'published' => @published
+        'published' => @published,
       }
     end
 
     def update(attrs)
-      if attrs['draft']
-        @draft.update attrs['draft']
-      end
+      @draft.update attrs['draft'] if attrs['draft']
 
-      if attrs['published']
-        @published.update attrs['published']
-      end
+      @published.update attrs['published'] if attrs['published']
 
       @etag += 1
       self.class.save self
@@ -124,56 +166,6 @@ class FakeCopyTunerApp < Sinatra::Base
 
     def etag
       @etag.to_s
-    end
-
-    def self.create(api_key)
-      project = Project.new('api_key' => api_key)
-      save project
-      project
-    end
-
-    def self.find(api_key)
-      open_project_data do |data|
-        if project_hash = data[api_key]
-          Project.new project_hash.dup
-        else
-          nil
-        end
-      end
-    end
-
-    def self.delete_all
-      open_project_data do |data|
-        data.clear
-      end
-    end
-
-    def self.save(project)
-      open_project_data do |data|
-        data[project.api_key] = project.to_hash
-      end
-    end
-
-    MUTEX = Mutex.new
-    def self.open_project_data
-      MUTEX.synchronize do
-        project_file = File.expand_path('../../../tmp/projects.json', __FILE__)
-        FileUtils.mkdir_p File.dirname(project_file)
-
-        if File.exist? project_file
-          data = JSON.parse(IO.read(project_file))
-        else
-          data = {}
-        end
-
-        result = yield(data)
-
-        File.open(project_file, 'w') do |file|
-          file.write data.to_json
-        end
-
-        result
-      end
     end
   end
 end

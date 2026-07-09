@@ -38,7 +38,7 @@ module CopyTunerClient
           # NOTE: 閾値超は Nokogiri を通さず可視トークン除去のみ。skipped=true で編集導線を諦めた旨を伝える。
           return [strip_markers(scannable), true] if scannable.bytesize > MAX_REWRITE_BYTESIZE
 
-          [rewrite_with_nokogiri(scannable, fragment: fragment), false]
+          [rewrite_with_nokogiri(scannable, fragment:), false]
         rescue StandardError => e
           # NOTE: Copyray は開発支援機能なので、壊れた HTML 等で Nokogiri 処理が落ちても
           # ページを 500 にしない。data-copyray-key 付与（編集導線）は諦め、最低限可視トークンだけ除去する。

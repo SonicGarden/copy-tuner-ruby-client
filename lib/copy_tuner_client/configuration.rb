@@ -12,14 +12,16 @@ module CopyTunerClient
   # Used to set up and modify settings for the client.
   class Configuration # rubocop:disable Metrics/ClassLength
     # These options will be present in the Hash returned by {#to_hash}.
-    OPTIONS = %i[api_key development_environments environment_name host
-                 http_open_timeout http_read_timeout client_name client_url
-                 client_version port protocol proxy_host proxy_pass
-                 proxy_port proxy_user secure polling_delay sync_interval
-                 sync_interval_staging sync_ignore_path_regex logger
-                 framework middleware disable_middleware disable_test_translation
-                 ca_file local_first_key_regexp s3_host locales ignored_keys ignored_key_handler
-                 download_cache_dir].freeze
+    OPTIONS = %i[
+      api_key development_environments environment_name host
+      http_open_timeout http_read_timeout client_name client_url
+      client_version port protocol proxy_host proxy_pass
+      proxy_port proxy_user secure polling_delay sync_interval
+      sync_interval_staging sync_ignore_path_regex logger
+      framework middleware disable_middleware disable_test_translation
+      ca_file local_first_key_regexp s3_host locales ignored_keys ignored_key_handler
+      download_cache_dir
+    ].freeze
 
     # NOTE: Rails 標準ロケールで非文字列値（precision: Integer, significant: Boolean,
     # strip_insignificant_zeros: Boolean）を含むのは number.*.format 配下のみ。store_item が文字列しか
@@ -200,7 +202,7 @@ module CopyTunerClient
       base_options = { public: public?, upload_disabled: upload_disabled? }
 
       OPTIONS.inject(base_options) do |hash, option|
-        hash.merge option.to_sym => public_send(option)
+        hash.merge(option.to_sym => public_send(option))
       end
     end
 
@@ -209,7 +211,7 @@ module CopyTunerClient
     # @param [Hash] hash A set of configuration options that will take precedence over the defaults
     # @return [Hash] the merged configuration hash
     def merge(hash)
-      to_hash.merge hash
+      to_hash.merge(hash)
     end
 
     # Determines if the published or draft content will be used
@@ -222,7 +224,7 @@ module CopyTunerClient
     # Determines if the content will be editable
     # @return [Boolean] Returns +true+ if in a development environment, +false+ otherwise.
     def development?
-      development_environments.include? environment_name
+      development_environments.include?(environment_name)
     end
 
     def enable_middleware?
@@ -252,15 +254,11 @@ module CopyTunerClient
     # This creates the {I18nBackend} and puts them together.
     #
     # When {#test?} returns +false+, the poller will be started.
-    def apply # rubocop:disable Metrics/AbcSize, Metrics/CyclomaticComplexity, Metrics/MethodLength, Metrics/PerceivedComplexity
+    def apply # rubocop:disable Metrics/AbcSize
       # NOTE: project_id は必須。未設定なら apply 時点で明示的に失敗させる
       validate_project_id!
 
-      self.locales ||= self.locales = if defined?(::Rails)
-                                        ::Rails.application.config.i18n.available_locales.presence || Array(::Rails.application.config.i18n.default_locale)
-                                      else
-                                        [:en]
-                                      end
+      self.locales ||= default_locales
 
       self.client ||= Client.new(to_hash)
       self.cache ||= Cache.new(client, to_hash)
@@ -268,31 +266,12 @@ module CopyTunerClient
       process_guard = ProcessGuard.new(cache, @poller, to_hash)
       I18n.backend = I18nBackend.new(cache)
 
-      if enable_middleware?
-        logger.info 'Using copytuner sync middleware'
-        request_sync_options = { poller: @poller, cache:, interval: sync_interval, ignore_regex: sync_ignore_path_regex }
-        if middleware_position.is_a?(Hash) && middleware_position[:before]
-          middleware.insert_before middleware_position[:before], RequestSync, request_sync_options
-          middleware.insert_before middleware_position[:before], CopyTunerClient::CopyrayMiddleware
-        elsif middleware_position.is_a?(Hash) && middleware_position[:after]
-          middleware.insert_after middleware_position[:after], RequestSync, request_sync_options
-          middleware.insert_after middleware_position[:after], CopyTunerClient::CopyrayMiddleware
-        else
-          middleware.use RequestSync, request_sync_options
-          middleware.use CopyTunerClient::CopyrayMiddleware
-        end
-      else
-        logger.info '[[[Warn]]] Not using copytuner sync middleware' unless middleware
-      end
+      setup_middleware
 
       @applied = true
-      logger.info "Client #{VERSION} ready (s3_download)"
-      logger.info "Environment Info: #{environment_info}"
-      logger.info "Available locales: #{self.locales.join(' ')}"
+      log_applied
 
-      unless test?
-        process_guard.start
-      end
+      process_guard.start unless test?
 
       unless test? && disable_test_translation
         logger.info 'Download translation now'
@@ -348,7 +327,7 @@ module CopyTunerClient
       validate_project_id!
 
       path = "/projects/#{project_id}"
-      URI::Generic.build(scheme: self.protocol, host: self.host, port: self.port.to_i, path:).to_s
+      URI::Generic.build(scheme: protocol, host:, port: port.to_i, path:).to_s
     end
 
     # locale を除いたキーが local_first_key_regexp にマッチするかを返す。
@@ -368,6 +347,49 @@ module CopyTunerClient
     end
 
     private
+
+    def default_locales
+      if defined?(::Rails)
+        rails_i18n = ::Rails.application.config.i18n
+        rails_i18n.available_locales.presence || Array(rails_i18n.default_locale)
+      else
+        [:en]
+      end
+    end
+
+    def setup_middleware
+      if enable_middleware?
+        logger.info 'Using copytuner sync middleware'
+        insert_middleware
+      else
+        logger.info '[[[Warn]]] Not using copytuner sync middleware' unless middleware
+      end
+    end
+
+    def log_applied
+      logger.info "Client #{VERSION} ready (s3_download)"
+      logger.info "Environment Info: #{environment_info}"
+      logger.info "Available locales: #{locales.join(' ')}"
+    end
+
+    def insert_middleware # rubocop:disable Metrics/AbcSize
+      request_sync_options = {
+        poller: @poller,
+        cache:,
+        interval: sync_interval,
+        ignore_regex: sync_ignore_path_regex,
+      }
+      if middleware_position.is_a?(Hash) && middleware_position[:before]
+        middleware.insert_before(middleware_position[:before], RequestSync, request_sync_options)
+        middleware.insert_before(middleware_position[:before], CopyTunerClient::CopyrayMiddleware)
+      elsif middleware_position.is_a?(Hash) && middleware_position[:after]
+        middleware.insert_after(middleware_position[:after], RequestSync, request_sync_options)
+        middleware.insert_after(middleware_position[:after], CopyTunerClient::CopyrayMiddleware)
+      else
+        middleware.use(RequestSync, request_sync_options)
+        middleware.use(CopyTunerClient::CopyrayMiddleware)
+      end
+    end
 
     # project_id は必須。未設定なら明示的に失敗させる。
     # apply（起動時の全体検証）と project_url（apply を経ない経路へのセーフネット）の両方から呼ぶ。

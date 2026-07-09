@@ -23,7 +23,7 @@ module CopyTunerClient
       @local_first_key_regexp = options[:local_first_key_regexp]
       @upload_disabled = options[:upload_disabled]
       @ignored_keys = options.fetch(:ignored_keys, [])
-      @ignored_key_handler = options.fetch(:ignored_key_handler, -> (e) { raise e })
+      @ignored_key_handler = options.fetch(:ignored_key_handler, ->(e) { raise e })
       @locales = Array(options[:locales]).map(&:to_s)
       # mutable states
       @blurbs = {}
@@ -48,18 +48,14 @@ module CopyTunerClient
     # @param key [String] the key of the blurb to update
     # @param value [String] the new contents of the blurb
     def []=(key, value)
-      return unless key.include?('.')
-      return if @locales.present? && !@locales.member?(key.split('.').first)
-      return if @upload_disabled
+      return if skip_upload?(key)
 
       # NOTE: config/locales以下のファイルに除外キーが残っていた場合の対応
       key_without_locale = key.split('.')[1..].join('.')
       # NOTE: local_first キー（組み込みの Rails number.*.format + ユーザー設定）は copy_tuner と完全分離するためアップロードしない
       return if local_first_key?(key_without_locale)
 
-      if @ignored_keys.include?(key_without_locale)
-        @ignored_key_handler.call(IgnoredKey.new("Ignored key: #{key_without_locale}"))
-      end
+      handle_ignored_key(key_without_locale)
 
       lock do
         return if @blank_keys.member?(key) || @blurbs.key?(key)
@@ -100,17 +96,16 @@ module CopyTunerClient
 
       logger.info 'Waiting for first download'
 
-      if logger.respond_to? :flush
-        logger.flush
-      end
+      logger.flush if logger.respond_to?(:flush)
 
-      sleep 0.1 while pending?
+      sleep(0.1) while pending?
     end
 
     def flush
-      res = with_queued_changes do |queued|
-        client.upload queued
-      end
+      res =
+        with_queued_changes do |queued|
+          client.upload(queued)
+        end
 
       @last_uploaded_at = Time.now.utc
 
@@ -122,15 +117,16 @@ module CopyTunerClient
     def download
       @status = STATUS_PENDING unless ready?
 
-      res = client.download(cache_fallback: pending?) do |downloaded_blurbs|
-        blank_keys = Set.new
-        blurbs = {}
-        downloaded_blurbs.each { |key, value| value == '' ? blank_keys << key : blurbs[key] = value }
-        lock do
-          @blank_keys = blank_keys
-          @blurbs = blurbs
+      res =
+        client.download(cache_fallback: pending?) do |downloaded_blurbs|
+          blank_keys = Set.new
+          blurbs = {}
+          downloaded_blurbs.each { |key, value| value == '' ? blank_keys << key : blurbs[key] = value }
+          lock do
+            @blank_keys = blank_keys
+            @blurbs = blurbs
+          end
         end
-      end
 
       @last_downloaded_at = Time.now.utc
       @status = STATUS_READY unless ready?
@@ -163,12 +159,25 @@ module CopyTunerClient
 
     attr_reader :client, :logger
 
+    def skip_upload?(key)
+      return true unless key.include?('.')
+      return true if @locales.present? && !@locales.member?(key.split('.').first)
+
+      @upload_disabled
+    end
+
     # NOTE: 組み込みの Rails number.*.format キーは lookup 経路（Configuration#local_first_key?）と
     # アップロード抑止経路（ここ）で同じ判定を共有する。判定本体は Configuration に集約し付け忘れの穴を防ぐ。
     def local_first_key?(key_without_locale)
       return true if Configuration.builtin_local_first_key?(key_without_locale)
 
       @local_first_key_regexp && key_without_locale.match?(@local_first_key_regexp)
+    end
+
+    def handle_ignored_key(key_without_locale)
+      return unless @ignored_keys.include?(key_without_locale)
+
+      @ignored_key_handler.call(IgnoredKey.new("Ignored key: #{key_without_locale}"))
     end
 
     def with_queued_changes
@@ -181,9 +190,7 @@ module CopyTunerClient
         end
       end
 
-      if changes_to_push
-        yield nil_value_to_empty(changes_to_push)
-      end
+      yield(nil_value_to_empty(changes_to_push)) if changes_to_push
     end
 
     def nil_value_to_empty(hash)
@@ -197,8 +204,8 @@ module CopyTunerClient
       hash
     end
 
-    def lock(&block)
-      @mutex.synchronize &block
+    def lock(&)
+      @mutex.synchronize(&)
     end
   end
 end

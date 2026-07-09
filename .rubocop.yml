@@ -1,7 +1,52 @@
 inherit_gem:
-  sgcop: ruby/rubocop.yml
+  sgcop:
+    - ruby/rubocop_strict.yml
+    - ruby/rubocop_rspec_strict.yml
+
+plugins:
+  - rubocop-rake
+  - rubocop-rspec
 
 # .ruby-version が RuboCop 未対応の新しい Ruby を指すと解析が落ちるため、
 # サポート最低バージョンを明示する
+# rubocop-rails は Rails プロジェクトではないため意図的に読み込まない
 AllCops:
   TargetRubyVersion: 3.3
+  NewCops: enable
+  SuggestExtensions: false
+
+# gemfiles/*.gemfile が `gemspec path: '../'` で本体 gemspec の development dependency を
+# 読み込む構成のため、Gemfile 側への移行は各 gemfiles/*.gemfile への書き戻しが必要になり
+# 意味を変えない自動修正の範囲を超える。gemspec でのdevelopment dependency 宣言を維持する。
+Gemspec/DevelopmentDependencies:
+  Exclude:
+    - 'copy_tuner_client.gemspec'
+
+# middleware（テスト対象自身）の private メソッド append_js / helpers を no-op や
+# フェイクに差し替えないと、Rails の ActionController::Base.helpers 依存を外して
+# Rewriter の効果だけを検証できないため対象外。
+RSpec/SubjectStub:
+  Exclude:
+    - 'spec/copy_tuner_client/copyray_middleware_spec.rb'
+
+# Ruby 標準 Queue#pop(non_block=false) のインターフェースに意図的に合わせた実装のため、
+# キーワード引数化すると標準 Queue との互換性が崩れる。
+Style/OptionalBooleanParameter:
+  Exclude:
+    - 'lib/copy_tuner_client/queue_with_timeout.rb'
+
+# Client#download は yield 前提の実装で、ブロックを渡さないと downloaded 時に
+# LocalJumpError になる。ダウンロード結果自体を検証しないテストでは空ブロックが必須。
+Lint/EmptyBlock:
+  Exclude:
+    - 'spec/copy_tuner_client/client_spec.rb'
+
+# 要判断: configuration_spec.rb の i18n/config/application は Rails gem 自体を
+# stub_const('Rails', Module.new) で丸ごと偽装するための double。ActiveSupport::OrderedOptions
+# は method_missing 経由でアクセサを実装するため instance_double では検証できない。
+# request_sync_spec.rb の app は Rack app プロトコル（call(env) を実装する任意オブジェクト）で
+# 対応する具体的なクラスが存在しないため、Duck Typing 前提の double が妥当。
+RSpec/VerifiedDoubles:
+  Exclude:
+    - 'spec/copy_tuner_client/configuration_spec.rb'
+    - 'spec/copy_tuner_client/request_sync_spec.rb'

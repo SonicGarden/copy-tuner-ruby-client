@@ -137,7 +137,7 @@ describe 'CopyTunerClient::Cache' do
     cache.download
 
     expect(cache['en.test.key']).to eq('test value')
-    expect(cache['en.test.empty']).to eq(nil)
+    expect(cache['en.test.empty']).to be_nil
     expect(cache.blank_keys).to contain_exactly('en.test.empty')
 
     cache['en.test.empty'] = ''
@@ -157,8 +157,8 @@ describe 'CopyTunerClient::Cache' do
   it 'flush時に接続エラーが発生した場合はエラーログを出力すること' do
     failure = 'server is napping'
     logger = FakeLogger.new
-    expect(client).to receive(:upload).and_raise(CopyTunerClient::ConnectionError.new(failure))
-    cache = build_cache(logger: logger)
+    allow(client).to receive(:upload).and_raise(CopyTunerClient::ConnectionError.new(failure))
+    cache = build_cache(logger:)
     cache['upload.key'] = 'upload'
 
     cache.flush
@@ -169,8 +169,8 @@ describe 'CopyTunerClient::Cache' do
   it 'download時に接続エラーが発生した場合はエラーログを出力すること' do
     failure = 'server is napping'
     logger = FakeLogger.new
-    expect(client).to receive(:download).and_raise(CopyTunerClient::ConnectionError.new(failure))
-    cache = build_cache(logger: logger, ready: true)
+    allow(client).to receive(:download).and_raise(CopyTunerClient::ConnectionError.new(failure))
+    cache = build_cache(logger:, ready: true)
 
     cache.download
 
@@ -179,26 +179,28 @@ describe 'CopyTunerClient::Cache' do
 
   it '最初のダウンロードが完了するまでブロックすること' do
     logger = FakeLogger.new
-    expect(logger).to receive(:flush)
+    allow(logger).to receive(:flush)
     client.delay = true
-    cache = build_cache(logger: logger)
+    cache = build_cache(logger:)
 
     t_download = Thread.new { cache.download }
     sleep 0.1 until cache.pending?
 
-    t_wait = Thread.new do
-      cache.wait_for_download
-    end
+    t_wait =
+      Thread.new do
+        cache.wait_for_download
+      end
     sleep 0.1 until logger.has_entry?(:info, 'Waiting for first download')
     client.go
     expect(t_download.join(1)).not_to be_nil
-    expect(cache.pending?).to be_falsey
+    expect(cache).not_to be_pending
     expect(t_wait.join(1)).not_to be_nil
+    expect(logger).to have_received(:flush)
   end
 
   it 'ダウンロード前はブロックしないこと' do
     logger = FakeLogger.new
-    cache = build_cache(logger: logger)
+    cache = build_cache(logger:)
 
     finished = false
     Thread.new do
@@ -208,7 +210,7 @@ describe 'CopyTunerClient::Cache' do
 
     sleep(1)
 
-    expect(finished).to eq(true)
+    expect(finished).to be(true)
     expect(logger).not_to have_entry(:info, 'Waiting for first download')
   end
 
@@ -226,21 +228,21 @@ describe 'CopyTunerClient::Cache' do
       match do |thread|
         sleep(0.1)
 
-        if thread.status === false
-          violated('アンロック前に終了してしまった')
+        if thread.status == false
+          violated?('アンロック前に終了してしまった')
         else
           mutex.unlock
           sleep(0.1)
 
-          if thread.status === false
+          if thread.status == false
             true
           else
-            violated('アンロック後もスレッドが終了しない')
+            violated?('アンロック後もスレッドが終了しない')
           end
         end
       end
 
-      def violated(failure)
+      def violated?(failure)
         @failure_message = failure
         false
       end
@@ -277,13 +279,15 @@ describe 'CopyTunerClient::Cache' do
       config.project_id = 1
       config.cache = cache
     end
-    expect(cache).to receive(:flush).at_least(:once)
+    allow(cache).to receive(:flush)
 
     CopyTunerClient.flush
+
+    expect(cache).to have_received(:flush).at_least(:once)
   end
 
   describe '#to_tree_hash' do
-    subject { cache.to_tree_hash }
+    subject(:tree_hash) { cache.to_tree_hash }
 
     let(:cache) do
       cache = build_cache
@@ -292,7 +296,7 @@ describe 'CopyTunerClient::Cache' do
     end
 
     it 'データがない場合は空ハッシュを返すこと' do
-      is_expected.to eq({})
+      expect(tree_hash).to eq({})
     end
 
     context 'フラットなキーの場合' do
@@ -303,17 +307,17 @@ describe 'CopyTunerClient::Cache' do
       end
 
       it 'ツリー構造に変換されること' do
-        is_expected.to eq({
-          'ja' => {
-            'views' => {
-              'hoge' => 'test',
-              'fuga' => 'test2'
-            }
-          },
-          'en' => {
-            'hello' => 'world'
-          }
-        })
+        expect(tree_hash).to eq({
+                                  'ja' => {
+                                    'views' => {
+                                      'hoge' => 'test',
+                                      'fuga' => 'test2',
+                                    },
+                                  },
+                                  'en' => {
+                                    'hello' => 'world',
+                                  },
+                                })
       end
     end
 
@@ -326,26 +330,26 @@ describe 'CopyTunerClient::Cache' do
       end
 
       it '正しいツリー構造になること' do
-        is_expected.to eq({
-          'ja' => {
-            'views' => {
-              'users' => {
-                'index' => 'user index',
-                'show' => 'user show'
-              },
-              'posts' => {
-                'index' => 'post index'
-              }
-            }
-          },
-          'en' => {
-            'common' => {
-              'buttons' => {
-                'save' => 'Save'
-              }
-            }
-          }
-        })
+        expect(tree_hash).to eq({
+                                  'ja' => {
+                                    'views' => {
+                                      'users' => {
+                                        'index' => 'user index',
+                                        'show' => 'user show',
+                                      },
+                                      'posts' => {
+                                        'index' => 'post index',
+                                      },
+                                    },
+                                  },
+                                  'en' => {
+                                    'common' => {
+                                      'buttons' => {
+                                        'save' => 'Save',
+                                      },
+                                    },
+                                  },
+                                })
       end
     end
   end
@@ -353,7 +357,7 @@ describe 'CopyTunerClient::Cache' do
   describe '#version' do
     it 'クライアントのetagを返すこと（効率的なバージョンチェック）' do
       cache = build_cache
-      client_instance = cache.send(:client)
+      client_instance = cache.__send__(:client)
 
       # ETag が設定されている場合
       client_instance.etag = '"abc123"'
@@ -366,7 +370,7 @@ describe 'CopyTunerClient::Cache' do
 
     it 'etagがnilの場合も正常に動作すること' do
       cache = build_cache
-      client_instance = cache.send(:client)
+      client_instance = cache.__send__(:client)
       client_instance.etag = nil
 
       expect(cache.version).to be_nil
@@ -391,7 +395,7 @@ describe 'CopyTunerClient::Cache' do
   end
 
   describe '#export' do
-    subject { cache.export }
+    subject(:export_result) { cache.export }
 
     let(:cache) do
       cache = build_cache
@@ -404,12 +408,14 @@ describe 'CopyTunerClient::Cache' do
         config.project_id = 1
         config.cache = cache
       end
-      expect(cache).to receive(:export)
+      allow(cache).to receive(:export)
       CopyTunerClient.export
+
+      expect(cache).to have_received(:export)
     end
 
     it 'blurbキーがない場合はyamlを返さないこと' do
-      is_expected.to eq nil
+      expect(export_result).to be_nil
     end
 
     context '1階層のblurbキーがある場合' do

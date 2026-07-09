@@ -2,34 +2,39 @@ require 'spec_helper'
 
 describe 'CopyTunerClient::I18nBackend' do
   # テスト用のキャッシュクラス：既存のHashインターフェースを維持しつつ新機能をサポート
-  class TestCache < Hash
-    def initialize(initial_etag = 'test-etag-1')
-      super()
-      @test_etag = initial_etag
-    end
+  def test_cache_class
+    Class.new(Hash) do
+      def initialize(initial_etag = 'test-etag-1')
+        super()
+        @test_etag = initial_etag
+      end
 
-    def version
-      @test_etag
-    end
+      def version
+        @test_etag
+      end
 
-    def to_tree_hash
-      CopyTunerClient::DottedHash.to_h(self)
-    end
+      def to_tree_hash
+        CopyTunerClient::DottedHash.to_h(self)
+      end
 
-    def wait_for_download
-      # テスト用のスタブメソッド
-    end
+      def wait_for_download
+        # テスト用のスタブメソッド
+      end
 
-    def etag=(value)
-      @test_etag = value
-    end
+      def etag=(value)
+        @test_etag = value
+      end
 
-    def etag
-      @test_etag
+      def etag
+        @test_etag
+      end
     end
   end
 
-  let(:cache) { TestCache.new }
+  subject(:backend) { build_backend }
+
+  let(:cache) { test_cache_class.new }
+  let!(:default_backend) { I18n.backend }
 
   def build_backend
     backend = CopyTunerClient::I18nBackend.new(cache)
@@ -37,23 +42,18 @@ describe 'CopyTunerClient::I18nBackend' do
     backend
   end
 
-  before do
-    @default_backend = I18n.backend
-  end
-
-  after { I18n.backend = @default_backend }
-
-  subject { build_backend }
+  after { I18n.backend = default_backend }
 
   it 'ロケールファイルをリロードし、ダウンロード完了まで待機すること' do
-    expect(I18n).to receive(:load_path).and_return([])
+    allow(I18n).to receive(:load_path).and_return([])
     # wait_for_downloadはTestCacheクラス内で呼ばれる
-    subject.reload!
-    subject.translate('en', 'test.key', :default => 'something')
+    backend.reload!
+    backend.translate('en', 'test.key', default: 'something')
+    expect(I18n).to have_received(:load_path)
   end
 
   it 'i18nのBaseバックエンドを継承していること' do
-    is_expected.to be_kind_of(I18n::Backend::Base)
+    expect(backend).to be_a(I18n::Backend::Base)
   end
 
   it 'キャッシュからキーを検索できること' do
@@ -62,23 +62,23 @@ describe 'CopyTunerClient::I18nBackend' do
 
     backend = build_backend
 
-    expect(backend.translate('en', 'test.key', :scope => 'prefix')).to eq(value)
+    expect(backend.translate('en', 'test.key', scope: 'prefix')).to eq(value)
   end
 
   it 'ロケールファイルとキャッシュから利用可能なロケールを取得できること' do
     allow(YAML).to receive(:unsafe_load_file).and_return({ 'es' => { 'key' => 'value' } })
-    allow(I18n).to receive(:load_path).and_return(["test.yml"])
+    allow(I18n).to receive(:load_path).and_return(['test.yml'])
 
     cache['en.key'] = ''
     cache['fr.key'] = ''
 
-    expect(subject.available_locales).to match_array([:en, :es, :fr])
+    expect(backend.available_locales).to contain_exactly(:en, :es, :fr)
   end
 
   it 'default付きで未登録キーをキューイングすること' do
     default = 'default value'
 
-    expect(subject.translate('en', 'test.key', :default => default)).to eq(default)
+    expect(backend.translate('en', 'test.key', default:)).to eq(default)
 
     expect(cache['en.test.key']).to eq(default)
   end
@@ -86,14 +86,14 @@ describe 'CopyTunerClient::I18nBackend' do
   it 'defaultが配列（文字列1つ）の場合も未登録キーをキューイングすること' do
     default = 'default value'
 
-    expect(subject.translate('en', 'test.key', :default => [default])).to eq(default)
+    expect(backend.translate('en', 'test.key', default: [default])).to eq(default)
 
     expect(cache['en.test.key']).to eq(default)
   end
 
   it 'defaultなしで未登録キーをキューイングすること' do
-    expect { subject.translate('en', 'test.key') }.
-      to throw_symbol(:exception)
+    expect { backend.translate('en', 'test.key') }
+      .to throw_symbol(:exception)
 
     expect(cache).to have_key 'en.test.key'
     expect(cache['en.test.key']).to be_nil
@@ -102,123 +102,121 @@ describe 'CopyTunerClient::I18nBackend' do
   it 'scope付きで未登録キーをキューイングすること' do
     default = 'default value'
 
-    expect(subject.translate('en', 'key', :default => default, :scope => ['test'])).
-      to eq(default)
+    expect(backend.translate('en', 'key', default:, scope: ['test']))
+      .to eq(default)
 
     expect(cache['en.test.key']).to eq(default)
   end
 
   it 'defaultがシンボルの場合は未登録キーをキューイングしないこと' do
-    cache['en.key.one'] = "Expected"
+    cache['en.key.one'] = 'Expected'
 
-    expect(subject.translate('en', 'key.three', :default => :"key.one")).to eq 'Expected'
+    expect(backend.translate('en', 'key.three', default: :'key.one')).to eq 'Expected'
 
     expect(cache).to have_key 'en.key.three'
     expect(cache['en.key.three']).to be_nil
 
-    expect(subject.translate('en', 'key.three', :default => :"key.one")).to eq 'Expected'
+    expect(backend.translate('en', 'key.three', default: :'key.one')).to eq 'Expected'
   end
 
   it 'defaultが配列（シンボル含む）の場合は未登録キーをキューイングしないこと' do
-    cache['en.key.one'] = "Expected"
+    cache['en.key.one'] = 'Expected'
 
-    expect(subject.translate('en', 'key.three', :default => [:"key.two", :"key.one"])).to eq 'Expected'
+    expect(backend.translate('en', 'key.three', default: %i[key.two key.one])).to eq 'Expected'
 
     expect(cache).to have_key 'en.key.three'
     expect(cache['en.key.three']).to be_nil
 
-    expect(subject.translate('en', 'key.three', :default => [:"key.two", :"key.one"])).to eq 'Expected'
+    expect(backend.translate('en', 'key.three', default: %i[key.two key.one])).to eq 'Expected'
   end
 
   it '補間付きで未登録キーをキューイングすること' do
-    default = 'default %{interpolate}'
+    # I18n の補間構文 %{interpolate} であり Kernel#format 用の printf トークンではないため annotated 化は不適切
+    default = 'default %{interpolate}' # rubocop:disable Style/FormatStringToken
 
-    expect(subject.translate('en', 'test.key', :default => default, :interpolate => 'interpolated')).to eq 'default interpolated'
+    expect(backend.translate('en', 'test.key', default:, interpolate: 'interpolated')).to eq 'default interpolated'
 
-    expect(cache['en.test.key']).to eq 'default %{interpolate}'
+    expect(cache['en.test.key']).to eq 'default %{interpolate}' # rubocop:disable Style/FormatStringToken
   end
 
   # NOTE: backend は html_safe 化をしない（.html/_html キーの html_safe 化は ActionView の
   # TranslationHelper が担う）。html_escape 設定の有無に関わらず素の content を返す i18n 標準準拠の挙動。
   it 'html safeを付与しないこと' do
-    cache['en.test.key'] = FakeHtmlSafeString.new("Hello")
+    cache['en.test.key'] = FakeHtmlSafeString.new('Hello')
     backend = build_backend
-    expect(backend.translate('en', 'test.key')).to_not be_html_safe
+    expect(backend.translate('en', 'test.key')).not_to be_html_safe
   end
 
   it 'html_safe な値を渡しても backend が独自に html_safe 化しないこと' do
-    cache['en.test.key'] = FakeHtmlSafeString.new("Hello").html_safe
+    cache['en.test.key'] = FakeHtmlSafeString.new('Hello').html_safe
     backend = build_backend
     expect(backend.translate('en', 'test.key')).to be_html_safe
   end
 
   it 'defaultが配列の場合に順に検索できること' do
-    cache['en.key.one'] = "Expected"
+    cache['en.key.one'] = 'Expected'
     backend = build_backend
-    expect(backend.translate('en', 'key.three', :default => [:"key.two", :"key.one"])).
-      to eq('Expected')
+    expect(backend.translate('en', 'key.three', default: %i[key.two key.one]))
+      .to eq('Expected')
   end
 
   context '非文字列キーの場合' do
     it 'キャッシュに登録されないこと' do
-      expect { subject.translate('en', {}) }.to throw_symbol(:exception)
+      expect { backend.translate('en', {}) }.to throw_symbol(:exception)
       expect(cache).not_to have_key 'en.{}'
     end
   end
 
   describe 'store_translations利用時' do
-    subject { build_backend }
-
     it 'store_translationsで登録した値をdefaultとして利用できること' do
-      subject.store_translations('en', 'test' => { 'key' => 'Expected' })
-      expect(subject.translate('en', 'test.key', :default => 'Unexpected')).
-        to include('Expected')
+      backend.store_translations('en', 'test' => { 'key' => 'Expected' })
+      expect(backend.translate('en', 'test.key', default: 'Unexpected'))
+        .to include('Expected')
       expect(cache['en.test.key']).to eq('Expected')
     end
 
     it '補間マーカーを保持したまま保存できること' do
-      subject.store_translations('en', 'test' => { 'key' => '%{interpolate}' })
-      expect(subject.translate('en', 'test.key', :interpolate => 'interpolated')).
-        to include('interpolated')
-      expect(cache['en.test.key']).to eq('%{interpolate}')
+      # I18n の補間構文 %{interpolate} であり Kernel#format 用の printf トークンではないため annotated 化は不適切
+      backend.store_translations('en', 'test' => { 'key' => '%{interpolate}' }) # rubocop:disable Style/FormatStringToken
+      expect(backend.translate('en', 'test.key', interpolate: 'interpolated'))
+        .to include('interpolated')
+      expect(cache['en.test.key']).to eq('%{interpolate}') # rubocop:disable Style/FormatStringToken
     end
 
     it 'store_translationsでキーがなければdefaultを利用すること' do
-      expect(subject.translate('en', 'test.key', :default => 'Expected')).
-        to include('Expected')
+      expect(backend.translate('en', 'test.key', default: 'Expected'))
+        .to include('Expected')
     end
 
     it 'キャッシュにキーがあればそちらを優先すること' do
-      subject.store_translations('en', 'test' => { 'key' => 'Unexpected' })
+      backend.store_translations('en', 'test' => { 'key' => 'Unexpected' })
       cache['en.test.key'] = 'Expected'
-      expect(subject.translate('en', 'test.key', :default => 'default')).
-        to include('Expected')
+      expect(backend.translate('en', 'test.key', default: 'default'))
+        .to include('Expected')
     end
 
     it 'ネストしたハッシュを保存できること' do
-      nested = { :nested => 'value' }
-      subject.store_translations('en', 'key' => nested)
-      expect(subject.translate('en', 'key', :default => 'Unexpected')).to eq(nested)
+      nested = { nested: 'value' }
+      backend.store_translations('en', 'key' => nested)
+      expect(backend.translate('en', 'key', default: 'Unexpected')).to eq(nested)
       expect(cache['en.key.nested']).to eq('value')
     end
 
     it '配列はそのまま返しキャッシュしないこと' do
       array = ['value']
-      subject.store_translations('en', 'key' => array)
-      expect(subject.translate('en', 'key', :default => 'Unexpected')).to eq(array)
+      backend.store_translations('en', 'key' => array)
+      expect(backend.translate('en', 'key', default: 'Unexpected')).to eq(array)
       expect(cache['en.key']).to be_nil
     end
 
     it 'defaultが配列の場合に順に検索できること' do
-      subject.store_translations('en', 'key' => { 'one' => 'Expected' })
-      expect(subject.translate('en', 'key.three', :default => [:"key.two", :"key.one"])).
-        to include('Expected')
+      backend.store_translations('en', 'key' => { 'one' => 'Expected' })
+      expect(backend.translate('en', 'key.three', default: %i[key.two key.one]))
+        .to include('Expected')
     end
   end
 
   describe 'Fallbacks利用時' do
-    subject { build_backend }
-
     before do
       CopyTunerClient::I18nBackend.class_eval do
         include I18n::Backend::Fallbacks
@@ -227,7 +225,7 @@ describe 'CopyTunerClient::I18nBackend' do
 
     it 'defaultとFallbacks併用時はキャッシュにデフォルト値を入れないこと' do
       default = 'default value'
-      expect(subject.translate('en', 'test.key', :default => default)).to eq(default)
+      expect(backend.translate('en', 'test.key', default:)).to eq(default)
 
       # default と Fallbacks を併用した場合、キャッシュにデフォルト値は入らない仕様に変えた
       # その仕様にしないと、うまく Fallbacks の処理が動かないため
@@ -237,15 +235,13 @@ describe 'CopyTunerClient::I18nBackend' do
   end
 
   # NOTE: 色々考慮する必要があることが分かったため暫定対応として、ツリーキャッシュを使用しないようにしている
-  describe 'ツリー構造のlookup' do # rubocop:disable Metrics/BlockLength
-    subject { build_backend }
-
+  describe 'ツリー構造のlookup' do
     context '完全一致が存在する場合' do
       it 'ツリー構造より完全一致を優先すること' do
         cache['ja.views.hoge'] = 'exact_value'
         cache['ja.views.hoge.sub'] = 'sub_value'
 
-        result = subject.translate('ja', 'views.hoge')
+        result = backend.translate('ja', 'views.hoge')
         expect(result).to eq('exact_value')
       end
     end
@@ -256,17 +252,17 @@ describe 'CopyTunerClient::I18nBackend' do
         cache['ja.views.fuga'] = 'test2'
         cache['ja.other.key'] = 'other'
 
-        result = subject.translate('ja', 'views')
+        result = backend.translate('ja', 'views')
         expect(result).to eq({
-          :hoge => 'test',
-          :fuga => 'test2'
-        })
+                               hoge: 'test',
+                               fuga: 'test2',
+                             })
       end
 
       it '存在しない部分キーはnilを返すこと' do
         cache['ja.views.hoge'] = 'test'
 
-        result = subject.translate('ja', 'nonexistent', default: nil)
+        result = backend.translate('ja', 'nonexistent', default: nil)
         expect(result).to be_nil
       end
 
@@ -275,16 +271,16 @@ describe 'CopyTunerClient::I18nBackend' do
         cache['ja.views.users.show'] = 'user show'
         cache['ja.views.posts.index'] = 'post index'
 
-        result = subject.translate('ja', 'views')
+        result = backend.translate('ja', 'views')
         expect(result).to eq({
-          :users => {
-            :index => 'user index',
-            :show => 'user show'
-          },
-          :posts => {
-            :index => 'post index'
-          }
-        })
+                               users: {
+                                 index: 'user index',
+                                 show: 'user show',
+                               },
+                               posts: {
+                                 index: 'post index',
+                               },
+                             })
       end
     end
 
@@ -297,18 +293,18 @@ describe 'CopyTunerClient::I18nBackend' do
       end
 
       it '完全一致を正しく扱うこと' do
-        expect(subject.translate('ja', 'views.hoge')).to eq('exact_hoge')
+        expect(backend.translate('ja', 'views.hoge')).to eq('exact_hoge')
       end
 
       it 'ツリー構造を正しく扱うこと' do
-        expect(subject.translate('ja', 'views.fuga')).to eq({
-          :one => 'one',
-          :two => 'two'
-        })
+        expect(backend.translate('ja', 'views.fuga')).to eq({
+                                                              one: 'one',
+                                                              two: 'two',
+                                                            })
       end
 
       it 'より深い完全一致も正しく扱うこと' do
-        expect(subject.translate('ja', 'views.hoge.sub')).to eq('sub_value')
+        expect(backend.translate('ja', 'views.hoge.sub')).to eq('sub_value')
       end
     end
 
@@ -318,45 +314,47 @@ describe 'CopyTunerClient::I18nBackend' do
         cache['ja.views.fuga'] = 'test2'
 
         # 最初のlookupでツリーキャッシュが構築される
-        result = subject.translate('ja', 'views')
+        result = backend.translate('ja', 'views')
         expect(result).to eq({
-          :hoge => 'test',
-          :fuga => 'test2'
-        })
+                               hoge: 'test',
+                               fuga: 'test2',
+                             })
       end
 
       it '2回目以降はツリーキャッシュを再利用すること' do
         cache['ja.views.hoge'] = 'test'
 
         # 1回目
-        subject.translate('ja', 'views')
+        backend.translate('ja', 'views')
 
         # ツリーキャッシュの再構築が発生しないことを確認
-        expect(cache).not_to receive(:to_tree_hash)
+        allow(cache).to receive(:to_tree_hash)
 
         # 2回目
-        subject.translate('ja', 'views')
+        backend.translate('ja', 'views')
+
+        expect(cache).not_to have_received(:to_tree_hash)
       end
 
       it 'キャッシュバージョンが変わった場合はツリーキャッシュを再構築すること' do
         cache['ja.views.hoge'] = 'test'
-        subject.translate('ja', 'views')
+        backend.translate('ja', 'views')
 
         # ETag（バージョン）を変更してキャッシュを更新
         cache.etag = '"new_etag"'
 
         # 新しい値を追加
         cache['ja.views.new'] = 'new value'
-        result = subject.translate('ja', 'views')
-        expect(result).to include(:new => 'new value')
+        result = backend.translate('ja', 'views')
+        expect(result).to include(new: 'new value')
       end
 
       it 'キャッシュバージョンがnilでも正常に動作すること' do
         cache['ja.views.test'] = 'value'
         cache.etag = nil
 
-        result = subject.translate('ja', 'views')
-        expect(result).to eq({ :test => 'value' })
+        result = backend.translate('ja', 'views')
+        expect(result).to eq({ test: 'value' })
       end
     end
 
@@ -368,16 +366,17 @@ describe 'CopyTunerClient::I18nBackend' do
         end
 
         # 初回のツリーキャッシュ構築
-        subject.translate('ja', 'category1')
+        backend.translate('ja', 'category1')
 
         # ETag が変わらない限り、再構築されない
-        expect(cache).not_to receive(:to_tree_hash)
+        allow(cache).to receive(:to_tree_hash)
 
         # 複数回の lookup が高速で実行される
         start_time = Time.now
-        10.times { subject.translate('ja', 'category2') }
+        10.times { backend.translate('ja', 'category2') }
         end_time = Time.now
 
+        expect(cache).not_to have_received(:to_tree_hash)
         # 10ms 以下で完了することを確認
         expect((end_time - start_time) * 1000).to be < 10
       end
@@ -385,37 +384,39 @@ describe 'CopyTunerClient::I18nBackend' do
 
     context 'エッジケース' do
       it '空キャッシュでも正常に動作すること' do
-        result = subject.translate('ja', 'views', default: nil)
+        result = backend.translate('ja', 'views', default: nil)
         expect(result).to be_nil
       end
 
       it '1階層のキーも正常に扱えること' do
         cache['ja.simple'] = 'simple value'
 
-        result = subject.translate('ja', 'simple')
+        result = backend.translate('ja', 'simple')
         expect(result).to eq('simple value')
       end
 
       it 'ignored_keysの機能がツリーlookupでも維持されること' do
         # ignored_keys 設定
-        allow(CopyTunerClient.configuration).to receive(:ignored_keys).and_return(['views.secret'])
-        handler = double('ignored_key_handler')
-        allow(CopyTunerClient.configuration).to receive(:ignored_key_handler).and_return(handler)
+        handler = instance_double(Proc)
+        allow(CopyTunerClient.configuration).to receive_messages(ignored_keys: ['views.secret'],
+                                                                 ignored_key_handler: handler)
 
         cache['ja.views.public'] = 'public'
         cache['ja.views.secret'] = 'secret'
 
         # ignored_key_handler が呼ばれることを確認
-        expect(handler).to receive(:call).with(instance_of(CopyTunerClient::IgnoredKey))
+        allow(handler).to receive(:call)
 
         # ignored_keys が動作することを確認
-        subject.translate('ja', 'views.secret')
+        backend.translate('ja', 'views.secret')
+
+        expect(handler).to have_received(:call).with(instance_of(CopyTunerClient::IgnoredKey))
       end
 
       it 'stringキーが存在する場合のsub-keyアクセスでエラーが発生しないこと' do
         cache['ja.hoge'] = 'hoge value'
 
-        result = subject.translate('ja', 'hoge.hello', default: nil)
+        result = backend.translate('ja', 'hoge.hello', default: nil)
         expect(result).to be_nil
       end
 
@@ -425,20 +426,20 @@ describe 'CopyTunerClient::I18nBackend' do
         cache['ja.dummy'] = 'dummy'
 
         expect {
-          subject.translate('ja', 'enumerize.infection_control.body_temperature.36.5', default: nil)
+          backend.translate('ja', 'enumerize.infection_control.body_temperature.36.5', default: nil)
         }.not_to raise_error
       end
 
       it '数値セグメントキーが存在しても通常キーのlookupが壊れないこと' do
         cache['ja.views.hoge'] = 'normal'
 
-        expect { subject.translate('ja', 'enumerize.body_temperature.36.5', default: nil) }.not_to raise_error
-        expect(subject.translate('ja', 'views.hoge')).to eq('normal')
+        expect { backend.translate('ja', 'enumerize.body_temperature.36.5', default: nil) }.not_to raise_error
+        expect(backend.translate('ja', 'views.hoge')).to eq('normal')
       end
     end
   end
 
-  describe 'local_first_key_regexp（ローカル優先キー）' do # rubocop:disable Metrics/BlockLength
+  describe 'local_first_key_regexp（ローカル優先キー）' do
     after { CopyTunerClient.configuration.local_first_key_regexp = nil }
 
     # ローカル config/locales 相当のデータを I18n::Backend::Simple 側だけに格納する。
@@ -457,9 +458,9 @@ describe 'CopyTunerClient::I18nBackend' do
       it 'views.* でも従来どおり copy_tuner（cache）を優先すること' do
         CopyTunerClient.configuration.local_first_key_regexp = nil
         cache['ja.views.foo'] = 'copy tuner value'
-        store_local(subject, :ja, views: { foo: 'local value' })
+        store_local(backend, :ja, views: { foo: 'local value' })
 
-        expect(subject.translate('ja', 'views.foo')).to eq('copy tuner value')
+        expect(backend.translate('ja', 'views.foo')).to eq('copy tuner value')
       end
 
       # NOTE: number.*.format は precision 等の非文字列値が store_item で落ちるため、
@@ -467,17 +468,17 @@ describe 'CopyTunerClient::I18nBackend' do
       it 'number.*.format は cache に値があってもローカル YAML を優先すること' do
         CopyTunerClient.configuration.local_first_key_regexp = nil
         cache['ja.number.currency.format.unit'] = '$'
-        store_local(subject, :ja, number: { currency: { format: { unit: '円' } } })
+        store_local(backend, :ja, number: { currency: { format: { unit: '円' } } })
 
-        expect(subject.translate('ja', 'number.currency.format')).to eq(unit: '円')
+        expect(backend.translate('ja', 'number.currency.format')).to eq(unit: '円')
       end
 
       it 'アプリ独自の number キーは従来どおり copy_tuner を優先すること' do
         CopyTunerClient.configuration.local_first_key_regexp = nil
         cache['ja.number.gift_amount'] = 'copy tuner value'
-        store_local(subject, :ja, number: { gift_amount: 'local value' })
+        store_local(backend, :ja, number: { gift_amount: 'local value' })
 
-        expect(subject.translate('ja', 'number.gift_amount')).to eq('copy tuner value')
+        expect(backend.translate('ja', 'number.gift_amount')).to eq('copy tuner value')
       end
     end
 
@@ -486,20 +487,20 @@ describe 'CopyTunerClient::I18nBackend' do
 
       it 'views.* は cache に値があってもローカル YAML を優先すること' do
         cache['ja.views.foo'] = 'copy tuner value'
-        store_local(subject, :ja, views: { foo: 'local value' })
+        store_local(backend, :ja, views: { foo: 'local value' })
 
-        expect(subject.translate('ja', 'views.foo')).to eq('local value')
+        expect(backend.translate('ja', 'views.foo')).to eq('local value')
       end
 
       it 'views.* 以外のキーは従来どおり copy_tuner を優先すること' do
         cache['ja.messages.foo'] = 'copy tuner value'
-        store_local(subject, :ja, messages: { foo: 'local value' })
+        store_local(backend, :ja, messages: { foo: 'local value' })
 
-        expect(subject.translate('ja', 'messages.foo')).to eq('copy tuner value')
+        expect(backend.translate('ja', 'messages.foo')).to eq('copy tuner value')
       end
 
       it 'views.* がローカルにも cache にも無いとき nil を返し、空キー登録（アップロード）をしないこと' do
-        spy_cache = TestCache.new
+        spy_cache = test_cache_class.new
         allow(spy_cache).to receive(:[]=).and_call_original
         backend = CopyTunerClient::I18nBackend.new(spy_cache)
         I18n.backend = backend

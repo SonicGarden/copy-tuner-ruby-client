@@ -5,11 +5,11 @@ require 'copy_tuner_client/helper_extension'
 module CopyTunerClient
   # Connects to integration points for Rails 3 applications
   class Engine < ::Rails::Engine
-    initializer :initialize_copy_tuner_rails, :before => :load_config_initializers do |app|
+    initializer :initialize_copy_tuner_rails, before: :load_config_initializers do |_app|
       CopyTunerClient::Rails.initialize
     end
 
-    initializer :initialize_copy_tuner_hook_methods, :after => :load_config_initializers do |app|
+    initializer :initialize_copy_tuner_hook_methods, after: :load_config_initializers do |_app|
       ActiveSupport.on_load(:action_view) do
         CopyTunerClient::HelperExtension.hook_translation_helper(
           ActionView::Helpers::TranslationHelper,
@@ -17,14 +17,12 @@ module CopyTunerClient
         )
       end
 
-      if CopyTunerClient.configuration.enable_middleware?
-        CopyTunerClient::TranslationLog.install_hook
-      end
+      CopyTunerClient::TranslationLog.install_hook if CopyTunerClient.configuration.enable_middleware?
 
       require 'copy_tuner_client/simple_form_extention'
     end
 
-    initializer "copy_tuner.assets.precompile", group: :all do |app|
+    initializer 'copy_tuner.assets.precompile', group: :all do |app|
       app.config.assets.precompile += ['copytuner.js']
     end
   end

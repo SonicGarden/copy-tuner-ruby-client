@@ -21,9 +21,9 @@ Gem::Specification.new do |s|
   s.files = `git ls-files`.split("\n")
   s.homepage = 'https://github.com/SonicGarden/copy-tuner-ruby-client'
 
-  s.metadata["homepage_uri"] = s.homepage
-  s.metadata["source_code_uri"] = "https://github.com/SonicGarden/copy-tuner-ruby-client"
-  s.metadata["changelog_uri"] = "https://github.com/SonicGarden/copy-tuner-ruby-client/releases"
+  s.metadata['homepage_uri'] = s.homepage
+  s.metadata['source_code_uri'] = 'https://github.com/SonicGarden/copy-tuner-ruby-client'
+  s.metadata['changelog_uri'] = 'https://github.com/SonicGarden/copy-tuner-ruby-client/releases'
   s.metadata['rubygems_mfa_required'] = 'true'
 
   s.name = 'copy_tuner_client'

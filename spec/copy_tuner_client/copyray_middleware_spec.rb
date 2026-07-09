@@ -8,11 +8,10 @@ describe CopyTunerClient::CopyrayMiddleware do
     CopyTunerClient::Copyray::Marker.encode(key)
   end
 
-  let(:headers) { { 'Content-Type' => 'text/html' } }
+  subject(:middleware) { described_class.new(app) }
+
   let(:app) { ->(_env) { [status, headers, [body]] } }
   let(:status) { 200 }
-
-  subject(:middleware) { described_class.new(app) }
 
   before do
     CopyTunerClient.configure do |configuration|
@@ -25,6 +24,7 @@ describe CopyTunerClient::CopyrayMiddleware do
   end
 
   context 'マーカートークンを含む HTML レスポンスのとき' do
+    let(:headers) { { 'Content-Type' => 'text/html' } }
     let(:body) { "<html><body><p>#{marker('a.b')}Hello</p></body></html>" }
 
     it 'マーカーを data-copyray-key 属性に書き換え、トークンを除去する' do
@@ -37,13 +37,16 @@ describe CopyTunerClient::CopyrayMiddleware do
 
     it '書き換え後のボディから Content-Length を再計算する' do
       _status, out_headers, response = middleware.call({})
-      expect(out_headers['Content-Length']).to eq response.join.bytesize.to_s
+      expected_length = response.join.bytesize.to_s
+      expect(out_headers['Content-Length']).to eq expected_length
     end
   end
 
   context 'turbo stream レスポンスのとき' do
     let(:headers) { { 'Content-Type' => 'text/vnd.turbo-stream.html' } }
-    let(:body) { %(<turbo-stream action="replace" target="x"><template><p>#{marker('a.b')}Hello</p></template></turbo-stream>) }
+    let(:body) do
+      %(<turbo-stream action="replace" target="x"><template><p>#{marker('a.b')}Hello</p></template></turbo-stream>)
+    end
 
     before do
       # NOTE: append_js のトップレベル no-op スタブを外し、turbo stream では JS を挿入しないことを検証する。
@@ -89,7 +92,7 @@ describe CopyTunerClient::CopyrayMiddleware do
     # NOTE: append_js は private かつ Rails の view ヘルパー（javascript_tag 等）に依存する。
     # トップレベルの no-op スタブを外して実体を呼び、ヘルパーは渡された script 本文をそのまま
     # 返す最小フェイクに差し替えて、window.CopyTuner に keysSkipped が埋まることだけ検証する。
-    subject(:script) { middleware.__send__(:append_js, '<html><body></body></html>', nil, skipped: skipped) }
+    subject(:script) { middleware.__send__(:append_js, '<html><body></body></html>', nil, skipped:) }
 
     let(:fake_helpers) do
       Class.new {

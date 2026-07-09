@@ -1,18 +1,71 @@
 require 'spec_helper'
 
+shared_context 'stubbed configuration' do
+  subject(:configuration) { CopyTunerClient::Configuration.new }
+
+  let(:backend) { instance_double(CopyTunerClient::I18nBackend) }
+  let(:cache) { instance_double(CopyTunerClient::Cache, download: 'download') }
+  let(:logger) { FakeLogger.new }
+  let(:poller) { instance_double(CopyTunerClient::Poller) }
+  let(:process_guard) { instance_double(CopyTunerClient::ProcessGuard, start: nil) }
+
+  before do
+    allow(CopyTunerClient::I18nBackend).to receive(:new).and_return(backend)
+    allow(CopyTunerClient::Client).to receive(:new).and_return(instance_double(CopyTunerClient::Client))
+    allow(CopyTunerClient::Cache).to receive(:new).and_return(cache)
+    allow(CopyTunerClient::Poller).to receive(:new).and_return(poller)
+    allow(CopyTunerClient::ProcessGuard).to receive(:new).and_return(process_guard)
+    configuration.logger = logger
+    # NOTE: apply は project_id 必須になったため、未設定だと raise する。applied 系テストは
+    #       project_id 自体を検証しないので適当な値を補っておく
+    configuration.project_id ||= 1
+    apply
+  end
+end
+
+shared_examples_for 'applied configuration' do
+  include_context 'stubbed configuration'
+
+  it { is_expected.to be_applied }
+
+  it 'builds and assigns an I18n backend' do
+    expect(CopyTunerClient::I18nBackend).to have_received(:new).with(cache)
+    expect(I18n.backend).to eq(backend)
+  end
+
+  it 'builds and assigns a poller' do
+    expect(CopyTunerClient::Poller).to have_received(:new).with(cache, configuration.to_hash)
+  end
+
+  it 'builds a process guard' do
+    expect(CopyTunerClient::ProcessGuard).to have_received(:new)
+      .with(cache, poller, configuration.to_hash)
+  end
+
+  it 'logs that it is ready' do
+    expect(logger).to have_entry(:info, "Client #{CopyTunerClient::VERSION} ready")
+  end
+
+  it 'logs environment info' do
+    expect(logger).to have_entry(:info, "Environment Info: #{configuration.environment_info}")
+  end
+end
+
 describe CopyTunerClient::Configuration do
+  subject(:configuration) { described_class.new }
+
   RSpec::Matchers.define :have_config_option do |option|
     match do |config|
       expect(config).to respond_to(option)
 
-      if instance_variables.include?(:'@default')
-        expect(config.send(option)).to eq(@default)
-      end
+      # .default チェーン指定時のみ既定値を検証する DSL のため条件分岐が必須
+      expect(config.public_send(option)).to eq(@default) if instance_variables.include?(:@default) # rubocop:disable Sgcop/Rspec/ConditionalExample
 
-      if @overridable
+      # .overridable チェーン指定時のみ代入可否を検証する DSL のため条件分岐が必須
+      if @overridable # rubocop:disable Sgcop/Rspec/ConditionalExample
         value = 'a value'
-        config.send(:"#{option}=", value)
-        expect(config.send(option)).to eq(value)
+        config.public_send(:"#{option}=", value)
+        expect(config.public_send(option)).to eq(value)
       end
     end
 
@@ -47,142 +100,145 @@ describe CopyTunerClient::Configuration do
   it { is_expected.to have_config_option(:cache).overridable }
   it { is_expected.to have_config_option(:local_first_key_regexp).overridable.default(nil) }
 
-  it 'should provide default values for secure connections' do
-    config = CopyTunerClient::Configuration.new
+  it 'provides default values for secure connections' do
+    config = described_class.new
     config.secure = true
     expect(config.port).to eq(443)
     expect(config.protocol).to eq('https')
   end
 
-  it 'should provide default values for insecure connections' do
-    config = CopyTunerClient::Configuration.new
+  it 'provides default values for insecure connections' do
+    config = described_class.new
     config.secure = false
     expect(config.port).to eq(80)
     expect(config.protocol).to eq('http')
   end
 
-  it 'should not cache inferred ports' do
-    config = CopyTunerClient::Configuration.new
+  it 'does not cache inferred ports' do
+    config = described_class.new
     config.secure = false
     config.port
     config.secure = true
     expect(config.port).to eq(443)
   end
 
-  it 'should act like a hash' do
-    config = CopyTunerClient::Configuration.new
+  it 'acts like a hash' do
+    config = described_class.new
     hash = config.to_hash
 
-    [:api_key, :environment_name, :host, :http_open_timeout,
-      :http_read_timeout, :client_name, :client_url, :client_version, :port,
-      :protocol, :proxy_host, :proxy_pass, :proxy_port, :proxy_user, :secure,
-      :development_environments, :logger, :framework, :ca_file].each do |option|
-      expect(hash[option]).to eq(config[option])
+    # hash が元 config の各 option と同期していることを検証するため、比較先をリテラルに書き出せない
+    %i[
+      api_key environment_name host http_open_timeout
+      http_read_timeout client_name client_url client_version port
+      protocol proxy_host proxy_pass proxy_port proxy_user secure
+      development_environments logger framework ca_file
+    ].each do |option|
+      expect(hash[option]).to eq(config[option]) # rubocop:disable Sgcop/Rspec/NoMethodCallInExpectation
     end
 
-    expect(hash[:public]).to eq(config.public?)
+    expect(hash[:public]).to eq(config.public?) # rubocop:disable Sgcop/Rspec/NoMethodCallInExpectation
   end
 
-  it 'should be mergable' do
-    config = CopyTunerClient::Configuration.new
+  it 'is mergable' do
+    config = described_class.new
     hash = config.to_hash
-    expect(config.merge(:key => 'value')).to eq(hash.merge(:key => 'value'))
+    expect(config.merge(key: 'value')).to eq(hash.merge(key: 'value')) # rubocop:disable Sgcop/Rspec/NoMethodCallInExpectation
   end
 
-  it 'should use development and staging as development environments by default' do
-    config = CopyTunerClient::Configuration.new
-    expect(config.development_environments).to match_array(%w(development staging))
+  it 'uses development and staging as development environments by default' do
+    config = described_class.new
+    expect(config.development_environments).to match_array(%w[development staging])
   end
 
-  it 'should use test and cucumber as test environments by default' do
-    config = CopyTunerClient::Configuration.new
-    expect(config.test_environments).to match_array(%w(test cucumber))
+  it 'uses test and cucumber as test environments by default' do
+    config = described_class.new
+    expect(config.test_environments).to match_array(%w[test cucumber])
   end
 
-  it 'should be test in a test environment' do
-    config = CopyTunerClient::Configuration.new
-    config.test_environments = %w(test)
+  it 'is test in a test environment' do
+    config = described_class.new
+    config.test_environments = %w[test]
     config.environment_name = 'test'
     expect(config).to be_test
   end
 
-  it 'should be public in a public environment' do
-    config = CopyTunerClient::Configuration.new
-    config.development_environments = %w(development)
+  it 'is public in a public environment' do
+    config = described_class.new
+    config.development_environments = %w[development]
     config.environment_name = 'production'
     expect(config).to be_public
     expect(config).not_to be_development
   end
 
-  it 'should be development in a development environment' do
-    config = CopyTunerClient::Configuration.new
-    config.development_environments = %w(staging)
+  it 'is development in a development environment' do
+    config = described_class.new
+    config.development_environments = %w[staging]
     config.environment_name = 'staging'
     expect(config).to be_development
     expect(config).not_to be_public
   end
 
-  it 'should be public without an environment name' do
-    config = CopyTunerClient::Configuration.new
+  it 'is public without an environment name' do
+    config = described_class.new
     expect(config).to be_public
   end
 
-  it 'should yield and save a configuration when configuring' do
+  it 'yields and save a configuration when configuring' do
     yielded_configuration = nil
 
-    CopyTunerClient.configure(false) do |config|
+    CopyTunerClient.configure(apply: false) do |config|
       yielded_configuration = config
     end
 
-    expect(yielded_configuration).to be_kind_of(CopyTunerClient::Configuration)
+    expect(yielded_configuration).to be_a(described_class)
     expect(CopyTunerClient.configuration).to eq(yielded_configuration)
   end
 
   it 'does not apply the configuration when asked not to' do
     logger = FakeLogger.new
-    CopyTunerClient.configure(false) { |config| config.logger = logger }
+    CopyTunerClient.configure(apply: false) { |config| config.logger = logger }
     expect(CopyTunerClient.configuration).not_to be_applied
     expect(logger.entries[:info]).to be_empty
   end
 
-  it 'should not remove existing config options when configuring twice' do
+  it 'does not remove existing config options when configuring twice' do
     first_config = nil
 
-    CopyTunerClient.configure(false) do |config|
+    CopyTunerClient.configure(apply: false) do |config|
       first_config = config
     end
 
-    CopyTunerClient.configure(false) do |config|
+    CopyTunerClient.configure(apply: false) do |config|
       expect(config).to eq(first_config)
     end
   end
 
   it 'starts out unapplied' do
-    expect(CopyTunerClient::Configuration.new).not_to be_applied
+    expect(described_class.new).not_to be_applied
   end
 
   it 'logs to $stdout by default' do
     logger = FakeLogger.new
-    expect(Logger).to receive(:new).with($stdout).and_return(logger)
-    config = CopyTunerClient::Configuration.new
+    allow(Logger).to receive(:new).with($stdout).and_return(logger)
+    config = described_class.new
     expect(config.logger.original_logger).to eq(logger)
   end
 
   it 'generates environment info without a framework' do
-    subject.environment_name = 'production'
-    expect(subject.environment_info).to eq("[Ruby: #{RUBY_VERSION}] [Env: production]")
+    configuration.environment_name = 'production'
+    expect(configuration.environment_info).to eq("[Ruby: #{RUBY_VERSION}] [Env: production]")
   end
 
   it 'generates environment info with a framework' do
-    subject.environment_name = 'production'
-    subject.framework = 'Sinatra: 1.0.0'
-    expect(subject.environment_info).
-      to eq("[Ruby: #{RUBY_VERSION}] [Sinatra: 1.0.0] [Env: production]")
+    configuration.environment_name = 'production'
+    configuration.framework = 'Sinatra: 1.0.0'
+    expect(configuration.environment_info)
+      .to eq("[Ruby: #{RUBY_VERSION}] [Sinatra: 1.0.0] [Env: production]")
   end
 
   it 'prefixes log entries' do
     logger = FakeLogger.new
-    config = CopyTunerClient::Configuration.new
+    config = described_class.new
 
     config.logger = logger
 
@@ -192,29 +248,29 @@ describe CopyTunerClient::Configuration do
   end
 
   describe '#local_first_key?' do
-    let(:config) { CopyTunerClient::Configuration.new }
+    let(:config) { described_class.new }
 
     it 'returns false when local_first_key_regexp is nil (default)' do
-      expect(config.local_first_key?('views.foo.bar')).to eq false
+      expect(config.local_first_key?('views.foo.bar')).to be false
     end
 
     context 'when local_first_key_regexp is set' do
       before { config.local_first_key_regexp = /\Aviews\./ }
 
       it 'returns true for a matching key' do
-        expect(config.local_first_key?('views.foo.bar')).to eq true
+        expect(config.local_first_key?('views.foo.bar')).to be true
       end
 
       it 'returns false for a non-matching key' do
-        expect(config.local_first_key?('models.foo.bar')).to eq false
+        expect(config.local_first_key?('models.foo.bar')).to be false
       end
 
       it 'returns false for a nil key' do
-        expect(config.local_first_key?(nil)).to eq false
+        expect(config.local_first_key?(nil)).to be false
       end
 
       it 'coerces a Symbol key before matching' do
-        expect(config.local_first_key?(:'views.foo')).to eq true
+        expect(config.local_first_key?(:'views.foo')).to be true
       end
     end
 
@@ -222,40 +278,40 @@ describe CopyTunerClient::Configuration do
     # ユーザー設定の有無によらず常にローカル優先（組み込み判定）になる
     context 'with built-in Rails number format keys' do
       it 'returns true for built-in number format keys even when local_first_key_regexp is nil' do
-        expect(config.local_first_key?('number.format')).to eq true
-        expect(config.local_first_key?('number.currency.format')).to eq true
-        expect(config.local_first_key?('number.currency.format.precision')).to eq true
-        expect(config.local_first_key?('number.percentage.format')).to eq true
-        expect(config.local_first_key?('number.human.format.significant')).to eq true
+        expect(config.local_first_key?('number.format')).to be true
+        expect(config.local_first_key?('number.currency.format')).to be true
+        expect(config.local_first_key?('number.currency.format.precision')).to be true
+        expect(config.local_first_key?('number.percentage.format')).to be true
+        expect(config.local_first_key?('number.human.format.significant')).to be true
       end
 
       it 'returns false for app-defined number keys (not Rails format subtrees)' do
-        expect(config.local_first_key?('number.gift_amount')).to eq false
-        expect(config.local_first_key?('number.my_currency.unit')).to eq false
+        expect(config.local_first_key?('number.gift_amount')).to be false
+        expect(config.local_first_key?('number.my_currency.unit')).to be false
       end
 
       it 'returns false for string-only number subtrees and non-number keys' do
-        expect(config.local_first_key?('number.human.storage_units.units.byte.one')).to eq false
-        expect(config.local_first_key?('date.formats.default')).to eq false
-        expect(config.local_first_key?('time.formats.short')).to eq false
-        expect(config.local_first_key?('datetime.distance_in_words.x')).to eq false
-        expect(config.local_first_key?('views.foo')).to eq false
-        expect(config.local_first_key?('numbers.foo')).to eq false
+        expect(config.local_first_key?('number.human.storage_units.units.byte.one')).to be false
+        expect(config.local_first_key?('date.formats.default')).to be false
+        expect(config.local_first_key?('time.formats.short')).to be false
+        expect(config.local_first_key?('datetime.distance_in_words.x')).to be false
+        expect(config.local_first_key?('views.foo')).to be false
+        expect(config.local_first_key?('numbers.foo')).to be false
       end
 
       it 'keeps protecting built-in keys without breaking a user-set regexp' do
         config.local_first_key_regexp = /\Aviews\./
 
-        expect(config.local_first_key?('number.currency.format')).to eq true
-        expect(config.local_first_key?('views.foo')).to eq true
-        expect(config.local_first_key?('models.foo')).to eq false
+        expect(config.local_first_key?('number.currency.format')).to be true
+        expect(config.local_first_key?('views.foo')).to be true
+        expect(config.local_first_key?('models.foo')).to be false
       end
     end
   end
 
   describe 'project_id の必須化' do
     let(:config) do
-      config = CopyTunerClient::Configuration.new
+      config = described_class.new
       config.api_key = 'abc123'
       config
     end
@@ -273,186 +329,131 @@ describe CopyTunerClient::Configuration do
       expect(config.project_url).to include('/projects/77')
     end
   end
-end
 
-shared_context 'stubbed configuration' do
-  subject { CopyTunerClient::Configuration.new }
-  let(:backend) { double('i18n-backend') }
-  let(:cache) { double('cache', download: "download") }
-  let(:client) { double('client') }
-  let(:logger) { FakeLogger.new }
-  let(:poller) { double('poller') }
-  let(:process_guard) { double('process_guard', start: nil) }
+  context 'applied when testing' do
+    it_behaves_like 'applied configuration' do
+      it 'does not start the process guard' do
+        expect(process_guard).not_to have_received(:start)
+      end
+    end
 
-  before do
-    allow(CopyTunerClient::I18nBackend).to receive(:new).and_return(backend)
-    allow(CopyTunerClient::Client).to receive(:new).and_return(client)
-    allow(CopyTunerClient::Cache).to receive(:new).and_return(cache)
-    allow(CopyTunerClient::Poller).to receive(:new).and_return(poller)
-    allow(CopyTunerClient::ProcessGuard).to receive(:new).and_return(process_guard)
-    subject.logger = logger
-    # NOTE: apply は project_id 必須になったため、未設定だと raise する。applied 系テストは
-    #       project_id 自体を検証しないので適当な値を補っておく
-    subject.project_id ||= 1
-    apply
-  end
-end
-
-shared_examples_for 'applied configuration' do
-  include_context 'stubbed configuration'
-
-  it { is_expected.to be_applied }
-
-  it 'builds and assigns an I18n backend' do
-    expect(CopyTunerClient::I18nBackend).to have_received(:new).with(cache)
-    expect(I18n.backend).to eq(backend)
-  end
-
-  it 'builds and assigns a poller' do
-    expect(CopyTunerClient::Poller).to have_received(:new).with(cache, subject.to_hash)
-  end
-
-  it 'builds a process guard' do
-    expect(CopyTunerClient::ProcessGuard).to have_received(:new).
-      with(cache, poller, subject.to_hash)
-  end
-
-  it 'logs that it is ready' do
-    expect(logger).to have_entry(:info, "Client #{CopyTunerClient::VERSION} ready")
-  end
-
-  it 'logs environment info' do
-    expect(logger).to have_entry(:info, "Environment Info: #{subject.environment_info}")
-  end
-end
-
-describe CopyTunerClient::Configuration, 'applied when testing' do
-  it_should_behave_like 'applied configuration' do
-    it 'does not start the process guard' do
-      expect(process_guard).not_to receive(:start)
+    def apply
+      configuration.environment_name = 'test'
+      configuration.apply
     end
   end
 
-  def apply
-    subject.environment_name = 'test'
-    subject.apply
-  end
-end
+  context 'applied when not testing' do
+    it_behaves_like 'applied configuration' do
+      it 'starts the process guard' do
+        expect(process_guard).to have_received(:start)
+      end
+    end
 
-describe CopyTunerClient::Configuration, 'applied when not testing' do
-  it_should_behave_like 'applied configuration' do
-    it 'starts the process guard' do
-      expect(process_guard).to have_received(:start)
+    def apply
+      configuration.environment_name = 'development'
+      configuration.apply
     end
   end
 
-  def apply
-    subject.environment_name = 'development'
-    subject.apply
-  end
-end
+  context 'applied when developing with middleware' do
+    it_behaves_like 'applied configuration' do
+      it 'adds the sync middleware' do
+        expect(middleware).to include(CopyTunerClient::RequestSync)
+      end
+    end
 
-describe CopyTunerClient::Configuration, 'applied when developing with middleware' do
-  it_should_behave_like 'applied configuration' do
-    it 'adds the sync middleware' do
-      expect(middleware).to include(CopyTunerClient::RequestSync)
+    let(:middleware) { MiddlewareStack.new }
+
+    def apply
+      configuration.middleware = middleware
+      configuration.environment_name = 'development'
+      configuration.apply
     end
   end
 
-  let(:middleware) { MiddlewareStack.new }
+  context 'applied when developing without middleware' do
+    it_behaves_like 'applied configuration'
 
-  def apply
-    subject.middleware = middleware
-    subject.environment_name = 'development'
-    subject.apply
-  end
-end
-
-describe CopyTunerClient::Configuration, 'applied when developing without middleware' do
-  it_should_behave_like 'applied configuration'
-
-  def apply
-    subject.middleware = nil
-    subject.environment_name = 'development'
-    subject.apply
-  end
-end
-
-describe CopyTunerClient::Configuration, 'applied with middleware when not developing' do
-  it_should_behave_like 'applied configuration'
-
-  let(:middleware) { MiddlewareStack.new }
-
-  def apply
-    subject.middleware = middleware
-    subject.environment_name = 'test'
-    subject.apply
-  end
-
-  it 'does not add the sync middleware' do
-    expect(middleware).not_to include(CopyTunerClient::RequestSync)
-  end
-end
-
-describe CopyTunerClient::Configuration, 'applied without locale filter' do
-  include_context 'stubbed configuration'
-
-  def apply
-    subject.apply
-  end
-
-  it 'should have locales [:en]' do
-    expect(subject.locales).to eq [:en]
-  end
-end
-
-describe CopyTunerClient::Configuration, 'applied with locale filter' do
-  include_context 'stubbed configuration'
-
-  def apply
-    subject.locales = %i(en ja)
-    subject.apply
-  end
-
-  it 'should have locales %i(en ja)' do
-    expect(subject.locales).to eq %i(en ja)
-  end
-end
-
-describe CopyTunerClient::Configuration, 'applied with Rails i18n config' do
-  let!(:rails_defined) { Object.const_defined?(:Rails) }
-
-  def self.with_config(i18n_options)
-    before do
-      Object.const_set :Rails, Module.new unless rails_defined
-      i18n = double('i18n', i18n_options)
-      allow(Rails).to receive_message_chain(:application, :config, :i18n) { i18n }
-    end
-
-    after do
-      Object.send(:remove_const, :Rails) unless rails_defined
+    def apply
+      configuration.middleware = nil
+      configuration.environment_name = 'development'
+      configuration.apply
     end
   end
 
-  def apply
-    subject.apply
+  context 'applied with middleware when not developing' do
+    let(:middleware) { MiddlewareStack.new }
+
+    it_behaves_like 'applied configuration'
+
+    def apply
+      configuration.middleware = middleware
+      configuration.environment_name = 'test'
+      configuration.apply
+    end
+
+    it 'does not add the sync middleware' do
+      expect(middleware).not_to include(CopyTunerClient::RequestSync)
+    end
   end
 
-  context 'with available_locales' do
-    with_config(available_locales: %i(en ja))
+  context 'applied without locale filter' do
     include_context 'stubbed configuration'
 
-    it 'should have locales %i(en ja)' do
-      expect(subject.locales).to eq %i(en ja)
+    def apply
+      configuration.apply
+    end
+
+    it 'has locales [:en]' do
+      expect(configuration.locales).to eq [:en]
     end
   end
 
-  context 'with default_locale' do
-    with_config(available_locales: %i(ja))
+  context 'applied with locale filter' do
     include_context 'stubbed configuration'
 
-    it 'should have locales %i(ja)' do
-      expect(subject.locales).to eq %i(ja)
+    def apply
+      configuration.locales = %i[en ja]
+      configuration.apply
+    end
+
+    it 'has locales %i(en ja)' do
+      expect(configuration.locales).to eq %i[en ja]
+    end
+  end
+
+  context 'applied with Rails i18n config' do
+    def self.with_config(i18n_options)
+      before do
+        stub_const('Rails', Module.new)
+        i18n = double('i18n', i18n_options)
+        config = double('config', i18n:)
+        application = double('application', config:)
+        allow(Rails).to receive(:application).and_return(application)
+      end
+    end
+
+    def apply
+      configuration.apply
+    end
+
+    context 'with available_locales' do
+      with_config(available_locales: %i[en ja])
+      include_context 'stubbed configuration'
+
+      it 'has locales %i(en ja)' do
+        expect(configuration.locales).to eq %i[en ja]
+      end
+    end
+
+    context 'with default_locale' do
+      with_config(available_locales: %i[ja])
+      include_context 'stubbed configuration'
+
+      it 'has locales %i(ja)' do
+        expect(configuration.locales).to eq %i[ja]
+      end
     end
   end
 end

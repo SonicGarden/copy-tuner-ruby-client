@@ -14,8 +14,9 @@ describe CopyTunerClient::Copyray::Rewriter do
   describe '.rewrite' do
     # NOTE: rewrite は [html, skipped] を返すが、既存テストの大半は html だけを検証する。
     # 1 回の呼び出しを let でメモ化して共有し、result は html、skipped は 2 要素目を指す。
-    let(:rewritten) { described_class.rewrite(html) }
     subject(:result) { rewritten.first }
+
+    let(:rewritten) { described_class.rewrite(html) }
     let(:skipped) { rewritten.last }
 
     context '要素直下の単純なテキストノード' do
@@ -189,10 +190,11 @@ describe CopyTunerClient::Copyray::Rewriter do
       end
 
       it 'logger.warn で例外内容を記録する' do
-        logger = double('logger')
+        logger = instance_double(Logger)
         allow(CopyTunerClient.configuration).to receive(:logger).and_return(logger)
-        expect(logger).to receive(:warn).with(/Rewriter failed.*RuntimeError.*boom/)
+        allow(logger).to receive(:warn)
         result
+        expect(logger).to have_received(:warn).with(/Rewriter failed.*RuntimeError.*boom/)
       end
 
       it 'logger が nil でもフォールバックが落ちない' do
@@ -203,18 +205,21 @@ describe CopyTunerClient::Copyray::Rewriter do
     end
 
     context 'fragment: true（turbo stream などの HTML 断片）' do
-      let(:html) { %(<turbo-stream action="replace" target="x"><template><p>#{marker('a.b')}Hello</p></template></turbo-stream>) }
-      subject(:result) { described_class.rewrite(html, fragment: true).first }
+      subject(:fragment_result) { described_class.rewrite(html, fragment: true).first }
+
+      let(:html) do
+        %(<turbo-stream action="replace" target="x"><template><p>#{marker('a.b')}Hello</p></template></turbo-stream>)
+      end
 
       it 'html/body ラッパを足さず断片のまま返す' do
-        expect(result).not_to include('<html>')
-        expect(result).not_to include('<body>')
-        expect(result).to start_with('<turbo-stream')
+        expect(fragment_result).not_to include('<html>')
+        expect(fragment_result).not_to include('<body>')
+        expect(fragment_result).to start_with('<turbo-stream')
       end
 
       it 'template 内の要素に data-copyray-key を付与しトークンを除去する' do
-        expect(result).to include('data-copyray-key="a.b"')
-        expect(result).not_to match CopyTunerClient::Copyray::Marker::SCAN_REGEXP
+        expect(fragment_result).to include('data-copyray-key="a.b"')
+        expect(fragment_result).not_to match CopyTunerClient::Copyray::Marker::SCAN_REGEXP
       end
     end
 

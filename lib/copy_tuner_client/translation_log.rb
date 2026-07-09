@@ -1,4 +1,5 @@
 module CopyTunerClient
+  # リクエスト中に翻訳されたキーと結果をスレッドローカルに記録する（Copyray オーバーレイの JSON 出力に使う）
   class TranslationLog
     def self.translations
       Thread.current[:translations]
@@ -23,16 +24,19 @@ module CopyTunerClient
 
     def self.install_hook
       I18n.class_eval do
+        # alias_method が参照するため、alias_method 群より先に定義する必要がある
+        # rubocop:disable Style/ClassMethodsDefinitions
         class << self
           def translate_with_copy_tuner_hook(key = nil, **options)
             scope = options[:scope]
             scope = scope.dup if scope.is_a?(Array) || scope.is_a?(String)
             result = translate_without_copy_tuner_hook(key, **options)
 
-            if key.is_a?(Array)
-              key.zip(result).each { |k, v| CopyTunerClient::TranslationLog.add(I18n.normalize_keys(nil, k, scope).compact.join('.'), v) unless v.is_a?(Array) }
-            else
-              CopyTunerClient::TranslationLog.add(I18n.normalize_keys(nil, key, scope).compact.join('.'), result) unless result.is_a?(Array)
+            pairs = key.is_a?(Array) ? key.zip(result) : [[key, result]]
+            pairs.each do |k, v|
+              next if v.is_a?(Array)
+
+              CopyTunerClient::TranslationLog.add(I18n.normalize_keys(nil, k, scope).compact.join('.'), v)
             end
             result
           end
@@ -40,9 +44,10 @@ module CopyTunerClient
           if CopyTunerClient.configuration.enable_middleware?
             alias_method :translate_without_copy_tuner_hook, :translate
             alias_method :translate, :translate_with_copy_tuner_hook
-            alias :t :translate
+            alias_method :t, :translate
           end
         end
+        # rubocop:enable Style/ClassMethodsDefinitions
       end
     end
   end
