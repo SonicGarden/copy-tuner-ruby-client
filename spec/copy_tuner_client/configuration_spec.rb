@@ -398,6 +398,179 @@ describe CopyTunerClient::Configuration do
     end
   end
 
+  describe 'middleware_position の初期値' do
+    let(:config) { described_class.new }
+
+    context 'Warden::Manager と Devise がどちらも定義済みのとき' do
+      before do
+        stub_const('Warden::Manager', Class.new)
+        stub_const('Devise', Module.new)
+      end
+
+      it '{ before: Warden::Manager } になる' do
+        expect(config.middleware_position).to eq({ before: Warden::Manager })
+      end
+    end
+
+    context 'Warden::Manager が未定義のとき' do
+      before { hide_const('Warden::Manager') }
+
+      it 'nil のままになる' do
+        expect(config.middleware_position).to be_nil
+      end
+    end
+
+    # NOTE: authtrail のように warden を require するだけで Warden::Manager をスタックへ積まない
+    # gem があるため、Warden 単独では既定位置にしない（insert_before が起動時例外になる）。
+    context 'Warden::Manager は定義済みだが Devise が未定義のとき' do
+      before do
+        stub_const('Warden::Manager', Class.new)
+        hide_const('Devise')
+      end
+
+      it 'nil のままになる' do
+        expect(config.middleware_position).to be_nil
+      end
+    end
+
+    context 'configure ブロック内で明示指定したとき' do
+      before do
+        stub_const('Warden::Manager', Class.new)
+        stub_const('Devise', Module.new)
+      end
+
+      it '明示指定した値が優先される' do
+        other = Class.new
+        CopyTunerClient.configure(apply: false) do |c|
+          c.middleware_position = { before: other }
+        end
+        expect(CopyTunerClient.configuration.middleware_position).to eq({ before: other })
+      end
+    end
+  end
+
+  context 'Warden::Manager がスタックにある状態で apply したとき' do
+    it_behaves_like 'applied configuration' do
+      it 'デフォルト値経由で Warden::Manager の直前に RequestSync → CopyrayMiddleware の順で入る' do
+        expect(middleware.classes).to eq(
+          [
+            Rack::ETag, Rack::TempfileReaper, CopyTunerClient::RequestSync, CopyTunerClient::CopyrayMiddleware,
+            Warden::Manager, Rack::Static
+          ]
+        )
+      end
+
+      it 'Warden::Manager より外側に配置される' do
+        expect(middleware.index(CopyTunerClient::RequestSync)).to be < middleware.index(Warden::Manager)
+        expect(middleware.index(CopyTunerClient::CopyrayMiddleware)).to be < middleware.index(Warden::Manager)
+      end
+
+      it 'RequestSync に poller / cache / interval / ignore_regex が渡る' do
+        args = middleware.args_for(CopyTunerClient::RequestSync)
+        expect(args.first).to include(
+          poller:, # rubocop:disable Sgcop/Rspec/NoMethodCallInExpectation
+          cache:,
+          interval: configuration.sync_interval,
+          ignore_regex: configuration.sync_ignore_path_regex
+        )
+      end
+    end
+
+    # NOTE: 実アプリの bin/rails middleware 出力を模した標準スタック。Warden::Manager / Devise は
+    # gem の依存にないため stub_const で fake の定数として定義する。
+    before do
+      stub_const('Warden::Manager', Class.new)
+      stub_const('Devise', Module.new)
+    end
+
+    let(:middleware) do
+      MiddlewareStack.new([Rack::ETag, Rack::TempfileReaper, Warden::Manager, Rack::Static])
+    end
+
+    def apply
+      configuration.middleware = middleware
+      configuration.environment_name = 'development'
+      configuration.apply
+    end
+  end
+
+  context 'Warden::Manager が未定義の状態で apply したとき' do
+    it_behaves_like 'applied configuration' do
+      it 'Warden::Manager 未定義時は従来どおりスタック末尾へ use される' do
+        expect(middleware.classes).to eq([CopyTunerClient::RequestSync, CopyTunerClient::CopyrayMiddleware])
+      end
+    end
+
+    before { hide_const('Warden::Manager') }
+
+    let(:middleware) { MiddlewareStack.new }
+
+    def apply
+      configuration.middleware = middleware
+      configuration.environment_name = 'development'
+      configuration.apply
+    end
+  end
+
+  context 'middleware_position に after を明示指定して apply したとき' do
+    it_behaves_like 'applied configuration' do
+      it '{after: X} 指定時は X の直後に RequestSync → CopyrayMiddleware の順で入る' do
+        expect(middleware.classes).to eq(
+          [:a, :x, CopyTunerClient::RequestSync, CopyTunerClient::CopyrayMiddleware, :b]
+        )
+      end
+    end
+
+    let(:middleware) { MiddlewareStack.new(%i[a x b]) }
+
+    def apply
+      configuration.middleware = middleware
+      configuration.middleware_position = { after: :x }
+      configuration.environment_name = 'development'
+      configuration.apply
+    end
+  end
+
+  context 'middleware_position に before を明示指定して apply したとき' do
+    it_behaves_like 'applied configuration' do
+      it '{before: X} 指定時は X の直前に RequestSync → CopyrayMiddleware の順で入る' do
+        expect(middleware.classes).to eq(
+          [:a, CopyTunerClient::RequestSync, CopyTunerClient::CopyrayMiddleware, :x, :b]
+        )
+      end
+    end
+
+    let(:middleware) { MiddlewareStack.new(%i[a x b]) }
+
+    def apply
+      configuration.middleware = middleware
+      configuration.middleware_position = { before: :x }
+      configuration.environment_name = 'development'
+      configuration.apply
+    end
+  end
+
+  # NOTE: { before: SomeClass if cond } のように条件次第で値が nil になる書き方を想定する。
+  # キーの有無だけで分岐すると insert_before(nil) が対象を見つけられず例外になる。
+  context 'middleware_position の値が nil のとき' do
+    it_behaves_like 'applied configuration' do
+      it '例外を投げずスタック末尾へ use する' do
+        expect(middleware.classes).to eq(
+          [:a, :x, :b, CopyTunerClient::RequestSync, CopyTunerClient::CopyrayMiddleware]
+        )
+      end
+    end
+
+    let(:middleware) { MiddlewareStack.new(%i[a x b]) }
+
+    def apply
+      configuration.middleware = middleware
+      configuration.middleware_position = { before: nil }
+      configuration.environment_name = 'development'
+      configuration.apply
+    end
+  end
+
   context 'applied without locale filter' do
     include_context 'stubbed configuration'
 
