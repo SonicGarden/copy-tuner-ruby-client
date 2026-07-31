@@ -160,7 +160,12 @@ end
 # locale ルートを持つ raw Hash（`{ "ja" => {...}, "en" => {...} }`）から、対象 prefix を全 locale で刈った
 # 新しい Hash を返す（非破壊）。移行漏れ検証のシミュレーションと実削除の両方で使う。
 def prune_prefix_all_locales(raw, locales, keys)
-  locales.reduce(raw) { |acc, locale| acc.merge(locale => prune_prefix(acc[locale] || {}, keys)) }
+  locales.reduce(raw) do |acc, locale|
+    # 元ファイルに無い locale ルートを新設すると、ja だけのファイルに `en: {}` が追記されてしまう。
+    next acc unless acc.key?(locale)
+
+    acc.merge(locale => prune_prefix(acc[locale], keys))
+  end
 end
 
 # ---- (1) 配置 ----
@@ -277,10 +282,18 @@ unless leaks.empty?
   die('中断。--out の内容・採番・regexp を確認すること。')
 end
 
-original_files.each do |f|
-  raw = YAML.safe_load_file(f, permitted_classes: [Symbol], aliases: true) || {}
-  File.write(f, prune_prefix_all_locales(raw, LOCALES, prefix_keys).to_yaml)
-end
+changed =
+  original_files.count do |f|
+    raw = YAML.safe_load_file(f, permitted_classes: [Symbol], aliases: true) || {}
+    pruned = prune_prefix_all_locales(raw, LOCALES, prefix_keys)
+    # 対象 prefix を含まないファイルを to_yaml で書き戻すと、クォート・アンカー名・折り返し・コメントの
+    # 無関係な整形差分が出る。実質的な変更があるファイルだけ書き戻す。
+    next false if pruned == raw
 
-puts "削除: prefix '#{PREFIX}' をオリジナル #{original_files.size} ファイルから刈り取った。"
+    # 折り返しだけは line_width で無効化できる（アンカー名・クォートは Psych の仕様で制御できない）。
+    File.write(f, pruned.to_yaml(line_width: -1))
+    true
+  end
+
+puts "削除: prefix '#{PREFIX}' をオリジナル #{original_files.size} ファイル中 #{changed} ファイルから刈り取った。"
 puts '完了。手順7（local_first_key_regexp 追加）が未済なら次に実施すること。'

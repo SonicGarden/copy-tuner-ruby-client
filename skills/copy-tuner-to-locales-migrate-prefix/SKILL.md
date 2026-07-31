@@ -197,6 +197,15 @@ prefix 内で `date.formats`（文字列・export 勝ち）と `date.order`（�
 > 束ねている。スクリプトが中断した場合は `--out` のファイルだけが残る（オリジナルは無傷）ので、原因を直して
 > 再実行するか `--out` を消してやり直す。
 
+> NOTE: スクリプトは「対象 prefix の削除で実際に内容が変わったファイルだけ」を書き戻す（変更が無ければ
+> `File.write` をスキップする）。とはいえ `--originals-glob` の指定ミス等で意図しないファイルが対象に
+> 入っていないとも限らないため、実行後は必ず `git diff --stat config/locales/` で「対象 prefix を含む
+> はずのファイルだけに差分が出ているか」を確認する。対象 prefix と無関係なはずのファイルに差分が出て
+> いたら `git checkout -- <file>` で復元し、原因（`--originals-glob` や `--prefix` の指定）を見直す。
+
+> NOTE: 書き戻されたファイルでは**コメント・空行が失われる**（YAML 標準ライブラリはこれらを保持しない。
+> 値・エイリアス参照は保たれる）。`git diff` を見て惜しいコメントがあれば手で戻すこと。
+
 ### 7. local_first_key_regexp に prefix を追加
 
 initializer（`config/initializers/copy_tuner.rb` 等）の `CopyTunerClient.configure` ブロックで、
