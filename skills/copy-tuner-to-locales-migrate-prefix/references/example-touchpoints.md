@@ -61,7 +61,8 @@ end
 
 → オリジナルを `0000_original_` で先頭固定し、移行分は `0010_` 以降に置く。重複キーはロード順の**後勝ちで
 export 側が勝つ**（手作業マージ不要）。prefix を移行するたびにオリジナルから該当サブツリーを削除し、残存＝
-未移行 prefix の進捗マーカーにする（最終的にオリジナルが空＝全移行完了）。
+未移行 prefix の進捗マーカーにする（**全 prefix を移行する場合は最終的にオリジナルが空になる**）。
+部分ローカル化では、対象外 prefix がオリジナルに残り続けるのが**定常状態**であり、空にならなくてよい。
 
 → Rails 標準フォーマットの **配列**（`date.abbr_day_names` 等）・`date.order` の `:year` 等の**シンボル配列**・
 `number.*.precision` 等の**非表現値**は copy_tuner で表現できず export に出てこないため、`date`/`number` を移行
@@ -69,10 +70,10 @@ export 側が勝つ**（手作業マージ不要）。prefix を移行するた�
 移行分（`0010_` 以降）の中へ**非表現値ごと取り込む**。別ファイルへの隔離は不要（詳細は
 `references/export-and-split.md`）。
 
-### CI — [migrate]（Export ステップのみ初回で削除） / [cleanup]（残り）
+### CI — [cleanup]
 
 - **CI の翻訳 export ステップ**（テストワークフロー内で `bin/rake copy_tuner:export` を走らせる類）…
-  「翻訳 DL 失敗でテストがコケないように」の保険。**[migrate] の初回で削除**（test が本番同等の
+  「翻訳 DL 失敗でテストがコケないように」の保険。**[cleanup] で削除**（test が本番同等の
   `cache.download` 挙動になる）。`disable_test_translation` は入れない。
 - **copy_tuner 専用の deploy ワークフロー**（main push で翻訳をデプロイする専用ファイル）…
   **[cleanup] で丸ごと削除**。
@@ -88,10 +89,11 @@ export 側が勝つ**（手作業マージ不要）。prefix を移行するた�
 
 `config/environments/production.rb` の `config.i18n.fallbacks = true` 等。標準バックエンドでも有効なので確認のみ。
 
-### ドキュメント / スキル / MCP — [migrate]（中間状態更新） / [cleanup]（最終化・撤去）
+### ドキュメント / スキル / MCP — [migrate]（用途別に更新） / [cleanup]（最終化・撤去）
 
 - **i18n 方針ドキュメント**（`CLAUDE.md`・`doc/` 配下等）… 「copy_tuner サーバで i18n データを管理 /
-  config/locales 配下は利用しない / 新規キー登録は基本禁止」等の記述。**[migrate] で中間状態に更新**、
+  config/locales 配下は利用しない / 新規キー登録は基本禁止」等の記述。**[migrate] で更新**（部分ローカル化なら
+  恒久的な二層管理として、全移行なら段階移行中の中間状態として。テンプレは後掲）。全移行の場合のみ
   **[cleanup] で最終化**。上記を参照している他のドキュメント（`CLAUDE.md` 等）も連動。
 - **copy_tuner MCP 操作スキル**（`.claude/skills/` 配下）… **[cleanup] で無効化/削除**。
 - **補助ドキュメント** … 「多言語対応: copy_tuner サーバで i18n データを管理」のような記述を持つコマンド定義等。
@@ -107,10 +109,28 @@ copy_tuner 側のキー数・export YAML の行数はプロジェクト次第だ
 `restrict_dependent_destroy` 等。これらのトップセクションが prefix 移行の基本粒度。`views` が最大になりやすいので
 最後に回す。
 
-## i18n 方針ドキュメント中間状態テンプレ（[migrate] 手順 10 で使う）
+## i18n 方針ドキュメントテンプレ（[migrate] 手順 9 で使う）
 
-移行中はこのような記述に置き換える。`<列挙>` は現在 `local_first_key_regexp` にマッチしている prefix に
-更新する（prefix を増やすたびに更新）。
+用途に応じて 2 版ある。`<列挙>` は現在 `local_first_key_regexp` にマッチしている prefix に更新する
+（prefix を増やすたびに更新）。
+
+### 部分ローカル化版
+
+「移行中」ではなく、この状態が**恒久的に続く二層管理**であることを明記する。
+
+```markdown
+### 国際化（i18n）
+
+- **一部の prefix は config/locales（YAML）管理、それ以外は copy_tuner サーバ管理**
+- config/locales 管理の prefix（`local_first_key_regexp` にマッチ）: `<列挙>`
+- 上記以外の prefix は copy_tuner サーバで管理
+- **新規キーの追加先**: 上記 prefix のキーは config/locales へ。それ以外は copy_tuner へ
+- 複数形化対応は不要（日本語環境）
+```
+
+### 全移行版
+
+「段階移行中」であることと、いずれ cleanup で最終化される中間状態であることを明記する。
 
 ```markdown
 ### 国際化（i18n）
@@ -122,5 +142,6 @@ copy_tuner 側のキー数・export YAML の行数はプロジェクト次第だ
 - 複数形化対応は不要（日本語環境）
 ```
 
-> [cleanup] で全 prefix 完了後、この中間記述は「config/locales 管理。copy_tuner 廃止。新規キーは
-> config/locales へ。複数形化不要」に最終化する（モデル名・カラム名の例外規定も撤廃）。
+> 上記**全移行版にのみ係る注記**: [cleanup] で全 prefix 完了後、この中間記述は「config/locales 管理。
+> copy_tuner 廃止。新規キーは config/locales へ。複数形化不要」に最終化する（モデル名・カラム名の例外規定も
+> 撤廃）。部分ローカル化版は cleanup を経由しないため、この最終化は適用されない。

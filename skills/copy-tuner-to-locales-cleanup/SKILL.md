@@ -129,8 +129,7 @@ copyray コメント注入も消える。あわせて `config/environments/*.rb`
 
 - copy_tuner 専用の deploy ワークフローファイル（main push で翻訳をデプロイする専用ファイル）… 丸ごと削除。
 - AI エージェント用ワークフローの `mcp__copy-tuner__*` allowedTools 許可 … 削除。
-- CI の「翻訳を export するステップ」… migrate-prefix の初回で削除済みのはず。**まだ残っていれば**ここで削除する
-  （`git grep copy_tuner .github/` で確認）。
+- CI の「翻訳を export するステップ」… ここで削除する（`git grep copy_tuner .github/` で確認）。
 
 ### 6. deploy / 起動スクリプトを撤去
 

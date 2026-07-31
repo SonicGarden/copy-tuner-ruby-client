@@ -2,24 +2,33 @@
 name: copy-tuner-to-locales-migrate-prefix
 description: >-
   copy_tuner（CopyTuner / copy_tuner_client）で集中管理している i18n データを、prefix（正規表現）単位で
-  Rails 標準の config/locales（YAML）管理へ段階移行するスキル。gem の local_first_key_regexp を使い、
-  1 回につき 1 prefix をローカルへ寄せて regexp に積み上げる。全 prefix 完了後の gem 撤去は
-  copy-tuner-to-locales-cleanup スキルで行う。
+  Rails 標準の config/locales（YAML）管理へ移すスキル。gem の local_first_key_regexp を使うので、
+  gem を残したまま特定 prefix だけをローカル管理にできる（部分ローカル化）。1 回の実行で 1 prefix。
+  全 prefix を移して gem ごと撤去したい場合は繰り返し、完了後 copy-tuner-to-locales-cleanup スキルへ進む。
+  対象 prefix はスキル引数で指定でき、未指定なら export を俯瞰して選定する。
 disable-model-invocation: true
 ---
 
-# copy_tuner → config/locales 段階移行スキル（prefix 単位）
+# copy_tuner → config/locales prefix 単位ローカル化スキル
 
-copy_tuner（`copy_tuner_client` gem）で集中管理している i18n データを、**prefix（正規表現）単位で**少しずつ
-Rails 標準の `config/locales` 配下の YAML 管理へ移していくためのワークフロー。**1 回の実行で 1 prefix だけ**
-移行し、これを繰り返す。全 prefix の移行が完了したら `copy-tuner-to-locales-cleanup` スキルで gem・CI・
-deploy・docs・MCP をまとめて撤去する。
+copy_tuner（`copy_tuner_client` gem）で集中管理している i18n データを、**prefix（正規表現）単位で**
+Rails 標準の `config/locales` 配下の YAML 管理へ移すためのワークフロー。**1 回の実行で 1 prefix だけ**扱う。
+
+使い方は 2 つある:
+
+- **部分ローカル化** — 特定 prefix だけを恒久的に `config/locales` 管理にする。**gem は残したまま**で、
+  CopyTuner 管理と locales 管理の二層が**定常状態**になる。
+- **全移行** — 上記を全 prefix ぶん繰り返す。全 prefix の移行が完了したら
+  `copy-tuner-to-locales-cleanup` スキルで gem・CI・deploy・docs・MCP をまとめて撤去する。
+
+**どちらの用途でもこのスキルがやること（手順 0〜10）は同一**で、差は「何回回すか」と「最後に cleanup へ
+進むか」だけ。
 
 このスキルは**特定のリポジトリに依存しない**。project_id・ファイルパス・CI 構成はプロジェクトごとに異なるので、
 固有値を覚えるのではなく**毎サイクル、自分が編集する箇所（initializer の regexp・config/locales）を探索して
 見つけ直す**（手順 2）。種別ごとの典型例は `references/example-touchpoints.md` を参照。
 
-## なぜ prefix 単位で段階移行するのか
+## なぜ prefix 単位で切るのか
 
 一発で全 i18n をローカル化すると、移行漏れ（ローカル YAML に書き忘れたキー）が**一斉に未訳化**して事故になる。
 prefix 単位なら、移した範囲だけが影響を受け、移行漏れはその範囲の未訳として小さく顕在化する。安全な prefix から
@@ -38,10 +47,20 @@ prefix 単位なら、移した範囲だけが影響を受け、移行漏れは�
 - マッチしないキーは従来どおり CopyTuner キャッシュ優先 → 無ければローカル、という動作のまま。
 - regexp は**単一**（配列非対応）。複数 prefix は `Regexp.union` で 1 本に積み上げる。
 
-gem を残したまま regexp に prefix を足していくだけなので、移行途中でも CopyTuner と config/locales が安全に
-共存する。
+gem を残したまま regexp に prefix を足していくだけなので、CopyTuner と config/locales は安全に共存する。
+部分ローカル化ならこの共存が定常状態、全移行なら移行途中の状態としてそのまま成り立つ。
 
 ## ワークフロー（1 サイクル = 1 prefix）
+
+### 0. 対象 prefix の受け取り（引数）
+
+スキル引数で対象 prefix を渡せる（例: `devise` / `activerecord.attributes` / `views.users`）。
+
+- **引数あり** … それを今回の対象とし、**手順 4 の選定はスキップ**する。ただし**手順 3 の全件 export は
+  実行する**（手順 6 の `--export` 入力として必須なので省けない）。
+- 引数の prefix が export に**存在しなければ**、その旨をユーザーに報告して中断する（手順 6 のスクリプトも
+  同じ条件で異常終了するが、手順 3 の時点で気づけるほうが早い）。
+- **引数なし** … 従来どおり手順 4 の基準で 1 つ選び、**選定結果をユーザーに提示してから**手順 5 へ進む。
 
 ### 1. gem 前提確認
 
@@ -65,14 +84,13 @@ grep 結果はセッションをまたいで残らない（複数セッション
 git grep -nI 'local_first_key_regexp' -- ':!vendor' ':!tmp' ':!node_modules'
 ls config/locales
 
-# 初回だけ触る（手順 9・10 用）: CI の export ステップと i18n 方針ドキュメント
-git grep -nI -e 'copy_tuner:export' -e 'CopyTuner' -- '.github/' 'doc/' 'CLAUDE.md'
+# 手順 9 用: i18n 方針ドキュメント
+git grep -nI 'CopyTuner' -- 'doc/' 'CLAUDE.md'
 ```
 
 - 手順 6・7 で毎回触る **initializer の `local_first_key_regexp`** の位置と、**`config/locales/`** の採番慣習
   （例: `00_`・`10_`）を確認する。
-- 手順 9（CI の export ステップ削除）・手順 10（方針ドキュメントの中間状態更新）で**初回だけ**触る箇所も
-  ここで場所だけ押さえる。
+- 手順 9（i18n 方針ドキュメントの更新）で触る箇所も、ここで場所だけ押さえる。
 
 #### 2-1. （初回のみ）既存 locales を `0000_original_` プレフィックスへリネーム
 
@@ -101,8 +119,12 @@ cleanup は自前で touchpoint を grep し直す。**このスキルでそれ�
 
 ### 3. 残 prefix の把握
 
-全件を export して俯瞰し、移行済み（現在の `local_first_key_regexp` がマッチする）prefix と未移行 prefix を
-一覧化する。export は一時ファイルへ書く（`tmp/` 等の捨て場）。
+全件を export して俯瞰し、ローカル化済み（現在の `local_first_key_regexp` がマッチする）prefix と
+copy_tuner 管理のまま残っている prefix を一覧化する。export は一時ファイルへ書く（`tmp/` 等の捨て場）。
+
+対象 prefix が引数で指定されている場合、この一覧化は**対象 prefix が export に存在することの確認と規模把握**の
+ためになる（選定は不要）。いずれの場合も `rake copy_tuner:export` の**実行自体は必須**で、出力は手順 6 の
+`--export` 入力になる。
 
 ```bash
 bundle exec rake copy_tuner:export[tmp/copy_tuner_all.yml]
@@ -114,7 +136,10 @@ bundle exec rake copy_tuner:export[tmp/copy_tuner_all.yml]
 
 ### 4. 対象 prefix の選定
 
-残 prefix から **1 つ**選ぶ。影響が小さく構造が安定したものから始め、最後に大物（`views`）を回す:
+**引数で prefix が指定されている場合はこの手順をスキップ**し、手順 5 へ進む。
+
+残 prefix から **1 つ**選ぶ。以下の順序は**安全度の目安**で、影響が小さく構造が安定したものから始め、最後に
+大物（`views`）を回す:
 
 1. **gem 由来（最安全・先行）**: `devise` / `good_job` / `ice_cube` / `restrict_dependent_destroy` 等。
    値が安定しアプリ実装に依存しにくい。
@@ -123,8 +148,8 @@ bundle exec rake copy_tuner:export[tmp/copy_tuner_all.yml]
 3. **バリデーションメッセージ**: `activerecord.errors` / `activemodel.errors`。テストで検知しやすい。
 4. **モデル名・カラム名**: `activerecord.models` / `activerecord.attributes` / `activemodel.attributes` /
    `activerecord.enums`。プロジェクトの i18n 方針で「新規キー登録の例外」とされていることが多い
-   （プロジェクトの i18n 方針ドキュメントでそう規定されていることが多い）。**全撤去がゴールなのでこの prefix も最終的に移行対象に含める**。
-   例外規定の撤廃は cleanup で行う。
+   （プロジェクトの i18n 方針ドキュメントでそう規定されていることが多い）。**全 prefix を移行する場合は
+   この prefix も対象に含める**（例外規定の撤廃は cleanup で行う）。
 5. **画面テキスト（最大・最後）**: `views` / `text`。量が多く画面影響が大きいので最後に回し、画面確認の比重を
    上げる。1 回が大きすぎるなら `views.<controller>.` の 2 階層目で更に刻んでよい（regexp を `\Aviews\.users\.`
    のように書ける）。
@@ -242,33 +267,31 @@ config.local_first_key_regexp = Regexp.union(
 > `bin/rails runner 'p CopyTunerClient.configuration.local_first_key?("<prefix>.foo")'` が `true`、隣接キー
 > （`reviews.*` 等）が `false` になることを確認しておくとよい。
 
-### 9. （初回のみ）CI の Export ステップを削除
+### 9. i18n 方針ドキュメントを更新
 
-CI で copy_tuner を export しているステップ（テストワークフロー内で `bin/rake copy_tuner:export` を走らせる類）
-は、**テスト起動前にローカルキャッシュを温める保険**にすぎない。
-このステップを削除すると、test 環境は initializer 起動時の `cache.download`（CopyTuner サーバから都度取得）
-だけになり、**本番と同じ挙動**になる。未移行 prefix も引き続きサーバから解決できるので、移行途中に消しても安全。
+i18n 方針ドキュメント（`doc/` 等）が「copy_tuner で管理／config/locales は使わない」のまま残ると、
+他の作業者や AI が「新規キーを copy_tuner と locales のどちらに足すか」を誤判断する。用途に応じて書き分ける
+（テンプレ文は `references/example-touchpoints.md` にある）:
 
-> WARNING: `config.disable_test_translation = true` は**入れない**こと。入れると test で CopyTuner DL が
-> 止まり、未移行 prefix が一斉に未訳化する。Export ステップ（保険）だけを消すのが正しい。
+- **部分ローカル化** … 「移行中」ではなく**恒久的な二層管理**として書く。「以下の prefix は config/locales
+  管理」「それ以外は copy_tuner 管理」「新規キーの追加先はどちら」の 3 点を明記する。
+- **全移行** … 「copy_tuner から config/locales へ段階移行中」＋現在ローカル化済みの prefix を列挙する
+  （最終形への書き換えは cleanup で行う）。
 
-### 10. ドキュメントの中間状態を更新
+いずれも prefix を増やすたびに列挙を更新する。
 
-i18n 方針ドキュメント（`doc/` 等）が「copy_tuner で管理／config/locales は使わない」のまま残ると、移行途中で
-他の作業者や AI が「新規キーを copy_tuner と locales のどちらに足すか」を誤判断する。**移行中であることと、
-現在ローカル化済みの prefix を明記する**。中間状態テンプレ文は `references/example-touchpoints.md` にある。
-prefix を増やすたびに、列挙も更新する。
+### 10. 結果を報告
 
-### 11. 残 prefix を報告
+今回ローカル化した prefix と、現在の `local_first_key_regexp` を報告して 1 サイクル終了。加えて:
 
-移行済み prefix・残 prefix の一覧と、現在の `local_first_key_regexp` を報告して 1 サイクル終了。
-残 prefix があれば次サイクルでこのスキルを再実行する。全 prefix が移行済みになったら
-`copy-tuner-to-locales-cleanup` スキルへ進む。
+- **部分ローカル化** … これで完了。残りの prefix は copy_tuner 管理のままが定常状態なので、次サイクルは不要。
+- **全移行** … copy_tuner 管理のまま残っている prefix の一覧も報告する。残りがあれば次サイクルでこのスキルを
+  再実行する。全 prefix がローカル化済みになったら `copy-tuner-to-locales-cleanup` スキルへ進む。
 
 ## 1 サイクル完了の目安
 
 - 手順 6 のスクリプトが**移行漏れゼロを確認して正常終了**し、`--out`（`0010_` 以降）に対象 prefix が配置され、
   `0000_original_*.yml` から該当サブツリーが削除されている（非表現値は `--out` 側に保持済み）。
 - `local_first_key_regexp` に対象 prefix が `\A` アンカー付きで追加されている（手順 7）。
-- 中間状態ドキュメントの「ローカル化済み prefix」が更新されている（手順 10）。
+- i18n 方針ドキュメントの「config/locales 管理の prefix」が更新されている（手順 9）。
 - （任意）rspec/画面で `translation missing` が出ないことをユーザー判断で確認（手順 8）。
