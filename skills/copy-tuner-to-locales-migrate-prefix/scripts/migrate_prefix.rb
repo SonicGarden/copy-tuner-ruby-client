@@ -8,6 +8,10 @@
 #   bin/rails runner .claude/skills/copy-tuner-to-locales-migrate-prefix/scripts/migrate_prefix.rb \
 #     -- --prefix date --export tmp/copy_tuner_all.yml --out config/locales/0010_date.yml
 #
+# このスクリプト自身の自己検証（gem メンテナ向け。Rails も bundler も不要）:
+#
+#   ruby skills/copy-tuner-to-locales-migrate-prefix/scripts/migrate_prefix.rb --self-test
+#
 # What it does, in one pass:
 #   (1) Place : extract the target prefix subtree from the 0000_original_*.yml
 #       originals (load-order deep_merge), deep_merge the export subtree on top
@@ -28,6 +32,127 @@
 
 require 'optparse'
 require 'yaml'
+
+# ---- self-test ----
+# 引数パースより前に分岐する。このスクリプトはトップレベルで即実行する造りなので、`--self-test` の
+# ときは本体へ進ませずテストだけ走らせてトップレベル return で抜ける。
+if ARGV.delete('--self-test')
+  require 'minitest/autorun'
+  require 'tmpdir'
+  require 'fileutils'
+  require 'rbconfig'
+
+  # 本体はトップレベルで exit するため load では検証できない。fixture を tmpdir に作り、i18n だけを
+  # 直接設定する薄いランナー経由でサブプロセス実行する（スクリプトが触るのは I18n.load_path と
+  # Backend::Simple だけなので Rails は不要）。
+  class MigratePrefixSelfTest < Minitest::Test
+    SCRIPT = File.expand_path(__FILE__)
+    # 対象 prefix（date）を持つファイル。これだけが書き戻し対象になるのが期待挙動。
+    WITH_PREFIX = "ja:\n  date:\n    formats:\n      default: \"%Y\"\n"
+    WITHOUT_PREFIX = "ja:\n  greeting: \"hello\"\n"
+    # 片方だけが対象 prefix を持つ 2 ファイル構成。「1 ファイルだけ書き戻る」ことの検証に使う。
+    MIXED_FILES = { '0000_original_a.yml' => WITH_PREFIX, '0000_original_b.yml' => WITHOUT_PREFIX }.freeze
+    EXPORT_JA = "ja:\n  date:\n    formats:\n      default: \"%Y/%m/%d\"\n"
+    EXPORT_JA_EN = "#{EXPORT_JA}en:\n  date:\n    formats:\n      default: \"%m/%d/%Y\"\n".freeze
+    # to_yaml の既定 line_width（80）を確実に超える長さにして折り返しを誘発する。
+    LONG_VALUE = (['word'] * 60).join(' ').freeze
+
+    def test_untouched_file_keeps_bytes
+      # コメント・空行・ダブルクォートが 1 バイトも変わらないことを見る。
+      untouched = <<~YAML
+        ja:
+          # これは greeting のコメント
+          greeting: "hello"
+
+          farewell: "bye"
+      YAML
+      migrate({ '0000_original_a.yml' => WITH_PREFIX, '0000_original_b.yml' => untouched }) do |out, dir|
+        # binread は ASCII-8BIT を返すため、UTF-8 の期待値を b で揃えてバイト列として比較する。
+        assert_equal(untouched.b, read(dir, '0000_original_b.yml'), "無関係なファイルが書き換わった:\n#{out}")
+      end
+    end
+
+    def test_missing_locale_root_is_not_added
+      migrate(MIXED_FILES, locales: %w[ja en], export: EXPORT_JA_EN) do |_out, dir|
+        MIXED_FILES.each_key do |name|
+          refute_includes(read(dir, name), 'en:', "#{name} に元ファイルに無い en ルートが新設された")
+        end
+      end
+    end
+
+    def test_prefix_is_pruned_from_matching_file
+      migrate({ '0000_original_a.yml' => "#{WITH_PREFIX}  greeting: \"hello\"\n" }) do |_out, dir|
+        assert_equal({ 'ja' => { 'greeting' => 'hello' } }, load_yaml(dir, '0000_original_a.yml'))
+        assert_equal(
+          { 'ja' => { 'date' => { 'formats' => { 'default' => '%Y/%m/%d' } } } },
+          load_yaml(dir, '0010_migrated.yml')
+        )
+      end
+    end
+
+    def test_long_value_is_not_wrapped
+      migrate({ '0000_original_a.yml' => "#{WITH_PREFIX}  greeting: \"#{LONG_VALUE}\"\n" }) do |_out, dir|
+        body = read(dir, '0000_original_a.yml')
+        assert_includes(body, "greeting: #{LONG_VALUE}\n", "長い値が折り返された:\n#{body}")
+      end
+    end
+
+    def test_summary_counts_changed_files
+      migrate(MIXED_FILES) do |out, _dir|
+        assert_includes(out, 'オリジナル 2 ファイル中 1 ファイル')
+      end
+    end
+
+    private
+
+    # fixture を tmpdir に配置してサブプロセス実行し、標準出力と locales ディレクトリを yield する。
+    def migrate(files, locales: %w[ja], export: EXPORT_JA)
+      Dir.mktmpdir do |dir|
+        locales_dir = File.join(dir, 'config/locales')
+        FileUtils.mkdir_p(locales_dir)
+        FileUtils.mkdir_p(File.join(dir, 'tmp'))
+        files.each { |name, body| File.write(File.join(locales_dir, name), body) }
+        File.write(File.join(dir, 'tmp/export.yml'), export)
+        write_runner(dir, locales)
+
+        ok, out = spawn_script(dir, locales)
+        assert(ok, "スクリプトが異常終了した:\n#{out}")
+        yield(out, locales_dir)
+      end
+    end
+
+    def write_runner(dir, locales)
+      File.write(File.join(dir, 'runner.rb'), <<~RUBY)
+        require 'i18n'
+        I18n.load_path = Dir['config/locales/*.yml']
+        I18n.available_locales = #{locales.map(&:to_sym).inspect}
+        I18n.default_locale = #{locales.first.to_sym.inspect}
+        load #{SCRIPT.inspect}
+      RUBY
+    end
+
+    def spawn_script(dir, locales)
+      args = [
+        '--prefix', 'date', '--locales', locales.join(','),
+        '--export', 'tmp/export.yml', '--out', 'config/locales/0010_migrated.yml'
+      ]
+      Dir.chdir(dir) do
+        read_io, write_io = IO.pipe
+        pid = spawn(RbConfig.ruby, File.join(dir, 'runner.rb'), '--', *args, out: write_io, err: write_io)
+        write_io.close
+        out = read_io.read
+        _, status = Process.waitpid2(pid)
+        [status.success?, out]
+      end
+    end
+
+    def read(dir, name) = File.binread(File.join(dir, name))
+
+    def load_yaml(dir, name) = YAML.safe_load_file(File.join(dir, name))
+  end
+
+  return
+end
 
 # NOTE: `bin/rails runner` は Kernel#abort が投げる SystemExit を握りつぶし終了コードが 0 になる
 # （実機確認済み）。中断を呼び出し側へ確実に伝えるため、abort ではなく warn + exit(1) を使う。
@@ -160,7 +285,12 @@ end
 # locale ルートを持つ raw Hash（`{ "ja" => {...}, "en" => {...} }`）から、対象 prefix を全 locale で刈った
 # 新しい Hash を返す（非破壊）。移行漏れ検証のシミュレーションと実削除の両方で使う。
 def prune_prefix_all_locales(raw, locales, keys)
-  locales.reduce(raw) { |acc, locale| acc.merge(locale => prune_prefix(acc[locale] || {}, keys)) }
+  locales.reduce(raw) do |acc, locale|
+    # 元ファイルに無い locale ルートを新設すると、ja だけのファイルに `en: {}` が追記されてしまう。
+    next acc unless acc.key?(locale)
+
+    acc.merge(locale => prune_prefix(acc[locale], keys))
+  end
 end
 
 # ---- (1) 配置 ----
@@ -277,10 +407,18 @@ unless leaks.empty?
   die('中断。--out の内容・採番・regexp を確認すること。')
 end
 
-original_files.each do |f|
-  raw = YAML.safe_load_file(f, permitted_classes: [Symbol], aliases: true) || {}
-  File.write(f, prune_prefix_all_locales(raw, LOCALES, prefix_keys).to_yaml)
-end
+changed =
+  original_files.count do |f|
+    raw = YAML.safe_load_file(f, permitted_classes: [Symbol], aliases: true) || {}
+    pruned = prune_prefix_all_locales(raw, LOCALES, prefix_keys)
+    # 対象 prefix を含まないファイルを to_yaml で書き戻すと、クォート・アンカー名・折り返し・コメントの
+    # 無関係な整形差分が出る。実質的な変更があるファイルだけ書き戻す。
+    next false if pruned == raw
 
-puts "削除: prefix '#{PREFIX}' をオリジナル #{original_files.size} ファイルから刈り取った。"
+    # 折り返しだけは line_width で無効化できる（アンカー名・クォートは Psych の仕様で制御できない）。
+    File.write(f, pruned.to_yaml(line_width: -1))
+    true
+  end
+
+puts "削除: prefix '#{PREFIX}' をオリジナル #{original_files.size} ファイル中 #{changed} ファイルから刈り取った。"
 puts '完了。手順7（local_first_key_regexp 追加）が未済なら次に実施すること。'

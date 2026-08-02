@@ -64,9 +64,10 @@ bin/rails runner '
 > NOTE: ここで `export` を実行できるのは gem がまだ入っているから。完了判定は gem 撤去より**前**に行う。
 
 > 補助目印: migrate は prefix を移すたびにオリジナル（`0000_original_*.yml`）から該当サブツリーを削除するので、
-> 全移行完了時点で `0000_original_*.yml` はほぼ空（残るのは非表現値の隔離 `0005_rails_non_blurb.yml` 等のみ）に
-> なっているはず。`local_first_key?` のマッチ判定が主の関門で、ファイルが空かどうかは副次的な目視確認。
-> 食い違うとき（regexp は全マッチなのにオリジナルに blurb 化できるキーが残っている等）は削除漏れを疑う。
+> **全移行を経た場合**は `0000_original_*.yml` がほぼ空になっているはず（非表現値も `migrate_prefix.rb` が
+> 移行分側の `--out` へ再適用済みで、オリジナル側に隔離ファイルとして残ることはない）。`local_first_key?`
+> のマッチ判定が主の関門で、ファイルが空かどうかは副次的な目視確認。食い違うとき（regexp は全マッチなのに
+> オリジナルに blurb 化できるキーが残っている等）は削除漏れを疑う。
 
 ### 2. 最終不正キーチェック
 
@@ -129,8 +130,7 @@ copyray コメント注入も消える。あわせて `config/environments/*.rb`
 
 - copy_tuner 専用の deploy ワークフローファイル（main push で翻訳をデプロイする専用ファイル）… 丸ごと削除。
 - AI エージェント用ワークフローの `mcp__copy-tuner__*` allowedTools 許可 … 削除。
-- CI の「翻訳を export するステップ」… migrate-prefix の初回で削除済みのはず。**まだ残っていれば**ここで削除する
-  （`git grep copy_tuner .github/` で確認）。
+- CI の「翻訳を export するステップ」… ここで削除する（`git grep copy_tuner .github/` で確認）。
 
 ### 6. deploy / 起動スクリプトを撤去
 

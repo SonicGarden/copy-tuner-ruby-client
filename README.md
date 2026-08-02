@@ -64,17 +64,35 @@ CopyTuner で一元管理している翻訳を、`views.*` のような単位で
 
 ## Claude Code スキル
 
-`skills/copy-tuner/` に Claude Code 向けのスキルが含まれています。
+`skills/` 以下に Claude Code 向けのスキルが含まれています。
+
+```
+gh skill install SonicGarden/copy-tuner-ruby-client <スキル名> --scope project
+```
 
 ### copy-tuner スキル
 
 i18n キーの操作を支援するスキルです。翻訳キーの検索・登録・確認などの依頼に自動的に使用されます。
 
-```
-gh skill install SonicGarden/copy-tuner-ruby-client copy-tuner --scope project
-```
-
 詳細: [skills/copy-tuner/SKILL.md](skills/copy-tuner/SKILL.md)
+
+### copy-tuner-to-locales-migrate-prefix スキル
+
+copy_tuner が集中管理する i18n キーを、prefix（正規表現）単位で `config/locales` のローカル YAML 管理へ移行するスキルです。gem は残したまま特定 prefix だけをローカル化する「部分ローカル化」と、全 prefix を移して完全撤去する「全移行」の両方に使えます。明示的に呼び出したときのみ動作します。
+
+詳細: [skills/copy-tuner-to-locales-migrate-prefix/SKILL.md](skills/copy-tuner-to-locales-migrate-prefix/SKILL.md)
+
+### copy-tuner-to-locales-cleanup スキル
+
+`copy-tuner-to-locales-migrate-prefix` で全 prefix の移行が完了した後に、gem・初期化子・CI・deploy・ドキュメント・MCP 設定を一括撤去し、copy_tuner 依存を完全に取り除くスキルです。明示的に呼び出したときのみ動作します。
+
+詳細: [skills/copy-tuner-to-locales-cleanup/SKILL.md](skills/copy-tuner-to-locales-cleanup/SKILL.md)
+
+### copy-tuner-to-t-migrate スキル
+
+copy_tuner_client v2.0.0 で削除された独自ヘルパー `tt` の呼び出しを、Rails 標準の `t`（`translate`）へ置換するスキルです。機械的に安全な箇所は一括変換し、文字列加工や `label` の第一引数に渡している箇所は 1 件ずつ確認しながら置換します。破壊的な一括書き換えを含むため、明示的に呼び出したときのみ動作します。
+
+詳細: [skills/copy-tuner-to-t-migrate/SKILL.md](skills/copy-tuner-to-t-migrate/SKILL.md)
 
 Development
 =================
