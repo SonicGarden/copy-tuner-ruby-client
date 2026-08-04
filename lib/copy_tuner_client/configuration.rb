@@ -184,6 +184,7 @@ module CopyTunerClient
       self.local_first_key_regexp = nil
       self.project_id = nil
       self.download_cache_dir = Pathname.new(Dir.pwd).join('tmp', 'cache', 'copy_tuner_client')
+      self.middleware_position = default_middleware_position
 
       @applied = false
     end
@@ -357,6 +358,20 @@ module CopyTunerClient
       end
     end
 
+    # throw :warden は Warden::Manager の catch(:warden) までスタックを巻き戻すため、
+    # Warden より内側の middleware は @app.call の戻り値を受け取れず、Devise::FailureApp の
+    # 応答がマーカー除去を経ずにブラウザへ届いてしまう。これを避けるため Warden の直前を既定位置にする。
+    #
+    # 判定に Devise の有無も見るのは、warden を require するだけで Warden::Manager を
+    # スタックに積まない gem（authtrail 等）が存在するため。定数の有無だけで決めると
+    # そうしたアプリで insert_before が対象を見つけられず起動時例外になる。
+    # スタックへ積むのは Devise の railtie（config.app_middleware.use）である。
+    def default_middleware_position
+      return nil unless defined?(::Warden::Manager) && defined?(::Devise)
+
+      { before: ::Warden::Manager }
+    end
+
     def setup_middleware
       if enable_middleware?
         logger.info 'Using copytuner sync middleware'
@@ -372,23 +387,33 @@ module CopyTunerClient
       logger.info "Available locales: #{locales.join(' ')}"
     end
 
-    def insert_middleware # rubocop:disable Metrics/AbcSize
-      request_sync_options = {
+    def insert_middleware
+      # NOTE: 値の nil を除外するのは、{ before: SomeClass if cond } のように条件次第で nil が入る
+      # 書き方で従来は末尾 use にフォールバックしていた挙動を保つため（キーの有無だけで分岐すると
+      # insert_before(nil) が対象を見つけられず例外になる）。
+      case middleware_position
+      in { before: target } if target
+        middleware.insert_before(target, RequestSync, request_sync_options)
+        middleware.insert_before(target, CopyTunerClient::CopyrayMiddleware)
+      in { after: target } if target
+        # NOTE: insert_after(index, *) は insert(index + 1, *) を呼ぶため、同じ対象へ 2 回挿入すると
+        # 後から挿入した方が対象に近い位置に来て順序が反転する。逆順で呼ぶことで
+        # 外側→内側が RequestSync → CopyrayMiddleware に揃う。
+        middleware.insert_after(target, CopyTunerClient::CopyrayMiddleware)
+        middleware.insert_after(target, RequestSync, request_sync_options)
+      else
+        middleware.use(RequestSync, request_sync_options)
+        middleware.use(CopyTunerClient::CopyrayMiddleware)
+      end
+    end
+
+    def request_sync_options
+      {
         poller: @poller,
         cache:,
         interval: sync_interval,
         ignore_regex: sync_ignore_path_regex,
       }
-      if middleware_position.is_a?(Hash) && middleware_position[:before]
-        middleware.insert_before(middleware_position[:before], RequestSync, request_sync_options)
-        middleware.insert_before(middleware_position[:before], CopyTunerClient::CopyrayMiddleware)
-      elsif middleware_position.is_a?(Hash) && middleware_position[:after]
-        middleware.insert_after(middleware_position[:after], RequestSync, request_sync_options)
-        middleware.insert_after(middleware_position[:after], CopyTunerClient::CopyrayMiddleware)
-      else
-        middleware.use(RequestSync, request_sync_options)
-        middleware.use(CopyTunerClient::CopyrayMiddleware)
-      end
     end
 
     # project_id は必須。未設定なら明示的に失敗させる。

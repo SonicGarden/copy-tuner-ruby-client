@@ -1,5 +1,17 @@
 ## Unreleased
 
+- **【後方互換性に影響】** Devise（Warden）併用時に認証エラーで Copyray マーカー（`⟦CT:key⟧`）がページに
+  残る不具合を修正しました。`throw :warden` は `Warden::Manager` の `catch(:warden)` までスタックを巻き
+  戻すため、CopyTuner の middleware が Warden より内側にあると `Devise::FailureApp` が返す HTML を書き換え
+  られませんでした。`Warden::Manager` と `Devise` がどちらも定義されている場合、CopyTuner の
+  middleware（`RequestSync` / `CopyrayMiddleware`）のデフォルト挿入位置をその直前に変更しました
+  （`Warden::Manager` をスタックへ積むのは Devise なので、warden を require するだけの gem では
+  既定位置を変えません）。Devise を使っていない環境では従来どおりスタック
+  末尾に追加されます。Devise を使っているアプリでは CopyTuner の middleware の位置が変わるため、
+  `config.middleware.use` で自作 middleware を追加している場合、相対順序が変わる可能性があります。
+  `config.middleware_position` を明示的に指定している場合はその指定が優先されるため、挙動は変わりません。
+- `config.middleware_position = { after: SomeMiddleware }` を指定した場合に `RequestSync` と
+  `CopyrayMiddleware` の順序が逆になっていた不具合を修正しました。
 - **【後方互換性に影響】** `config.exclude_key_regexp` を削除しました。後継の `config.local_first_key_regexp`
   を使ってください。両者は対象キーの形式が異なります（`exclude_key_regexp` は locale 付き `ja.views.foo`、
   `local_first_key_regexp` は locale を除いた `views.foo`）。正規表現から locale プレフィックスを外して

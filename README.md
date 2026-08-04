@@ -62,6 +62,25 @@ CopyTuner で一元管理している翻訳を、`views.*` のような単位で
 
 アプリ独自の `number.*` キー（例 `number.gift_amount`）は対象外で、従来どおり CopyTuner で管理できます。
 
+## Middleware の挿入位置
+
+CopyTuner は開発環境で `RequestSync` / `CopyrayMiddleware` を Rack の middleware スタックに挿入します。`RequestSync` はリクエスト毎に CopyTuner サーバと同期し、`CopyrayMiddleware` はページ内のマーカー（`⟦CT:key⟧`）を除去・変換します。
+
+挿入位置は自動で決まるため、通常は設定不要です。Devise（Warden）を使っているアプリでは `Warden::Manager` の直前、それ以外の環境ではスタック末尾に挿入されます。
+
+Devise 併用時に Warden の直前へ寄せるのは `throw :warden` の挙動に対応するためです。`throw :warden` は `Warden::Manager` の `catch(:warden)` までスタックを巻き戻すため、CopyTuner の middleware が Warden より内側にあると、認証エラー時のレスポンス（`Devise::FailureApp` が返す HTML）を受け取れず、Copyray のマーカーがページに残ってしまいます。
+
+位置を変えたい場合は `config.middleware_position` に `{ before: SomeMiddleware }` または `{ after: SomeMiddleware }` を指定すると、このデフォルトを上書きできます。
+
+```ruby
+CopyTunerClient.configure do |config|
+  # ...
+  config.middleware_position = { after: Rack::Runtime }
+end
+```
+
+指定した middleware がスタックに存在しない場合、Rails の起動時に例外（`No such middleware to insert before: ...` / `... insert after: ...`）が発生します。
+
 ## Claude Code スキル
 
 `skills/` 以下に Claude Code 向けのスキルが含まれています。
