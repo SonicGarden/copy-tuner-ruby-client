@@ -15,11 +15,17 @@ module CopyTunerClient
       @command_queue = CopyTunerClient::QueueWithTimeout.new
       @mutex         = Mutex.new
       @thread        = nil
+      @pid           = nil
     end
 
     def start
       @mutex.synchronize do
+        # スレッドは fork を越えて引き継がれないため、前プロセスの Thread オブジェクトは
+        # 死んでいるものとして捨て、張り直す
+        @thread = nil if forked?
+
         if @thread.nil?
+          @pid = Process.pid
           @logger.info 'start poller thread'
           @thread = Thread.new { poll } or logger.error("Couldn't start poller thread")
         end
@@ -28,9 +34,16 @@ module CopyTunerClient
 
     def stop
       @mutex.synchronize do
-        @command_queue.uniq_push(:stop)
-        @thread&.join
+        # fork 後の子プロセスで :stop を積むと、直後に start した新しいスレッドが 1 周目で
+        # それを pop して自分を止めてしまう。他プロセスのスレッドを join しても意味がないため、
+        # どちらも自プロセスのスレッドに対してのみ行う
+        unless forked?
+          @command_queue.uniq_push(:stop)
+          @thread&.join
+        end
+
         @thread = nil
+        @pid = nil
       end
     end
 
@@ -45,6 +58,10 @@ module CopyTunerClient
     private
 
     attr_reader :cache, :logger, :polling_delay
+
+    def forked?
+      !@pid.nil? && @pid != Process.pid
+    end
 
     def poll
       loop do

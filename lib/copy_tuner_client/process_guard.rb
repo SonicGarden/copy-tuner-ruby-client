@@ -4,6 +4,15 @@ module CopyTunerClient
   # processes and completing background jobs. Applications using the client
   # will not need to interact with this class directly.
   class ProcessGuard # rubocop:disable Metrics/ClassLength
+    # Puma::Runner#start_server は worker プロセス側で呼ばれるため、そこで poller を起動する。
+    # 匿名 Module だと prepend が重複するので名前付き定数にしている
+    module PumaStartServerHook
+      def start_server
+        CopyTunerClient.poller&.start
+        super
+      end
+    end
+
     # @param options [Hash]
     # @option options [Logger] :logger where errors should be logged
     def initialize(cache, poller, options)
@@ -17,8 +26,7 @@ module CopyTunerClient
       if spawner?
         register_spawn_hooks
       else
-        register_exit_hooks
-        start_polling
+        start_polling_locally
       end
     end
 
@@ -28,8 +36,13 @@ module CopyTunerClient
       @poller.start
     end
 
+    def start_polling_locally
+      register_exit_hooks
+      start_polling
+    end
+
     def spawner?
-      passenger_spawner? || unicorn_spawner? || delayed_job_spawner? || puma_spawner? || good_job_spawner?
+      passenger_spawner? || unicorn_spawner? || delayed_job_spawner? || good_job_spawner? || puma?
     end
 
     def passenger_spawner?
@@ -41,8 +54,17 @@ module CopyTunerClient
       defined?(Unicorn::HttpServer) && $PROGRAM_NAME.include?('unicorn') && caller.none? { |line| line.include?('worker_loop') }
     end
 
-    def puma_spawner?
-      defined?(Puma::Runner) && $PROGRAM_NAME.include?('puma')
+    def puma?
+      # $PROGRAM_NAME は `rails server` 起動では rails のパスのままで、master / single は
+      # Process.setproctitle を使うため puma を含まない。Puma の有無だけで判定する。
+      #
+      # この判定は rails console / rake / Sidekiq など Puma をサーバとして起動していない
+      # プロセスでも真になるが、それを許容している。Puma には「今 Rack サーバとして起動中か」を
+      # 判定する公開 API がなく、絞り込もうとすると $0 やヒューリスティックに頼ることになり、
+      # `rails server` 経由でフックが登録されないという元のバグを再発させるため。
+      # 非サーバプロセスで生じるコストは puma/launcher のロード（実測 60〜70ms）と
+      # prepend のみで、フック本体は start_server が呼ばれない限り発火しない。
+      defined?(Puma) ? true : false
     end
 
     def delayed_job_spawner?
@@ -62,12 +84,14 @@ module CopyTunerClient
         register_passenger_hook
       elsif unicorn_spawner?
         register_unicorn_hook
-      elsif puma_spawner?
-        register_puma_hook
       elsif delayed_job_spawner?
         register_delayed_hook
       elsif good_job_spawner?
         register_good_job_hook
+      # puma? は Puma gem がロードされていれば真になり、Web サーバ以外のプロセスでも
+      # 該当してしまう。プロセスを特定できる判定を先に通し、最後の受け皿にする
+      elsif puma?
+        register_puma_hook
       end
     end
 
@@ -116,26 +140,41 @@ module CopyTunerClient
     end
 
     def register_puma_hook
-      # If Puma is clustered mode without preload_app, this method is called on worker process.
-      # Just start poller and return.
-      if $PROGRAM_NAME.include?('cluster worker')
-        @logger.info('Puma would be clustered mode without preload_app')
-        @poller.start
-        return
+      # cluster モードでは master でも worker でもこのメソッドが呼ばれる。worker 側で
+      # 確実に poller を動かすため、Puma::Runner#start_server にフックを仕掛ける
+      if load_puma_runner
+        ::Puma::Runner.prepend(PumaStartServerHook)
+        @logger.info('Registered Puma fork hook')
+      else
+        @logger.warn('Puma fork hook was not registered')
       end
 
-      @logger.info('Register Puma fork hook')
-      # If Puma is clustered mode with preload_app, this method is called before fork.
-      # Delay poller start until Puma::Runner#start_server which is called on worker process.
-      poller = @poller
-      hook_module =
-        Module.new do
-          define_method :start_server do
-            poller.start
-            super() # NOTE: define_method 内で super を呼ぶ場合は引数を明示的に指定する必要があるので注意
-          end
-        end
-      Puma::Runner.prepend(hook_module)
+      # single モードや従来 spawner 判定が外れていた `rails server` 経由での挙動を保つため、
+      # フック登録の成否に関わらず自プロセスでも poller を起動する。
+      #
+      # cluster の master もここを通るため、リクエストを捌かない master でも poller が 1 本立つ。
+      # master と worker を区別するには $0 や Puma の内部状態を見るしかなく、そこを間違えると
+      # single モードで poller が起動しなくなる。master 1 本の余分なポーリングを払う代わりに、
+      # どの起動方法・モードでも必ず poller が立つことを優先している
+      # （worker 側は Poller#start が pid の変化を見て張り直すため二重にはならない）。
+      start_polling_locally
+    end
+
+    # Puma::Runner は lib/puma.rb の autoload に含まれず puma/launcher の require で
+    # 初めて定義される。`rails server` では initializer 時点で未定義なので前倒しでロードする。
+    # puma/launcher のロードは定数定義のみでスレッド生成や signal trap を伴わず、Puma で
+    # 起動する場合はサーバ起動時に Puma 自身が同じ require を行うため実質的な前倒しに過ぎない
+    def load_puma_runner
+      return true if defined?(::Puma::Runner)
+
+      # puma/launcher 単体の require は Puma::HAS_NATIVE_IO_WAIT 未定義で NameError になるため
+      # puma を先にロードする
+      require 'puma'
+      require 'puma/launcher'
+      defined?(::Puma::Runner) ? true : false
+    rescue LoadError, NameError => e
+      @logger.warn("Could not load Puma::Runner: #{e.message}")
+      false
     end
 
     def register_exit_hooks
