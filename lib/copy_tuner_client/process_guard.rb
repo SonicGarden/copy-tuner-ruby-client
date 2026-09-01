@@ -1,3 +1,5 @@
+require 'copy_tuner_client/fork_hook'
+
 module CopyTunerClient
   # Starts the poller from a worker process, or register hooks for a spawner
   # process (such as in Unicorn or Passenger). Also registers hooks for exiting
@@ -14,6 +16,9 @@ module CopyTunerClient
 
     # Starts the poller or registers hooks
     def start
+      # fork の前後で poller を張り直すフックは、どのプロセスでも必ず登録する
+      ForkHook.install
+
       if spawner?
         register_spawn_hooks
       else
