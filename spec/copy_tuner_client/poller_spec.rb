@@ -96,6 +96,21 @@ describe CopyTunerClient::Poller do
     expect(logger).to have_received(:flush).at_least(:once)
   end
 
+  it 'start していないときに stop してもキューに :stop を残さない' do
+    poller = build_poller
+    poller.stop
+
+    poller.start
+
+    # 1 周目の sync だけでは「:stop がキューに残っている」状態と区別できないため、
+    # 2 周目以降も同期が続くことを確かめる
+    wait_for_next_sync
+    client['test.key'] = 'value'
+    wait_for_next_sync
+
+    expect(cache['test.key']).to eq('value')
+  end
+
   describe 'fork をまたいだ場合' do
     # Thread.new を実行させると poller スレッドが後始末されずテストを跨いで残るため、
     # 分岐ロジックだけを見るためにダミーを返す

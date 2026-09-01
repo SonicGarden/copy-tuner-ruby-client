@@ -34,12 +34,12 @@ module CopyTunerClient
 
     def stop
       @mutex.synchronize do
-        # fork 後の子プロセスで :stop を積むと、直後に start した新しいスレッドが 1 周目で
-        # それを pop して自分を止めてしまう。他プロセスのスレッドを join しても意味がないため、
-        # どちらも自プロセスのスレッドに対してのみ行う
-        unless forked?
+        # 積んだ :stop は pop されるまでキューに残るため、止める相手のスレッドが自プロセスに
+        # ある場合のみ積む。さもないと直後に start した新しいスレッドが 1 周目でそれを pop して
+        # 自分を止めてしまう（スレッド未起動のとき / fork 後の子プロセスのときが該当）
+        if @thread && !forked?
           @command_queue.uniq_push(:stop)
-          @thread&.join
+          @thread.join
         end
 
         @thread = nil
