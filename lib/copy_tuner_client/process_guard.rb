@@ -120,9 +120,12 @@ module CopyTunerClient
       ::Process.singleton_class.prepend(hook_module)
     end
 
+    # 起動方法（rails server / puma -C）とモード（single / cluster / preload の有無）ごとに
+    # どのプロセスで poller が起動するかは docs/poller-startup.md にまとめてある
     def register_puma_hook
-      # If Puma is clustered mode without preload_app, this method is called on worker process.
-      # Just start poller and return.
+      # 非 preload の cluster worker はここに来る。この構成ではアプリのロードが
+      # Puma::Runner#start_server の中で起きるため、今から prepend しても実行中の呼び出しには
+      # 間に合わない。つまりこの分岐が poller を起動する唯一の経路で、最適化ではなく必須
       if $PROGRAM_NAME.include?('cluster worker')
         @logger.info('Puma would be clustered mode without preload_app')
         @poller.start
@@ -130,8 +133,9 @@ module CopyTunerClient
       end
 
       @logger.info('Register Puma fork hook')
-      # If Puma is clustered mode with preload_app, this method is called before fork.
-      # Delay poller start until Puma::Runner#start_server which is called on worker process.
+      # preload ありの cluster ではこのメソッドが fork 前の master で走る。master は
+      # リクエストを捌かないのでここでは起動せず、worker 側で呼ばれる
+      # Puma::Runner#start_server まで遅らせる
       poller = @poller
       hook_module =
         Module.new do

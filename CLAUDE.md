@@ -40,6 +40,7 @@ Rails 統合は engine.rb のイニシャライザ経由（ヘルパー/SimpleFo
   pid を記録して差分を見るような後始末には寄せない。子でも張り直すので、Puma の `fork_worker` のように
   worker が worker を fork する構成でもサーバ固有のフックなしで poller が立つ。
   アプリケーションサーバごとのフック（`ProcessGuard#register_*_hook`）を増やす前にここで足りるか確認する）。
+  起動方法・モードごとにどのプロセスで poller が起動するかは `docs/poller-startup.md` に実測結果がある。
 - **`Poller#poll` は例外をスレッドの外へ漏らさない**
   （`Poller#stop` は fork 経路から呼ばれ、`Thread#join` はスレッドの例外を再送出するため、漏らすと
   poller の失敗がアプリ側の `fork` を壊す）。
