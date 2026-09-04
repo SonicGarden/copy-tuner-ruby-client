@@ -20,23 +20,31 @@ module CopyTunerClient
 
     def start
       @mutex.synchronize do
-        if @thread.nil?
-          @logger.info 'start poller thread'
-          @thread = Thread.new { poll } or logger.error("Couldn't start poller thread")
-        end
+        # fork 後の子は親から dead な Thread オブジェクトを継承するため、nil かどうかだけでは
+        # 「動いていない」を判定できない。死んでいるスレッドは張り直す
+        next if @thread&.alive?
+
+        # コマンドキューは世代ごとに作り直し、スレッドに自分のキューを渡す。前の世代宛に
+        # 積まれたまま未消費で残った :stop を次の世代が 1 周目で拾って自殺するのを、
+        # 「1 つのキューは 1 本のスレッドだけのもの」という不変条件で構造的に防ぐ
+        queue = CopyTunerClient::QueueWithTimeout.new
+        @command_queue = queue
+        @logger.info 'start poller thread'
+        @thread = Thread.new { poll(queue) } or logger.error("Couldn't start poller thread")
       end
     end
 
     # @return [Boolean] 動いていたスレッドを停止したなら +true+
     def stop
       @mutex.synchronize do
-        # 積んだ :stop は pop されるまでキューに残るため、止める相手のスレッドがあるときだけ積む。
-        # さもないと次に start したスレッドが 1 周目でそれを pop して自分を止めてしまう
-        next false if @thread.nil?
+        thread = @thread
+        @thread = nil
+        # 例外で終わったスレッドは非 nil のまま dead で残る。それに :stop を積んでも誰も
+        # pop しない。ここで false を返すことが ForkHook の「元々動いていたか」の判断に効く
+        next false unless thread&.alive?
 
         @command_queue.uniq_push(:stop)
-        @thread.join
-        @thread = nil
+        thread.join
         true
       end
     end
@@ -53,9 +61,9 @@ module CopyTunerClient
 
     attr_reader :cache, :logger, :polling_delay
 
-    def poll
+    def poll(queue)
       timeout = remaining_delay
-      until wait_for_command(timeout) == :stop
+      until wait_for_command(queue, timeout) == :stop
         sync
         timeout = polling_delay
       end
@@ -64,8 +72,9 @@ module CopyTunerClient
       logger.error(e.message)
     rescue StandardError => e
       # 例外はスレッドの外へ漏らさない。stop の join は fork の直前にも呼ばれるため、
-      # 漏らすと poller の失敗がアプリ側の fork まで巻き添えにする
-      logger.error("poller thread aborted: #{e.class}: #{e.message}")
+      # 漏らすと poller の失敗がアプリ側の fork まで巻き添えにする。
+      # ここで握ると report_on_exception による stderr 出力も消えるので backtrace を残す
+      logger.error("poller thread aborted: #{e.class}: #{e.message}\n#{e.backtrace&.first(5)&.join("\n")}")
     end
 
     def sync
@@ -86,8 +95,10 @@ module CopyTunerClient
       remaining.negative? ? 0 : remaining
     end
 
-    def wait_for_command(timeout)
-      @command_queue.pop_with_timeout(timeout)
+    # 自分の世代のキューを受け取る。@command_queue は start のたびに差し替わるため、
+    # 終了処理中の古いスレッドが新しい世代のキューを覗いてしまわないようにする
+    def wait_for_command(queue, timeout)
+      queue.pop_with_timeout(timeout)
     rescue ThreadError
       nil # timeout
     end

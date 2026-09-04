@@ -14,7 +14,8 @@ describe CopyTunerClient::ForkHook do
 
   before do
     described_class.install
-    allow(CopyTunerClient).to receive(:poller).and_return(poller)
+    # フックは CopyTunerClient.configuration&.poller を見るので、実際の設定に載せる
+    CopyTunerClient.configuration.poller = poller
   end
 
   after do
@@ -68,6 +69,23 @@ describe CopyTunerClient::ForkHook do
 
       expect { forkable._fork }.to raise_error(Errno::EAGAIN)
       expect(events).to eq(%i[stop fork start])
+    end
+  end
+
+  describe 'poller を取得できないとき' do
+    it 'configuration が nil でも fork を壊さない' do
+      # Process._fork への prepend は外せないので、ここで例外を漏らすとアプリの
+      # すべての fork が失敗する
+      CopyTunerClient.configuration = nil
+
+      expect { Process.waitpid(fork { exit!(0) }) }.not_to raise_error
+    end
+
+    it 'fork 後の poller 起動に失敗しても fork 自体は成立する' do
+      allow(poller).to receive(:stop).and_return(true)
+      allow(poller).to receive(:start).and_raise(ThreadError, 'cannot create thread')
+
+      expect { Process.waitpid(fork { exit!(0) }) }.not_to raise_error
     end
   end
 
