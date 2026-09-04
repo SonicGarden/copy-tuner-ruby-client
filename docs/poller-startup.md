@@ -68,6 +68,20 @@ master で poller が起動する。fork 後の worker には `ForkHook`（`Proc
 
 このため `$0` の `'cluster worker'` 判定は最適化ではなく、この構成で poller を起動する唯一の経路になっている。
 
+## 表のとおりにならない例外
+
+上の表は「poller のスレッドが起動する経路」であって、起動した poller が動き続けることまでは
+保証しない。`Poller` はスレッドの生死とは別にライフサイクルの意図を持っており、次の場合は
+表の経路を通っても poller が居なくなる。
+
+- **`InvalidApiKey`** — API キーが不正だと `poll` が自ら終了し、以後は fork をまたいでも張り直さない
+  （張り直しても同じ理由で死ぬだけなので）。ログに `Invalid API key` が出る
+- **起動時に CopyTuner サーバへ到達できない** — `Configuration#apply` の `cache.download` が
+  `ConnectionError` を再送出するため、そもそもプロセスが起動に失敗する。Puma の worker では
+  `! Unable to start worker` になる
+
+再検証の際は、まずこの 2 つに当たっていないかをログで確かめる。
+
 ## 再検証のしかた
 
 Puma や Rails を上げたときにこの表が変わっていないか確かめるには、次の観測点を見るのが早い。
@@ -88,4 +102,7 @@ Puma や Rails を上げたときにこの表が変わっていないか確か�
 
 - `CopyTunerClient::ForkHook` — fork をまたいで poller を引き継ぐ。判定が外れて master で poller が
   起動してしまった場合の安全網でもある
+- `CopyTunerClient::Poller` — スレッドの生死とは別に `@running`（ポーリングを継続する意図）と
+  `@aborted`（張り直しても同じ理由で死ぬ終わり方をしたか）を持つ。`ForkHook` が fork 後に張り直すか
+  どうかは `Poller#stop` の戻り値、すなわちこの意図で決まる（スレッドが生きているかではない）
 - [Ruby における fork と Thread の挙動の調査](https://gist.github.com/shunichi/c236b6a85a46a16c60262047ca299608)
