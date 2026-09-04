@@ -39,9 +39,15 @@ module CopyTunerClient
     def self.restart_poller(poller)
       poller.start
     rescue StandardError => e
-      CopyTunerClient.configuration&.logger&.error(
-        "CopyTuner: fork 後の poller 起動に失敗しました: #{e.class}: #{e.message}"
-      )
+      log_error("CopyTuner: fork 後の poller 起動に失敗しました: #{e.class}: #{e.message}")
+    end
+
+    # ログ出力自体が失敗しても fork は成立させる。ここで例外を漏らすと、失敗を握るために
+    # 置いた rescue が逆に fork を壊す
+    def self.log_error(message)
+      CopyTunerClient.configuration&.logger&.error(message)
+    rescue StandardError
+      nil
     end
   end
 end

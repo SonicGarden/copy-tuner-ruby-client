@@ -189,12 +189,24 @@ describe CopyTunerClient::Poller do
       expect(cache['test.key']).to eq('value')
     end
 
-    it 'スレッドが例外で死んだ後の stop は false を返す' do
+    # stop の戻り値は ForkHook の「fork 後に張り直すか」の判断に使われる。スレッドの生死ではなく
+    # 「ポーリングを継続する意図があるか」を返す必要がある
+    it 'スレッドが例外で死んでいても、起動中だったなら stop は true を返す' do
       poller = build_poller
       allow(cache).to receive(:sync).and_raise('boom')
       poller.start
       sleep(polling_delay * 0.3)
 
+      expect(poller.stop).to be true
+    end
+
+    it '回復の見込みがない理由で終了した後の stop は false を返す' do
+      poller = build_poller
+      allow(cache).to receive(:sync).and_raise(CopyTunerClient::InvalidApiKey, 'Invalid API key')
+      poller.start
+      sleep(polling_delay * 0.3)
+
+      # API キーが不正なら fork のたびに張り直しても同じ理由で死ぬだけなので再開させない
       expect(poller.stop).to be false
     end
   end

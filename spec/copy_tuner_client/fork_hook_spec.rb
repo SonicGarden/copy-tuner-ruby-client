@@ -81,6 +81,14 @@ describe CopyTunerClient::ForkHook do
       expect { Process.waitpid(fork { exit!(0) }) }.not_to raise_error
     end
 
+    it 'ログ出力自体が失敗しても fork は成立する' do
+      allow(poller).to receive(:stop).and_return(true)
+      allow(poller).to receive(:start).and_raise(ThreadError, 'cannot create thread')
+      allow(CopyTunerClient.configuration.logger).to receive(:error).and_raise('logger is broken')
+
+      expect { Process.waitpid(fork { exit!(0) }) }.not_to raise_error
+    end
+
     it 'fork 後の poller 起動に失敗しても fork 自体は成立する' do
       allow(poller).to receive(:stop).and_return(true)
       allow(poller).to receive(:start).and_raise(ThreadError, 'cannot create thread')
@@ -90,6 +98,43 @@ describe CopyTunerClient::ForkHook do
   end
 
   describe '実際に fork したとき' do
+    it 'fork 前に poller が例外で死んでいても親子とも張り直す' do
+      # rails server の cluster では ForkHook が唯一の再開経路なので、ここで張り直さないと
+      # 親子とも poller を失う
+      fail_once = true
+      allow(cache).to receive(:sync).and_wrap_original do |original, *args|
+        if fail_once
+          fail_once = false
+          raise 'boom'
+        end
+        original.call(*args)
+      end
+
+      poller.start
+      sleep(polling_delay * 0.4) # スレッドが例外で終わる
+
+      reader, writer = IO.pipe
+      pid =
+        fork do
+          reader.close
+          client['child.key'] = 'value'
+          sleep(polling_delay * 3)
+          writer.write(cache['child.key'].to_s)
+          writer.close
+          exit!(0)
+        end
+
+      writer.close
+      child_result = reader.read
+      Process.waitpid(pid)
+
+      client['parent.key'] = 'value'
+      sleep(polling_delay * 3)
+
+      expect(child_result).to eq('value')
+      expect(cache['parent.key']).to eq('value')
+    end
+
     it '子プロセスでも poller がポーリングを続ける' do
       poller.start
       reader, writer = IO.pipe

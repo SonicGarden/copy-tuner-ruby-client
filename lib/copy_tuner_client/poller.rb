@@ -16,10 +16,19 @@ module CopyTunerClient
       @mutex          = Mutex.new
       @thread         = nil
       @last_synced_at = nil
+      # スレッドの生死とは別に、ライフサイクルの意図を持つ。
+      # @running: ポーリングを継続する意図があるか（start で true / stop で false）
+      # @aborted: 張り直しても同じ理由で死ぬと分かっている終わり方をしたか
+      @running        = false
+      @aborted        = false
     end
 
     def start
       @mutex.synchronize do
+        @running = true
+        # 回復の見込みがない理由で終了しているなら張り直さない。fork のたびに同じ例外で
+        # 死ぬスレッドを作り直してログを埋めるだけになる
+        next if @aborted
         # fork 後の子は親から dead な Thread オブジェクトを継承するため、nil かどうかだけでは
         # 「動いていない」を判定できない。死んでいるスレッドは張り直す
         next if @thread&.alive?
@@ -34,18 +43,26 @@ module CopyTunerClient
       end
     end
 
-    # @return [Boolean] 動いていたスレッドを停止したなら +true+
+    # 戻り値は ForkHook が「fork 後に張り直すか」を決めるのに使う。スレッドの生死ではなく
+    # ポーリングを継続する意図があったかを返す。想定外の例外で死んだだけのスレッドは
+    # fork 後に張り直したいが、生死で判定すると張り直せなくなる
+    #
+    # @return [Boolean] ポーリング継続の意図があった（＝ fork 後に張り直すべき）なら +true+
     def stop
       @mutex.synchronize do
+        resumable = @running && !@aborted
+        @running = false
+
         thread = @thread
         @thread = nil
         # 例外で終わったスレッドは非 nil のまま dead で残る。それに :stop を積んでも誰も
-        # pop しない。ここで false を返すことが ForkHook の「元々動いていたか」の判断に効く
-        next false unless thread&.alive?
+        # pop しないので、生きているときだけ積んで待つ
+        if thread&.alive?
+          @command_queue.uniq_push(:stop)
+          thread.join
+        end
 
-        @command_queue.uniq_push(:stop)
-        thread.join
-        true
+        resumable
       end
     end
 
@@ -69,6 +86,8 @@ module CopyTunerClient
       end
       logger.info 'stop poller thread'
     rescue InvalidApiKey => e
+      # キーが不正なら張り直しても同じ結果になるので、以後の再開を止める
+      @aborted = true
       logger.error(e.message)
     rescue StandardError => e
       # 例外はスレッドの外へ漏らさない。stop の join は fork の直前にも呼ばれるため、
