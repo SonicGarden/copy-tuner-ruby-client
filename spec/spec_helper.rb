@@ -26,4 +26,10 @@ RSpec.configure do |config|
     FakeCopyTunerApp.reset
     reset_config
   end
+
+  # apply を通す spec は本物の poller スレッドを起動するので、example ごとに止める。
+  # 放置するとスレッドがスイート終了まで積み上がり、実際に HTTP を叩き続ける
+  config.after do
+    CopyTunerClient.configuration&.poller&.stop
+  end
 end

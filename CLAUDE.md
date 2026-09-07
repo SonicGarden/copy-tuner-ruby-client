@@ -34,6 +34,16 @@ Rails 統合は engine.rb のイニシャライザ経由（ヘルパー/SimpleFo
   （vite.config.ts が `src/main.ts` → `app/assets/javascripts/copytuner.js` を出力）。
 - `local_first_key_regexp` — locale を除いたキー対象・lookup 時に作用（ローカル YAML 優先）。
   local_first キーのアップロード抑止は `Cache#[]=` に集約されている。
+- **poller スレッドの fork 対応は `ForkHook`（`Process._fork` に prepend）に集約する**
+  （fork の直前に `Poller#stop` で協調的に停止し、fork 後に親子の両方で張り直す。理由: fork 後の子に残る
+  Thread オブジェクトの見え方（`alive?` / `join` の結果）はドキュメント化されていない CRuby の実装依存なので、
+  pid を記録して差分を見るような後始末には寄せない。子でも張り直すので、Puma の `fork_worker` のように
+  worker が worker を fork する構成でもサーバ固有のフックなしで poller が立つ。
+  アプリケーションサーバごとのフック（`ProcessGuard#register_*_hook`）を増やす前にここで足りるか確認する）。
+  起動方法・モードごとにどのプロセスで poller が起動するかは `docs/poller-startup.md` に実測結果がある。
+- **`Poller#poll` は例外をスレッドの外へ漏らさない**
+  （`Poller#stop` は fork 経路から呼ばれ、`Thread#join` はスレッドの例外を再送出するため、漏らすと
+  poller の失敗がアプリ側の `fork` を壊す）。
 - **アップロード抑止の新ルールは `Cache#[]=` に足す。`I18nBackend` の書き込み経路（`lookup` / `default` / `store_item`）ごとに個別ガードを足さない**
   （理由: cache への書き込みは全経路が最終的に `Cache#[]=` を通る単一の関門。経路ごとにガードを足すと付け忘れの穴が生まれ、同じチェックが分散して保守負担になる。実際 local_first の抑止は当初 `default` 個別に足したが穴が残り、`Cache#[]=` への集約に作り直した）。
 

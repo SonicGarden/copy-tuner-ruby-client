@@ -51,10 +51,16 @@ module CopyTunerClient
 
     def wait_with_timeout(timeout)
       # wait for element or timeout
-      timeout_time = timeout + Time.now.to_f
-      while @queue.empty? && (remaining_time = timeout_time - Time.now.to_f).positive?
+      # NTP の step 補正や手動の時刻変更で巻き戻らない CLOCK_MONOTONIC で締め切りを測る。
+      # ウォールクロックだと時計が後ろへ飛んだぶんだけ待ち時間が伸びる
+      deadline = monotonic_now + timeout
+      while @queue.empty? && (remaining_time = deadline - monotonic_now).positive?
         @received.wait(@mutex, remaining_time)
       end
+    end
+
+    def monotonic_now
+      Process.clock_gettime(Process::CLOCK_MONOTONIC)
     end
   end
 end

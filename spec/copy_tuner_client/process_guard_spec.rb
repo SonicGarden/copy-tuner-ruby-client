@@ -20,6 +20,14 @@ describe CopyTunerClient::ProcessGuard do
     process_guard
   end
 
+  it 'fork の前後で poller を張り直すフックを登録する' do
+    allow(CopyTunerClient::ForkHook).to receive(:install)
+
+    build_process_guard.start
+
+    expect(CopyTunerClient::ForkHook).to have_received(:install)
+  end
+
   it 'starts polling from a worker process' do
     process_guard = build_process_guard
     process_guard.start
