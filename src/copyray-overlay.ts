@@ -1,4 +1,5 @@
 import { OVERLAY_STYLES } from './styles'
+import { demoteFromTopLayer, hideFromTopLayer, promoteToTopLayer, showOnTopLayer, topLayerHost } from './top-layer'
 import { computeBoundingBox } from './util'
 
 type OpenCallback = (key: string) => void
@@ -47,8 +48,9 @@ export class CopyrayOverlay extends HTMLElement {
 
     shadow.append(this.#backdrop, this.#specimens, this.#toggleButton)
 
-    // 初期は非表示（背景と specimen を隠す）。トグルボタンは常時表示のため :host([hidden]) は使わず個別制御する。
-    this.hide()
+    // 初期は非表示。トグルボタンは常時表示のため :host([hidden]) は使わず、backdrop だけ隠す
+    // （hide() は属性変更・DOM 移動を伴い constructor 内では呼べない）。
+    this.#backdrop.hidden = true
   }
 
   set onOpen(callback: OpenCallback) {
@@ -65,6 +67,13 @@ export class CopyrayOverlay extends HTMLElement {
 
   show() {
     this.reset()
+
+    promoteToTopLayer(this)
+    topLayerHost().append(this)
+    showOnTopLayer(this)
+    this.#syncScrollOffset()
+    window.addEventListener('scroll', this.#syncScrollOffset)
+
     this.#backdrop.hidden = false
 
     for (const { element, keys } of findBlurbs()) {
@@ -78,10 +87,24 @@ export class CopyrayOverlay extends HTMLElement {
   hide() {
     this.reset()
     this.#backdrop.hidden = true
+
+    window.removeEventListener('scroll', this.#syncScrollOffset)
+    hideFromTopLayer(this)
+    demoteFromTopLayer(this)
+    // dialog内に退避したままだとdialogのDOM削除に巻き込まれるため、bodyへ戻す
+    document.body.append(this)
   }
 
   reset() {
     this.#specimens.replaceChildren()
+  }
+
+  // transform でずらすと fixed 配置の specimen の基準が変わるため、top/left でスクロール量を打ち消す。
+  // hasAttribute を先に見るのは、非対応ブラウザでは :popover-open が不明なセレクタで matches が例外を投げるため。
+  #syncScrollOffset = () => {
+    const isOnTopLayer = this.hasAttribute('popover') && this.matches(':popover-open')
+    this.#specimens.style.top = isOnTopLayer ? `${-window.scrollY}px` : ''
+    this.#specimens.style.left = isOnTopLayer ? `${-window.scrollX}px` : ''
   }
 
   private makeBox(element: Element, keys: string[]): HTMLDivElement | null {

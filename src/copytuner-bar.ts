@@ -1,4 +1,5 @@
 import { BAR_STYLES } from './styles'
+import { demoteFromTopLayer, hideFromTopLayer, promoteToTopLayer, showOnTopLayer, topLayerHost } from './top-layer'
 import { debounce } from './util'
 
 type OpenCallback = (key: string) => void
@@ -15,6 +16,7 @@ export class CopytunerBar extends HTMLElement {
   #onOpen: OpenCallback = () => {}
   #searchBox!: HTMLInputElement
   #logMenu!: HTMLDivElement
+  #connectedOnce = false
 
   constructor() {
     super()
@@ -23,7 +25,10 @@ export class CopytunerBar extends HTMLElement {
 
   // custom element の constructor 内では属性・プロパティを変更できない（createElement が弾く）ため、
   // hidden の初期化は DOM 挿入後に呼ばれる connectedCallback で行う。
+  // dialogへの退避・bodyへの復帰でも再度呼ばれるため、初回の接続に限定する。
   connectedCallback() {
+    if (this.#connectedOnce) return
+    this.#connectedOnce = true
     this.hidden = true
   }
 
@@ -66,12 +71,19 @@ export class CopytunerBar extends HTMLElement {
   }
 
   show() {
+    promoteToTopLayer(this)
+    topLayerHost().append(this)
     this.hidden = false
+    showOnTopLayer(this)
     this.#searchBox.focus()
   }
 
   hide() {
+    hideFromTopLayer(this)
+    demoteFromTopLayer(this)
     this.hidden = true
+    // dialog内に退避したままだとdialogのDOM削除に巻き込まれるため、bodyへ戻す
+    document.body.append(this)
   }
 
   private makeButton(label: string, href: string, target?: string): HTMLAnchorElement {

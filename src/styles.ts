@@ -24,6 +24,15 @@ export const BAR_STYLES = `
   display: none;
 }
 
+/* top layer 表示中の popover UA スタイルの打ち消し */
+:host(:popover-open) {
+  top: auto;
+  width: auto;
+  margin: 0;
+  border: none;
+  overflow: visible;
+}
+
 .log-menu {
   position: fixed;
   left: 0;
@@ -125,6 +134,27 @@ export const OVERLAY_STYLES = `
   display: none;
 }
 
+/* top layer 表示中の popover UA スタイルの打ち消し。クリックを受ける子要素側で pointer-events: auto を戻す */
+:host(:popover-open) {
+  position: fixed;
+  inset: 0;
+  width: auto;
+  height: auto;
+  margin: 0;
+  border: none;
+  padding: 0;
+  overflow: visible;
+  background: transparent;
+  pointer-events: none;
+}
+
+/* specimen のページ座標の原点。top layer 表示中は JS がスクロール量を top/left に反映する */
+.specimens {
+  position: absolute;
+  top: 0;
+  left: 0;
+}
+
 .backdrop {
   position: fixed;
   inset: 0;
@@ -134,6 +164,7 @@ export const OVERLAY_STYLES = `
     rgba(0, 0, 0, 0.8) 100%
   );
   z-index: 9000;
+  pointer-events: auto;
 }
 
 .specimen {
@@ -146,6 +177,7 @@ export const OVERLAY_STYLES = `
   font-size: 13px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.7);
   z-index: 2000000000;
+  pointer-events: auto;
 }
 
 .specimen:hover {
@@ -178,6 +210,7 @@ export const OVERLAY_STYLES = `
   font-size: 12px;
   cursor: pointer;
   text-decoration: none;
+  pointer-events: auto;
 }
 
 .toggle-button:hover {
