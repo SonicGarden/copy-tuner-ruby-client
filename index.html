@@ -15,6 +15,13 @@
       <li data-copyray-key="projects.index.blurbs">翻訳キー</li>
       <li data-copyray-key="projects.index.members">メンバー数</li>
     </ul>
+
+    <!-- モーダル dialog（top layer）表示中もオーバーレイを出せるかの確認用 -->
+    <button type="button" onclick="document.querySelector('dialog').showModal()">モーダルを開く</button>
+    <dialog>
+      <p data-copyray-key="projects.index.modal_message">モーダル内の文言</p>
+      <button type="button" onclick="document.querySelector('dialog').close()">閉じる</button>
+    </dialog>
   </div>
   <script>
     window.CopyTuner = {
@@ -23,6 +30,7 @@
         'projects.index.locales': '言語',
         'projects.index.blurbs': '翻訳キー',
         'projects.index.members': 'メンバー数',
+        'projects.index.modal_message': 'モーダル内の文言',
       },
     }
   </script>
