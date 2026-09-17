@@ -1,5 +1,5 @@
 import { OVERLAY_STYLES } from './styles'
-import { computeBoundingBox } from './util'
+import { computeBoundingBox, getScrollOffset, isViewportAnchored } from './util'
 
 type OpenCallback = (key: string) => void
 
@@ -15,13 +15,13 @@ const findBlurbs = (): Blurb[] =>
     element,
   }))
 
-// オーバーレイ背景・翻訳要素のハイライト枠（specimen）・トグルボタンをまとめて Shadow DOM 内に描画する。
+// オーバーレイ背景と翻訳要素のハイライト枠（specimen）を Shadow DOM 内に描画する。
 export class CopyrayOverlay extends HTMLElement {
   #onOpen: OpenCallback = () => {}
-  #onToggle: () => void = () => {}
+  #onClose: () => void = () => {}
   #backdrop: HTMLDivElement
   #specimens: HTMLDivElement
-  #toggleButton: HTMLAnchorElement
+  #scrollFrame: number | null = null
 
   constructor() {
     super()
@@ -33,39 +33,28 @@ export class CopyrayOverlay extends HTMLElement {
 
     this.#backdrop = document.createElement('div')
     this.#backdrop.classList.add('backdrop')
-    this.#backdrop.addEventListener('click', () => this.hide())
+    this.#backdrop.addEventListener('click', () => this.#onClose())
 
     // specimen をページ座標基準で absolute 配置するコンテナ
     this.#specimens = document.createElement('div')
     this.#specimens.classList.add('specimens')
 
-    this.#toggleButton = document.createElement('a')
-    this.#toggleButton.classList.add('toggle-button')
-    this.#toggleButton.textContent = 'Open CopyTuner'
-    // 旧実装ではトグルボタンが overlay と bar の両方を表示していた。show() ではなく onToggle 経由で表示する。
-    this.#toggleButton.addEventListener('click', () => this.#onToggle())
-
-    shadow.append(this.#backdrop, this.#specimens, this.#toggleButton)
-
-    // 初期は非表示（背景と specimen を隠す）。トグルボタンは常時表示のため :host([hidden]) は使わず個別制御する。
-    this.hide()
+    shadow.append(this.#backdrop, this.#specimens)
   }
 
   set onOpen(callback: OpenCallback) {
     this.#onOpen = callback
   }
 
-  set onToggle(callback: () => void) {
-    this.#onToggle = callback
-  }
-
-  get isShowing(): boolean {
-    return !this.#backdrop.hidden
+  set onClose(callback: () => void) {
+    this.#onClose = callback
   }
 
   show() {
     this.reset()
-    this.#backdrop.hidden = false
+    // 初回は 1 フレームも待たせない（rAF 経由だと開いた直後の 1 フレームだけ位置がずれる）
+    this.#applyScrollOffset()
+    window.addEventListener('scroll', this.#syncScrollOffset, { passive: true })
 
     for (const { element, keys } of findBlurbs()) {
       const box = this.makeBox(element, keys)
@@ -77,11 +66,35 @@ export class CopyrayOverlay extends HTMLElement {
 
   hide() {
     this.reset()
-    this.#backdrop.hidden = true
+    window.removeEventListener('scroll', this.#syncScrollOffset)
+
+    // 予約済みのフレームが閉じた後に走ると、次に開くまで残る位置ずれになる
+    if (this.#scrollFrame !== null) {
+      cancelAnimationFrame(this.#scrollFrame)
+      this.#scrollFrame = null
+    }
   }
 
   reset() {
     this.#specimens.replaceChildren()
+  }
+
+  // ホストは viewport 固定の dialog 内にあるため、スクロール量を打ち消してページ座標の原点に合わせる。
+  // transform は使えない（.specimens が子孫の position: fixed の含有ブロックになり、fixed な specimen が壊れる）
+  #applyScrollOffset() {
+    const scroll = getScrollOffset()
+    this.#specimens.style.top = `${-scroll.top}px`
+    this.#specimens.style.left = `${-scroll.left}px`
+  }
+
+  // scroll は慣性スクロール中に毎フレーム相当で発火するため、同一フレーム内の書き込みは 1 回にまとめる
+  #syncScrollOffset = () => {
+    if (this.#scrollFrame !== null) return
+
+    this.#scrollFrame = requestAnimationFrame(() => {
+      this.#scrollFrame = null
+      this.#applyScrollOffset()
+    })
   }
 
   private makeBox(element: Element, keys: string[]): HTMLDivElement | null {
@@ -90,16 +103,18 @@ export class CopyrayOverlay extends HTMLElement {
 
     const box = document.createElement('div')
     box.classList.add('specimen')
-    box.style.left = `${bounds.left}px`
-    box.style.top = `${bounds.top}px`
     box.style.width = `${bounds.width}px`
     box.style.height = `${bounds.height}px`
 
-    const { position, top, left } = getComputedStyle(element)
-    if (position === 'fixed') {
+    if (isViewportAnchored(element)) {
+      // ページ座標から補正量を引くと viewport 座標に戻る（getBoundingClientRect の再取得を避ける）
+      const scroll = getScrollOffset()
       box.style.position = 'fixed'
-      box.style.top = top
-      box.style.left = left
+      box.style.left = `${bounds.left - scroll.left}px`
+      box.style.top = `${bounds.top - scroll.top}px`
+    } else {
+      box.style.left = `${bounds.left}px`
+      box.style.top = `${bounds.top}px`
     }
 
     // box 全体のクリックは先頭キーを開く（広いクリック領域を維持）。複数キー時は各ラベルから個別に開ける

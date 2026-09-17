@@ -1,6 +1,58 @@
 // 各 custom element の Shadow root に <style> として注入する CSS。
 // Shadow DOM のスタイル隔離が効くため、旧 copyray.css にあった #copyray-overlay * のグローバルリセットは不要。
 
+// コンテナ（<copytuner-root>）のスタイル。
+// dialog の UA デフォルト（中央寄せ・白背景・枠線・padding・暗転）を全て打ち消し、
+// viewport 全面を覆う透明なコンテナにする。暗転は overlay 側の .backdrop が担う。
+// overflow を打ち消さないと、画面外にはみ出した specimen で dialog 自身にスクロールバーが出る。
+export const ROOT_STYLES = `
+dialog {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  max-width: none;
+  max-height: none;
+  margin: 0;
+  border: none;
+  padding: 0;
+  background: transparent;
+  color: inherit;
+  overflow: visible;
+}
+
+dialog::backdrop {
+  background: transparent;
+}
+
+.toggle-button {
+  display: block;
+  position: fixed;
+  left: 0;
+  bottom: 0;
+  color: white;
+  background: black;
+  padding: 12px 16px;
+  border-radius: 0 10px 0 0;
+  opacity: 0;
+  transition: opacity 0.6s ease-in-out;
+  z-index: 10000;
+  font-size: 12px;
+  cursor: pointer;
+  text-decoration: none;
+}
+
+.toggle-button:hover {
+  opacity: 1;
+}
+
+@media screen and (max-width: 480px) {
+  .toggle-button {
+    display: none;
+  }
+}
+`
+
 // ツールバー（<copytuner-bar>）のスタイル。:host にバー本体のレイアウトを定義する。
 export const BAR_STYLES = `
 :host {
@@ -18,10 +70,6 @@ export const BAR_STYLES = `
   box-shadow: 0 -1px 0 rgba(255, 255, 255, 0.1), inset 0 2px 6px rgba(0, 0, 0, 0.8);
   background-image: linear-gradient(rgba(0, 0, 0, 0), rgba(0, 0, 0, 0.3));
   box-sizing: border-box;
-}
-
-:host([hidden]) {
-  display: none;
 }
 
 .log-menu {
@@ -109,7 +157,8 @@ export const BAR_STYLES = `
 `
 
 // オーバーレイ（<copyray-overlay>）のスタイル。
-// :host はドキュメント原点基準（position: absolute; top/left: 0）にして、
+// :host は dialog 内の原点（position: absolute; top/left: 0）に置き、
+// .specimens にスクロール量を打ち消すオフセットを入れることで、
 // 子の specimen を computeBoundingBox のページ座標で absolute 配置できるようにする。
 // 背景の暗転（.backdrop）だけは viewport 固定（fixed）にする。
 export const OVERLAY_STYLES = `
@@ -121,10 +170,6 @@ export const OVERLAY_STYLES = `
   height: 0;
 }
 
-:host([hidden]) {
-  display: none;
-}
-
 .backdrop {
   position: fixed;
   inset: 0;
@@ -134,6 +179,12 @@ export const OVERLAY_STYLES = `
     rgba(0, 0, 0, 0.8) 100%
   );
   z-index: 9000;
+}
+
+.specimens {
+  position: absolute;
+  top: 0;
+  left: 0;
 }
 
 .specimen {
@@ -161,32 +212,5 @@ export const OVERLAY_STYLES = `
   color: #fff;
   font-size: 10px;
   cursor: pointer;
-}
-
-.toggle-button {
-  display: block;
-  position: fixed;
-  left: 0;
-  bottom: 0;
-  color: white;
-  background: black;
-  padding: 12px 16px;
-  border-radius: 0 10px 0 0;
-  opacity: 0;
-  transition: opacity 0.6s ease-in-out;
-  z-index: 10000;
-  font-size: 12px;
-  cursor: pointer;
-  text-decoration: none;
-}
-
-.toggle-button:hover {
-  opacity: 1;
-}
-
-@media screen and (max-width: 480px) {
-  .toggle-button {
-    display: none;
-  }
 }
 `

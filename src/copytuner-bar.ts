@@ -21,12 +21,6 @@ export class CopytunerBar extends HTMLElement {
     this.attachShadow({ mode: 'open' })
   }
 
-  // custom element の constructor 内では属性・プロパティを変更できない（createElement が弾く）ため、
-  // hidden の初期化は DOM 挿入後に呼ばれる connectedCallback で行う。
-  connectedCallback() {
-    this.hidden = true
-  }
-
   // url/data/keysSkipped/onOpen はオブジェクトや関数を含むため属性ではなくメソッドで受け渡す。
   init({ url, data, keysSkipped, onOpen }: InitOptions) {
     this.#onOpen = onOpen
@@ -66,12 +60,7 @@ export class CopytunerBar extends HTMLElement {
   }
 
   show() {
-    this.hidden = false
     this.#searchBox.focus()
-  }
-
-  hide() {
-    this.hidden = true
   }
 
   private makeButton(label: string, href: string, target?: string): HTMLAnchorElement {
