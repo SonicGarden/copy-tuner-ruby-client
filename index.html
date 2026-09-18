@@ -6,6 +6,35 @@
   <link rel="icon" type="image/svg+xml" href="/src/favicon.svg" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>CopyTuner Dev</title>
+  <style>
+    .fixed-banner {
+      position: fixed;
+      top: 0;
+      right: 0;
+      padding: 8px 12px;
+      background: #ffe9a8;
+    }
+
+    /* width は横スクロール時の left 経路の検証用 */
+    .spacer {
+      height: 150vh;
+      width: 150vw;
+    }
+
+    /* transform を持つ祖先は fixed 要素の containing block になり、viewport 基準からずれるケースの再現用 */
+    .transform-ancestor {
+      transform: translateZ(0);
+      height: 80px;
+    }
+
+    .transformed-fixed {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      padding: 8px 12px;
+      background: #a8d8ff;
+    }
+  </style>
 </head>
 
 <body>
@@ -15,6 +44,23 @@
       <li data-copyray-key="projects.index.blurbs">翻訳キー</li>
       <li data-copyray-key="projects.index.members">メンバー数</li>
     </ul>
+
+    <p class="fixed-banner" data-copyray-key="projects.index.fixed_banner">固定表示のバナー</p>
+
+    <div class="transform-ancestor">
+      <p class="transformed-fixed" data-copyray-key="projects.index.transformed_fixed">transform 祖先を持つ固定要素</p>
+    </div>
+
+    <button type="button" id="open-app-modal">アプリのモーダルを開く</button>
+
+    <dialog id="app-modal">
+      <p data-copyray-key="projects.index.modal_body">モーダル内の文言</p>
+      <button type="button" id="close-app-modal">閉じる</button>
+    </dialog>
+
+    <div class="spacer"></div>
+
+    <p data-copyray-key="projects.index.below_spacer">スクロール後に見える文言</p>
   </div>
   <script>
     window.CopyTuner = {
@@ -23,8 +69,16 @@
         'projects.index.locales': '言語',
         'projects.index.blurbs': '翻訳キー',
         'projects.index.members': 'メンバー数',
+        'projects.index.fixed_banner': '固定表示のバナー',
+        'projects.index.transformed_fixed': 'transform 祖先を持つ固定要素',
+        'projects.index.modal_body': 'モーダル内の文言',
+        'projects.index.below_spacer': 'スクロール後に見える文言',
       },
     }
+
+    const appModal = document.getElementById('app-modal')
+    document.getElementById('open-app-modal').addEventListener('click', () => appModal.showModal())
+    document.getElementById('close-app-modal').addEventListener('click', () => appModal.close())
   </script>
   <script type="module" src="/src/main.ts"></script>
 </body>

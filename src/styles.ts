@@ -1,6 +1,57 @@
 // 各 custom element の Shadow root に <style> として注入する CSS。
 // Shadow DOM のスタイル隔離が効くため、旧 copyray.css にあった #copyray-overlay * のグローバルリセットは不要。
 
+// コンテナ（<copytuner-root>）のスタイル。
+// dialog の UA デフォルト（中央寄せ・白背景・枠線・padding・暗転）を全て打ち消し、
+// viewport 全面を覆う透明なコンテナにする。暗転は overlay 側の .backdrop が担う。
+export const ROOT_STYLES = `
+/* transform / filter / perspective / contain は置かない（理由は OVERLAY_STYLES のコメント参照） */
+dialog {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  max-width: none;
+  max-height: none;
+  margin: 0;
+  border: none;
+  padding: 0;
+  background: transparent;
+  color: inherit;
+}
+
+dialog::backdrop {
+  background: transparent;
+}
+
+.toggle-button {
+  display: block;
+  position: fixed;
+  left: 0;
+  bottom: 0;
+  color: white;
+  background: black;
+  padding: 12px 16px;
+  border-radius: 0 10px 0 0;
+  opacity: 0;
+  transition: opacity 0.6s ease-in-out;
+  z-index: 10000;
+  font-size: 12px;
+  cursor: pointer;
+  text-decoration: none;
+}
+
+.toggle-button:hover {
+  opacity: 1;
+}
+
+@media screen and (max-width: 480px) {
+  .toggle-button {
+    display: none;
+  }
+}
+`
+
 // ツールバー（<copytuner-bar>）のスタイル。:host にバー本体のレイアウトを定義する。
 export const BAR_STYLES = `
 :host {
@@ -18,10 +69,6 @@ export const BAR_STYLES = `
   box-shadow: 0 -1px 0 rgba(255, 255, 255, 0.1), inset 0 2px 6px rgba(0, 0, 0, 0.8);
   background-image: linear-gradient(rgba(0, 0, 0, 0), rgba(0, 0, 0, 0.3));
   box-sizing: border-box;
-}
-
-:host([hidden]) {
-  display: none;
 }
 
 .log-menu {
@@ -109,20 +156,17 @@ export const BAR_STYLES = `
 `
 
 // オーバーレイ（<copyray-overlay>）のスタイル。
-// :host はドキュメント原点基準（position: absolute; top/left: 0）にして、
-// 子の specimen を computeBoundingBox のページ座標で absolute 配置できるようにする。
-// 背景の暗転（.backdrop）だけは viewport 固定（fixed）にする。
+// specimen は getBoundingClientRect() の viewport 座標をそのまま使うため、
+// dialog / :host / specimen のコンテナ div のいずれにも
+// transform / filter / perspective / contain を置かない。
+// 置くとそれが containing block になり、fixed な specimen が viewport 基準から外れる。
+// :host の position: absolute と width/height: 0 は、インラインの custom element が
+// dialog のフローに line box を作らないようにするため（fixed の containing block は作らない）。
 export const OVERLAY_STYLES = `
 :host {
   position: absolute;
-  top: 0;
-  left: 0;
   width: 0;
   height: 0;
-}
-
-:host([hidden]) {
-  display: none;
 }
 
 .backdrop {
@@ -137,7 +181,7 @@ export const OVERLAY_STYLES = `
 }
 
 .specimen {
-  position: absolute;
+  position: fixed;
   background: rgba(255, 50, 50, 0.1);
   outline: 1px solid rgba(255, 50, 50, 0.8);
   outline-offset: -1px;
@@ -153,6 +197,10 @@ export const OVERLAY_STYLES = `
   background: rgba(255, 50, 50, 0.4);
 }
 
+.specimen[hidden] {
+  display: none;
+}
+
 .specimen-handle {
   float: left;
   margin: 0 2px 2px 0;
@@ -161,32 +209,5 @@ export const OVERLAY_STYLES = `
   color: #fff;
   font-size: 10px;
   cursor: pointer;
-}
-
-.toggle-button {
-  display: block;
-  position: fixed;
-  left: 0;
-  bottom: 0;
-  color: white;
-  background: black;
-  padding: 12px 16px;
-  border-radius: 0 10px 0 0;
-  opacity: 0;
-  transition: opacity 0.6s ease-in-out;
-  z-index: 10000;
-  font-size: 12px;
-  cursor: pointer;
-  text-decoration: none;
-}
-
-.toggle-button:hover {
-  opacity: 1;
-}
-
-@media screen and (max-width: 480px) {
-  .toggle-button {
-    display: none;
-  }
 }
 `
