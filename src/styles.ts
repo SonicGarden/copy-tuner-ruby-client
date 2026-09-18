@@ -4,7 +4,6 @@
 // コンテナ（<copytuner-root>）のスタイル。
 // dialog の UA デフォルト（中央寄せ・白背景・枠線・padding・暗転）を全て打ち消し、
 // viewport 全面を覆う透明なコンテナにする。暗転は overlay 側の .backdrop が担う。
-// overflow を打ち消さないと、画面外にはみ出した specimen で dialog 自身にスクロールバーが出る。
 export const ROOT_STYLES = `
 /* transform / filter / perspective / contain は置かない（理由は OVERLAY_STYLES のコメント参照） */
 dialog {
@@ -19,7 +18,6 @@ dialog {
   padding: 0;
   background: transparent;
   color: inherit;
-  overflow: visible;
 }
 
 dialog::backdrop {
