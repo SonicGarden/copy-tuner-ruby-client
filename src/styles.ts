@@ -6,6 +6,7 @@
 // viewport 全面を覆う透明なコンテナにする。暗転は overlay 側の .backdrop が担う。
 // overflow を打ち消さないと、画面外にはみ出した specimen で dialog 自身にスクロールバーが出る。
 export const ROOT_STYLES = `
+/* transform / filter / perspective / contain は置かない（理由は OVERLAY_STYLES のコメント参照） */
 dialog {
   position: fixed;
   inset: 0;
@@ -157,15 +158,15 @@ export const BAR_STYLES = `
 `
 
 // オーバーレイ（<copyray-overlay>）のスタイル。
-// :host は dialog 内の原点（position: absolute; top/left: 0）に置き、
-// .specimens にスクロール量を打ち消すオフセットを入れることで、
-// 子の specimen を computeBoundingBox のページ座標で absolute 配置できるようにする。
-// 背景の暗転（.backdrop）だけは viewport 固定（fixed）にする。
+// specimen は getBoundingClientRect() の viewport 座標をそのまま使うため、
+// dialog / :host / specimen のコンテナ div のいずれにも
+// transform / filter / perspective / contain を置かない。
+// 置くとそれが containing block になり、fixed な specimen が viewport 基準から外れる。
+// :host の position: absolute と width/height: 0 は、インラインの custom element が
+// dialog のフローに line box を作らないようにするため（fixed の containing block は作らない）。
 export const OVERLAY_STYLES = `
 :host {
   position: absolute;
-  top: 0;
-  left: 0;
   width: 0;
   height: 0;
 }
@@ -181,14 +182,8 @@ export const OVERLAY_STYLES = `
   z-index: 9000;
 }
 
-.specimens {
-  position: absolute;
-  top: 0;
-  left: 0;
-}
-
 .specimen {
-  position: absolute;
+  position: fixed;
   background: rgba(255, 50, 50, 0.1);
   outline: 1px solid rgba(255, 50, 50, 0.8);
   outline-offset: -1px;
@@ -202,6 +197,10 @@ export const OVERLAY_STYLES = `
 .specimen:hover {
   cursor: pointer;
   background: rgba(255, 50, 50, 0.4);
+}
+
+.specimen[hidden] {
+  display: none;
 }
 
 .specimen-handle {

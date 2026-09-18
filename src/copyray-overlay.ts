@@ -1,5 +1,4 @@
 import { OVERLAY_STYLES } from './styles'
-import { computeBoundingBox, getScrollOffset, isViewportAnchored } from './util'
 
 type OpenCallback = (key: string) => void
 
@@ -21,7 +20,8 @@ export class CopyrayOverlay extends HTMLElement {
   #onClose: () => void = () => {}
   #backdrop: HTMLDivElement
   #specimens: HTMLDivElement
-  #scrollFrame: number | null = null
+  #boxes = new Map<Element, HTMLDivElement>()
+  #frame: number | null = null
 
   constructor() {
     super()
@@ -35,9 +35,7 @@ export class CopyrayOverlay extends HTMLElement {
     this.#backdrop.classList.add('backdrop')
     this.#backdrop.addEventListener('click', () => this.#onClose())
 
-    // specimen をページ座標基準で absolute 配置するコンテナ
     this.#specimens = document.createElement('div')
-    this.#specimens.classList.add('specimens')
 
     shadow.append(this.#backdrop, this.#specimens)
   }
@@ -51,71 +49,65 @@ export class CopyrayOverlay extends HTMLElement {
   }
 
   show() {
-    this.reset()
-    // 初回は 1 フレームも待たせない（rAF 経由だと開いた直後の 1 フレームだけ位置がずれる）
-    this.#applyScrollOffset()
-    window.addEventListener('scroll', this.#syncScrollOffset, { passive: true })
+    // 二重 show でもリスナーと boxes が重複しないよう、まず後始末を通す
+    this.hide()
 
     for (const { element, keys } of findBlurbs()) {
-      const box = this.makeBox(element, keys)
-      if (box) {
-        this.#specimens.append(box)
-      }
+      this.#boxes.set(element, this.makeBox(keys))
     }
+    // 初回は同期で配置する（rAF 経由だと開いた直後の 1 フレームだけ位置がずれる）
+    this.#reposition()
+    this.#specimens.append(...this.#boxes.values())
+
+    document.addEventListener('scroll', this.#requestReposition, { capture: true, passive: true })
+    window.addEventListener('resize', this.#requestReposition, { passive: true })
   }
 
   hide() {
-    this.reset()
-    window.removeEventListener('scroll', this.#syncScrollOffset)
+    // capture フラグはリスナーの同一性判定に含まれるため、省くと解除されない
+    document.removeEventListener('scroll', this.#requestReposition, { capture: true })
+    window.removeEventListener('resize', this.#requestReposition)
 
-    // 予約済みのフレームが閉じた後に走ると、次に開くまで残る位置ずれになる
-    if (this.#scrollFrame !== null) {
-      cancelAnimationFrame(this.#scrollFrame)
-      this.#scrollFrame = null
+    // 閉じた後に走っても boxes は空で no-op になるが、無駄なコールバックを残さない
+    if (this.#frame !== null) {
+      cancelAnimationFrame(this.#frame)
+      this.#frame = null
     }
-  }
 
-  reset() {
+    // detached な box を握り続けると開くたびに肥大する
+    this.#boxes.clear()
     this.#specimens.replaceChildren()
   }
 
-  // ホストは viewport 固定の dialog 内にあるため、スクロール量を打ち消してページ座標の原点に合わせる。
-  // transform は使えない（.specimens が子孫の position: fixed の含有ブロックになり、fixed な specimen が壊れる）
-  #applyScrollOffset() {
-    const scroll = getScrollOffset()
-    this.#specimens.style.top = `${-scroll.top}px`
-    this.#specimens.style.left = `${-scroll.left}px`
-  }
+  // scroll は慣性スクロール中に毎フレーム相当で発火するため、同一フレーム内の再計測は 1 回にまとめる
+  #requestReposition = () => {
+    if (this.#frame !== null) return
 
-  // scroll は慣性スクロール中に毎フレーム相当で発火するため、同一フレーム内の書き込みは 1 回にまとめる
-  #syncScrollOffset = () => {
-    if (this.#scrollFrame !== null) return
-
-    this.#scrollFrame = requestAnimationFrame(() => {
-      this.#scrollFrame = null
-      this.#applyScrollOffset()
+    this.#frame = requestAnimationFrame(() => {
+      this.#frame = null
+      this.#reposition()
     })
   }
 
-  private makeBox(element: Element, keys: string[]): HTMLDivElement | null {
-    const bounds = computeBoundingBox(element)
-    if (bounds === null) return null
+  #reposition() {
+    // 読みと書きを分けないと、要素数分の強制同期レイアウトが走る
+    const measured = Array.from(this.#boxes, ([element, box]) => [box, element.getBoundingClientRect()] as const)
 
+    for (const [box, rect] of measured) {
+      // display: none / DOM から外れた要素は rect が全て 0 になる。原点に枠だけ残さないよう隠す
+      box.hidden = rect.width === 0 && rect.height === 0
+      if (box.hidden) continue
+
+      box.style.left = `${rect.left}px`
+      box.style.top = `${rect.top}px`
+      box.style.width = `${rect.width}px`
+      box.style.height = `${rect.height}px`
+    }
+  }
+
+  private makeBox(keys: string[]): HTMLDivElement {
     const box = document.createElement('div')
     box.classList.add('specimen')
-    box.style.width = `${bounds.width}px`
-    box.style.height = `${bounds.height}px`
-
-    if (isViewportAnchored(element)) {
-      // ページ座標から補正量を引くと viewport 座標に戻る（getBoundingClientRect の再取得を避ける）
-      const scroll = getScrollOffset()
-      box.style.position = 'fixed'
-      box.style.left = `${bounds.left - scroll.left}px`
-      box.style.top = `${bounds.top - scroll.top}px`
-    } else {
-      box.style.left = `${bounds.left}px`
-      box.style.top = `${bounds.top}px`
-    }
 
     // box 全体のクリックは先頭キーを開く（広いクリック領域を維持）。複数キー時は各ラベルから個別に開ける
     box.addEventListener('click', () => this.#onOpen(keys[0]))
