@@ -17,7 +17,12 @@ describe CopyTunerClient::HelperExtension do
   end
 
   def request_class
-    @request_class ||= Struct.new(:format)
+    @request_class ||= Struct.new(:format, :env)
+  end
+
+  # NOTE: CopyrayMiddleware を通るリクエストを再現するため、フラグ付きの env を持つ request を作る。
+  def injectable_request(format = :html)
+    request_class.new(format_class.new(format), { CopyTunerClient::Copyray::ENV_KEY => true })
   end
 
   def controller_class
@@ -44,7 +49,7 @@ describe CopyTunerClient::HelperExtension do
   # デフォルトはそれを再現した controller を持たせておく。
   let(:view) do
     Class.new.include(keyword_arguments_helper).new.tap do |v|
-      v.controller = controller_class.new(request_class.new(format_class.new(:html)))
+      v.controller = controller_class.new(injectable_request)
     end
   end
 
@@ -84,9 +89,19 @@ describe CopyTunerClient::HelperExtension do
 
     %i[json text csv pdf].each do |format|
       it "does not inject the marker when request.format is :#{format}" do
-        view.controller = controller_class.new(request_class.new(format_class.new(format)))
+        view.controller = controller_class.new(injectable_request(format))
         expect(view.translate('some.key', name: 'World')).to eq 'Hello, World'
       end
+    end
+
+    it 'format が html でも env にフラグが無ければ注入しない' do
+      view.controller = controller_class.new(request_class.new(format_class.new(:html), {}))
+      expect(view.translate('some.key', name: 'World')).to eq 'Hello, World'
+    end
+
+    it 'request.env が nil でも落ちずに注入しない' do
+      view.controller = controller_class.new(request_class.new(format_class.new(:html), nil))
+      expect(view.translate('some.key', name: 'World')).to eq 'Hello, World'
     end
   end
 
@@ -109,7 +124,7 @@ describe CopyTunerClient::HelperExtension do
 
     it 'does not raise when ActionMailer is not loaded' do
       hide_const('ActionMailer::Base') if defined?(ActionMailer::Base)
-      view.controller = controller_class.new(request_class.new(format_class.new(:html)))
+      view.controller = controller_class.new(injectable_request)
       expect { view.translate('some.key', name: 'World') }.not_to raise_error
     end
   end
@@ -118,10 +133,91 @@ describe CopyTunerClient::HelperExtension do
   # 維持されなければならない。注入ガードが初期値登録まで巻き添えで止めていないことを保証する。
   context 'default value registration' do
     it 'registers the default value even when the marker is not injected' do
-      view.controller = controller_class.new(request_class.new(format_class.new(:json)))
+      view.controller = controller_class.new(injectable_request(:json))
       allow(I18n).to receive(:t)
       view.translate('some.key', name: 'World', default: 'Default')
       expect(I18n).to have_received(:t).with('some.key', hash_including(default: 'Default'))
+    end
+  end
+
+  describe '.hook_render_to_string' do
+    # NOTE: ActionController::Base を読み込まずに検証するため、super 呼び出し時の env の状態を
+    # 記録するだけの最小の基底クラスに prepend する。
+    let(:base_class) do
+      Class.new do
+        attr_reader :request, :recorded
+
+        def initialize(request)
+          @request = request
+          @recorded = []
+        end
+
+        def render_to_string(*_args, raise_error: false, nested: false)
+          record_flag
+          if nested
+            render_to_string
+            record_flag
+          end
+          raise 'boom' if raise_error
+
+          'rendered'
+        end
+
+        def record_flag
+          @recorded << request&.env&.key?(CopyTunerClient::Copyray::ENV_KEY)
+        end
+      end
+    end
+    let(:env) { { CopyTunerClient::Copyray::ENV_KEY => true } }
+    let(:controller) { base_class.new(request_class.new(format_class.new(:html), env)) }
+
+    context 'middleware_enabled が true のとき' do
+      before { described_class.hook_render_to_string(base_class, middleware_enabled: true) }
+
+      it '実行中は env からフラグが外れる' do
+        controller.render_to_string
+        expect(controller.recorded).to eq [false]
+      end
+
+      it '元の戻り値を返す' do
+        expect(controller.render_to_string).to eq 'rendered'
+      end
+
+      it '終了後はフラグが復元される' do
+        controller.render_to_string
+        expect(env[CopyTunerClient::Copyray::ENV_KEY]).to be true
+      end
+
+      it '例外が起きてもフラグが復元される' do
+        expect { controller.render_to_string(raise_error: true) }.to raise_error('boom')
+        expect(env[CopyTunerClient::Copyray::ENV_KEY]).to be true
+      end
+
+      it '入れ子でも外側の終了時まで外れたまま' do
+        controller.render_to_string(nested: true)
+        expect(controller.recorded).to eq [false, false, false]
+        expect(env[CopyTunerClient::Copyray::ENV_KEY]).to be true
+      end
+
+      it '元々フラグが無い env にはフラグを足さない' do
+        env.clear
+        controller.render_to_string
+        expect(env).not_to have_key(CopyTunerClient::Copyray::ENV_KEY)
+      end
+
+      it 'request が nil でも落ちない' do
+        controller = base_class.new(nil)
+        expect(controller.render_to_string).to eq 'rendered'
+      end
+    end
+
+    context 'middleware_enabled が false のとき' do
+      before { described_class.hook_render_to_string(base_class, middleware_enabled: false) }
+
+      it 'フックせず実行中もフラグが残る' do
+        controller.render_to_string
+        expect(controller.recorded).to eq [true]
+      end
     end
   end
 end

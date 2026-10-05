@@ -1,6 +1,7 @@
 require 'spec_helper'
 require 'copy_tuner_client/copyray_middleware'
 require 'copy_tuner_client/copyray/marker'
+require 'copy_tuner_client/copyray'
 require 'copy_tuner_client/translation_log'
 
 describe CopyTunerClient::CopyrayMiddleware do
@@ -75,6 +76,19 @@ describe CopyTunerClient::CopyrayMiddleware do
 
       expect(result).not_to include('window.CopyTuner')
       expect(result).not_to include('copytuner')
+    end
+  end
+
+  context '下流の app を呼ぶとき' do
+    it '下流の app に渡る env にフラグが立っている' do
+      received_env = nil
+      recording_app =
+        ->(env) do
+          received_env = env.dup
+          [200, { 'Content-Type' => 'application/json' }, ['{}']]
+        end
+      described_class.new(recording_app).call({})
+      expect(received_env[CopyTunerClient::Copyray::ENV_KEY]).to be true
     end
   end
 

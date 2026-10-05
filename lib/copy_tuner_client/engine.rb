@@ -17,6 +17,13 @@ module CopyTunerClient
         )
       end
 
+      ActiveSupport.on_load(:action_controller_base) do
+        CopyTunerClient::HelperExtension.hook_render_to_string(
+          ActionController::Base,
+          middleware_enabled: CopyTunerClient.configuration.enable_middleware?
+        )
+      end
+
       CopyTunerClient::TranslationLog.install_hook if CopyTunerClient.configuration.enable_middleware?
 
       require 'copy_tuner_client/simple_form_extention'
