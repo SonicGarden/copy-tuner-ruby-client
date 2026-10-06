@@ -3,6 +3,10 @@ require 'copy_tuner_client/copyray/marker'
 module CopyTunerClient
   # 翻訳テキストにオーバーレイ編集用のマーカートークンを埋め込む
   class Copyray
+    # NOTE: マーカーは CopyrayMiddleware の Rewriter でしか除去されない。注入可否を「format が html か」ではなく
+    # 「この描画の出力が middleware を通るか」で判定するため、middleware が env にこの印を立てる。
+    ENV_KEY = 'copy_tuner.copyray_injectable'.freeze
+
     # This:
     #   message
     # Becomes:

@@ -1,5 +1,7 @@
+require 'copy_tuner_client/copyray'
+
 module CopyTunerClient
-  # ActionView の translate/t を alias_method で差し替え、Copyray のオーバーレイマーカーを注入する
+  # ActionView の translate/t を差し替えて Copyray のオーバーレイマーカーを注入し、注入してよい描画経路を制御する
   module HelperExtension
     # NOTE: class_eval ブロック内で def すると、ブロック内メソッドの複雑さが
     # hook_translation_helper 自体の Metrics/AbcSize としてカウントされてしまうため、
@@ -50,13 +52,39 @@ module CopyTunerClient
         # マーカー混入は実害が大きいため、controller の型で明示除外する。
         return false if defined?(ActionMailer::Base) && current_controller.is_a?(ActionMailer::Base)
 
-        # NOTE: request が無い／format が html でない経路には注入しない。&. と || false で
-        # request 不在時も安全に false を返す。
-        current_controller.request&.format&.html? || false
+        request = current_controller.request
+        return false unless passes_copyray_middleware?(request)
+
+        # NOTE: middleware を通っても render json: などは rewritable? に弾かれ書き換えられないため、
+        # format が html でない経路には注入しない。
+        request.format&.html? || false
       end
       private :copyray_injectable?
+
+      # NOTE: format が html でも出力が CopyrayMiddleware を通らない経路（ApplicationController.renderer や
+      # render_to_string）ではマーカーが除去されずに残るため、middleware が立てた印がある場合に限り注入する。
+      def passes_copyray_middleware?(request)
+        request&.env&.[](CopyTunerClient::Copyray::ENV_KEY)
+      end
+      private :passes_copyray_middleware?
     end
     private_constant :CopyrayCommentInjection
+
+    # NOTE: render_to_string の結果は PDF 化や JSON 埋め込みなどレスポンス以外に使われ、middleware の
+    # 書き換えを通らない。実行中だけ印を外し、その間の translate にマーカーを注入させない。
+    module RenderToStringGuard
+      def render_to_string(*, **, &)
+        env = request&.env
+        return super unless env&.delete(CopyTunerClient::Copyray::ENV_KEY)
+
+        begin
+          super
+        ensure
+          env[CopyTunerClient::Copyray::ENV_KEY] = true
+        end
+      end
+    end
+    private_constant :RenderToStringGuard
 
     def self.hook_translation_helper(mod, middleware_enabled:)
       return unless middleware_enabled
@@ -67,6 +95,12 @@ module CopyTunerClient
         alias_method :translate, :translate_with_copyray_comment
         alias_method :t, :translate
       end
+    end
+
+    def self.hook_render_to_string(mod, middleware_enabled:)
+      return unless middleware_enabled
+
+      mod.prepend(RenderToStringGuard)
     end
   end
 end

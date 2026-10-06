@@ -1,5 +1,6 @@
 # cf) xray-rails : xray/middleware.rb
 
+require 'copy_tuner_client/copyray'
 require 'copy_tuner_client/copyray/rewriter'
 
 module CopyTunerClient
@@ -11,6 +12,7 @@ module CopyTunerClient
 
     def call(env)
       CopyTunerClient::TranslationLog.clear
+      env[CopyTunerClient::Copyray::ENV_KEY] = true
       status, headers, response = @app.call(env)
       if rewritable?(status, headers) && (body = response_body(response))
         rewrite_response(env, status, headers, body, response)
