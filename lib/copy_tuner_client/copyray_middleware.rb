@@ -83,7 +83,9 @@ module CopyTunerClient
     end
 
     def rewritable?(status, headers)
-      [200, 422].include?(status) &&
+      # NOTE: マーカーの注入側（copyray_injectable?）はステータスを見ないので、
+      # rate_limit の 429 などのエラーページも対象にしないとマーカーが画面に露出する。
+      (status == 200 || (400..599).cover?(status)) &&
         headers['Content-Type'] &&
         (headers['Content-Type'].include?('text/html') || turbo_stream?(headers)) &&
         !file?(headers)

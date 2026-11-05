@@ -11,8 +11,7 @@ describe CopyTunerClient::CopyrayMiddleware do
 
   subject(:middleware) { described_class.new(app) }
 
-  let(:app) { ->(_env) { [status, headers, [body]] } }
-  let(:status) { 200 }
+  let(:app) { ->(_env) { [200, headers, [body]] } }
 
   before do
     CopyTunerClient.configure do |configuration|
@@ -40,6 +39,30 @@ describe CopyTunerClient::CopyrayMiddleware do
       _status, out_headers, response = middleware.call({})
       expected_length = response.join.bytesize.to_s
       expect(out_headers['Content-Length']).to eq expected_length
+    end
+  end
+
+  context '200 以外のステータスで HTML を返すとき' do
+    let(:headers) { { 'Content-Type' => 'text/html' } }
+    let(:body) { "<html><body><p>#{marker('a.b')}Hello</p></body></html>" }
+
+    def call_with_status(status)
+      status_middleware = described_class.new(->(_env) { [status, headers, [body]] })
+      allow(status_middleware).to receive(:append_js) { |html, *| html }
+      status_middleware.call({}).last.join
+    end
+
+    [429, 500].each do |status|
+      it "#{status} ではマーカーを data-copyray-key 属性に書き換え、トークンを除去する" do
+        result = call_with_status(status)
+
+        expect(result).to include('data-copyray-key="a.b"')
+        expect(result).not_to match CopyTunerClient::Copyray::Marker::SCAN_REGEXP
+      end
+    end
+
+    it '302 では書き換えずにボディをそのまま通過させる' do
+      expect(call_with_status(302)).to eq body
     end
   end
 
