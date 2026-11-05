@@ -52,7 +52,7 @@ describe CopyTunerClient::CopyrayMiddleware do
       status_middleware.call({}).last.join
     end
 
-    [429, 500].each do |status|
+    [302, 429, 500].each do |status|
       it "#{status} ではマーカーを data-copyray-key 属性に書き換え、トークンを除去する" do
         result = call_with_status(status)
 
@@ -61,8 +61,15 @@ describe CopyTunerClient::CopyrayMiddleware do
       end
     end
 
-    it '302 では書き換えずにボディをそのまま通過させる' do
-      expect(call_with_status(302)).to eq body
+    [204, 304].each do |status|
+      it "#{status} はボディを持たないのでボディもヘッダも変えずに通過させる" do
+        status_middleware = described_class.new(->(_env) { [status, headers, ['']] })
+        allow(status_middleware).to receive(:append_js) { |html, *| html }
+        _status, result_headers, response = status_middleware.call({})
+
+        expect(response.join).to eq ''
+        expect(result_headers).to eq('Content-Type' => 'text/html')
+      end
     end
   end
 

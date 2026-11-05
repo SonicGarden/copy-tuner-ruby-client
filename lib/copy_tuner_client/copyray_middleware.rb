@@ -1,5 +1,6 @@
 # cf) xray-rails : xray/middleware.rb
 
+require 'rack/utils'
 require 'copy_tuner_client/copyray'
 require 'copy_tuner_client/copyray/rewriter'
 
@@ -83,9 +84,10 @@ module CopyTunerClient
     end
 
     def rewritable?(status, headers)
-      # NOTE: マーカーの注入側（copyray_injectable?）はステータスを見ないので、
-      # rate_limit の 429 などのエラーページも対象にしないとマーカーが画面に露出する。
-      (status == 200 || (400..599).cover?(status)) &&
+      # NOTE: マーカーの注入側（copyray_injectable?）はステータスを見ないので、除去側もステータスで絞らない
+      # （絞るとリダイレクトやエラーページ（429 など）でマーカーが画面に露出する）。
+      # ボディを持たないステータスは書き換えで Content-Length が付くと Rack の仕様違反になるので除外する。
+      !Rack::Utils::STATUS_WITH_NO_ENTITY_BODY.key?(status) &&
         headers['Content-Type'] &&
         (headers['Content-Type'].include?('text/html') || turbo_stream?(headers)) &&
         !file?(headers)
