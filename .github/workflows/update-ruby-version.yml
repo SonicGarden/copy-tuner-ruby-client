@@ -16,47 +16,28 @@ jobs:
     permissions:
       contents: read
     outputs:
-      version: ${{ steps.latest.outputs.version }}
-      changed: ${{ steps.diff.outputs.changed }}
+      version: ${{ steps.check.outputs.version }}
+      changed: ${{ steps.check.outputs.changed }}
     steps:
-      - uses: actions/checkout@v7
-        with:
-          persist-credentials: false
-
-      - name: Fetch latest stable Ruby version
-        id: latest
-        run: |
-          # preview / rc を除外するため x.y.z 形式のみに絞る
-          latest=$(curl -sfL https://raw.githubusercontent.com/ruby/www.ruby-lang.org/master/_data/releases.yml \
-            | grep -E '^- version: [0-9]+\.[0-9]+\.[0-9]+$' | head -1 | awk '{print $3}')
-          test -n "$latest"
-          echo "$latest" > .ruby-version
-          echo "version=$latest" >> "$GITHUB_OUTPUT"
-
-      - name: Check for changes
-        id: diff
-        run: |
-          if git diff --quiet .ruby-version; then
-            echo "changed=false" >> "$GITHUB_OUTPUT"
-          else
-            echo "changed=true" >> "$GITHUB_OUTPUT"
-          fi
+      - name: Check latest Ruby version
+        id: check
+        uses: SonicGarden/composite-actions/update-ruby-version/check@main
 
       - name: Install packages
-        if: steps.diff.outputs.changed == 'true'
+        if: steps.check.outputs.changed == 'true'
         run: |
           sudo apt update -y
           sudo apt install -y libsqlite3-dev
 
       # ruby-version を省略して .ruby-version を読ませ、更新後のバージョンそのものでテストする
       - name: Set up Ruby
-        if: steps.diff.outputs.changed == 'true'
+        if: steps.check.outputs.changed == 'true'
         uses: ruby/setup-ruby@v1
         with:
           bundler-cache: true
 
       - name: Run rspec
-        if: steps.diff.outputs.changed == 'true'
+        if: steps.check.outputs.changed == 'true'
         run: bundle exec rspec
 
   merge:
@@ -67,27 +48,7 @@ jobs:
       contents: write
       pull-requests: write
     steps:
-      - uses: actions/checkout@v7
-
-      - name: Update .ruby-version
-        env:
-          VERSION: ${{ needs.test.outputs.version }}
-        run: echo "$VERSION" > .ruby-version
-
-      # 書き込み権限を持つジョブで使うサードパーティ action なので SHA で固定する
-      - name: Create pull request
-        id: cpr
-        uses: peter-evans/create-pull-request@15733dbdfeedb4f7fdb73d13c6f5ac83b710fab8 # v8.1.2
+      - name: Create and merge pull request
+        uses: SonicGarden/composite-actions/update-ruby-version/merge@main
         with:
-          branch: update-ruby-version
-          title: "chore: .ruby-version を ${{ needs.test.outputs.version }} に更新"
-          commit-message: "chore: .ruby-version を ${{ needs.test.outputs.version }} に更新"
-          body: "最新の安定版 Ruby に更新します。rspec はこのワークフローの test ジョブで実行済みです。"
-          add-paths: .ruby-version
-
-      - name: Merge pull request
-        if: steps.cpr.outputs.pull-request-number
-        env:
-          GH_TOKEN: ${{ github.token }}
-          PR_NUMBER: ${{ steps.cpr.outputs.pull-request-number }}
-        run: gh pr merge --squash --delete-branch "$PR_NUMBER"
+          version: ${{ needs.test.outputs.version }}
