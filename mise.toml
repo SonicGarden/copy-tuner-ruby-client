@@ -1,3 +1,4 @@
 [tools]
+ruby = "latest"
 node = "24"
 pnpm = "11.9.0"
