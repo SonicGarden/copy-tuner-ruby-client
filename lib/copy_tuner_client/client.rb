@@ -26,7 +26,8 @@ module CopyTunerClient
 
     # Usually instantiated from {Configuration#apply}. Copies options.
     # @param options [Hash]
-    # @option options [String] :api_key API key of the project to connect to
+    # @option options [String] :api_key API key of the project to connect to (upload / deploy)
+    # @option options [String] :s3_path_token token used in the S3 path (download)
     # @option options [Fixnum] :port the port to connect to
     # @option options [Boolean] :public whether to download draft or published content
     # @option options [Fixnum] :http_read_timeout how long to wait before timing out when reading data from the socket
@@ -39,7 +40,7 @@ module CopyTunerClient
       @downloaded_blurbs = {}
 
       %i[
-        api_key host port public http_read_timeout
+        api_key s3_path_token host port public http_read_timeout
         http_open_timeout secure logger ca_file s3_host download_cache_dir
       ].each do |option|
         instance_variable_set("@#{option}", options[option])
@@ -61,12 +62,13 @@ module CopyTunerClient
     # @raise [ConnectionError] if the connection fails
     def download(cache_fallback: false)
       connect(s3_host) do |http|
-        request = Net::HTTP::Get.new(uri(download_resource))
+        request = Net::HTTP::Get.new(download_uri)
         request['If-None-Match'] = @etag
         log('Start downloading translations')
         t = Time.now
         response = http.request(request)
         t_ms = ((Time.now - t) * 1000).to_i
+        check_s3_path_token(response)
         downloaded = check(response)
         if downloaded
           # NOTE: Net::HTTPではgzipが透過的に扱われるため正確なファイルサイズや速度をログに出すのは難しい
@@ -109,6 +111,7 @@ module CopyTunerClient
     attr_reader :host,
                 :port,
                 :api_key,
+                :s3_path_token,
                 :http_read_timeout,
                 :http_open_timeout,
                 :secure,
@@ -122,6 +125,10 @@ module CopyTunerClient
 
     def uri(resource)
       "/api/v2/projects/#{api_key}/#{resource}"
+    end
+
+    def download_uri
+      "/api/v2/projects/#{s3_path_token}/#{download_resource}"
     end
 
     def download_resource
@@ -160,6 +167,13 @@ module CopyTunerClient
       rescue *HTTP_ERRORS => e
         raise ConnectionError, "#{e.class.name}: #{e.message}"
       end
+    end
+
+    # S3/CloudFront は存在しないパスに 403 を返すため 404 と同様に扱う。メッセージにトークン値は含めない
+    def check_s3_path_token(response)
+      return unless response.is_a?(Net::HTTPNotFound) || response.is_a?(Net::HTTPForbidden)
+
+      raise InvalidS3PathToken, "Invalid s3_path_token (#{response.code})"
     end
 
     def check(response)

@@ -1,3 +1,47 @@
+# v2 から v3 へのアップグレードガイド
+
+CopyTuner Ruby クライアント gem を **v2.x 系から v3.0.0** へ上げる際の移行手順です。
+
+## 変更点早見表
+
+| 区分 | 設定 / API | 対応 | 影響箇所 |
+| --- | --- | --- | --- |
+| 破壊的変更 | `config.s3_path_token` | **必須化**。未設定（nil / 空文字）だと起動時に `ArgumentError`。`api_key` へのフォールバックはなし | initializer |
+| 破壊的変更 | download 失敗時の例外 | S3 からの download で 403 / 404 になると `InvalidS3PathToken` が発生。`InvalidCredential` で rescue 推奨 | 例外を rescue しているコード（あれば） |
+
+## 1. `config.s3_path_token` が必須になりました
+
+翻訳の download（S3）のパスにだけ `s3_path_token` を使います。upload / deploy は従来どおり `api_key` を使います。
+
+```ruby
+CopyTunerClient.configure do |config|
+  config.api_key = 'YOUR-API-KEY'
+  config.s3_path_token = 'YOUR-S3-PATH-TOKEN' # プロジェクト設定画面の「S3パストークン」
+  config.project_id = 77
+end
+```
+
+未設定のまま起動すると次の例外で失敗します。
+
+```
+ArgumentError: s3_path_token is required
+```
+
+## 2. 例外クラスの変更
+
+```
+StandardError
+└─ InvalidCredential        ← Poller はこれを rescue してポーリングを中止
+   ├─ InvalidApiKey         upload / deploy の 404
+   └─ InvalidS3PathToken    download の 403 / 404
+```
+
+- 本番の S3 / CloudFront は存在しないパスに 403 を返すため、download の 403 / 404 はどちらも `InvalidS3PathToken` になります（従来の download は `ConnectionError` や `InvalidApiKey` になっていました）。
+- `InvalidS3PathToken` のメッセージにトークン値は含まれません（例: `Invalid s3_path_token (403)`）。
+- `InvalidApiKey` を rescue しているコードは、download の失敗も拾うなら `InvalidCredential` に変更してください。
+
+---
+
 # v1 から v2 へのアップグレードガイド
 
 CopyTuner Ruby クライアント gem を **v1.5.0 系から v2.0.0** へ上げる際の移行手順です。
