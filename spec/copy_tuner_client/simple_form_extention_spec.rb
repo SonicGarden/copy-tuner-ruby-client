@@ -34,18 +34,12 @@ describe 'SimpleForm::Components::Labels の Copyray 拡張' do # rubocop:disabl
     end
   end
 
-  # NOTE: 注入可否の判定そのものは helper_extension_spec で検証済みなので、
-  # ここではビューの copyray_injectable? の結果に従うことだけを見る。
-  def template_with(injectable:)
-    template_class =
-      Class.new do
-        define_method(:copyray_injectable?) { injectable }
-        private :copyray_injectable?
-      end
-    template_class.new
-  end
+  let(:controller) { Object.new }
+  let(:template) { Struct.new(:controller).new(controller) }
 
-  def label_for(template)
+  # NOTE: 注入可否の判定そのものは Copyray.injectable? の spec で検証済みなので、
+  # ここではその結果に従うことだけを見る。
+  def label_for
     input_class.new(model_class.new, template).__send__(:label_translation)
   end
 
@@ -55,12 +49,13 @@ describe 'SimpleForm::Components::Labels の Copyray 拡張' do # rubocop:disabl
     load File.join(PROJECT_ROOT, 'lib', 'copy_tuner_client', 'simple_form_extention.rb')
   end
 
-  it 'ビューが注入可能と判定したときはラベルにマーカーを注入する' do
-    expect(label_for(template_with(injectable: true)))
-      .to eq '⟦CT:activemodel.attributes.body_temperature_record.value⟧体温'
+  it 'Copyray.injectable? が true のときはラベルにマーカーを注入する' do
+    allow(CopyTunerClient::Copyray).to receive(:injectable?).with(controller).and_return(true)
+    expect(label_for).to eq '⟦CT:activemodel.attributes.body_temperature_record.value⟧体温'
   end
 
-  it 'ビューが注入不可と判定したとき（JS 応答など）はラベルにマーカーを注入しない' do
-    expect(label_for(template_with(injectable: false))).to eq '体温'
+  it 'Copyray.injectable? が false のとき（JS 応答など）はラベルにマーカーを注入しない' do
+    allow(CopyTunerClient::Copyray).to receive(:injectable?).with(controller).and_return(false)
+    expect(label_for).to eq '体温'
   end
 end

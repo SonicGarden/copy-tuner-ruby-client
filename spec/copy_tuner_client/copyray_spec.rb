@@ -2,6 +2,68 @@ require 'spec_helper'
 require 'copy_tuner_client/copyray'
 
 describe CopyTunerClient::Copyray do
+  # NOTE: request.format で描画フォーマットを判定するため、format を差し替えられる
+  # 最小のフェイク request / controller を用意する。mailer 判定は controller の型で行う。
+  let(:format_class) do
+    Struct.new(:type) do
+      def html?
+        type == :html
+      end
+    end
+  end
+  let(:request_class) { Struct.new(:format, :env) }
+  let(:controller_class) { Struct.new(:request) }
+
+  # NOTE: CopyrayMiddleware を通るリクエストを再現するため、フラグ付きの env を持つ request を作る。
+  def injectable_request(format = :html)
+    request_class.new(format_class.new(format), { described_class::ENV_KEY => true })
+  end
+
+  describe '.injectable?' do
+    it 'request.format が html のとき true を返す' do
+      expect(described_class.injectable?(controller_class.new(injectable_request))).to be true
+    end
+
+    %i[json text csv pdf].each do |format|
+      it "request.format が :#{format} のとき false を返す" do
+        expect(described_class.injectable?(controller_class.new(injectable_request(format)))).to be false
+      end
+    end
+
+    it 'disable_copyray_comment_injection が有効なとき false を返す' do
+      CopyTunerClient.configuration.disable_copyray_comment_injection = true
+      expect(described_class.injectable?(controller_class.new(injectable_request))).to be false
+    end
+
+    it 'format が html でも env にフラグが無ければ false を返す' do
+      controller = controller_class.new(request_class.new(format_class.new(:html), {}))
+      expect(described_class.injectable?(controller)).to be false
+    end
+
+    it 'request.env が nil でも落ちずに false を返す' do
+      controller = controller_class.new(request_class.new(format_class.new(:html), nil))
+      expect(described_class.injectable?(controller)).to be false
+    end
+
+    it 'mailer から描画されたとき false を返す' do
+      stub_const('ActionMailer::Base', Class.new)
+      expect(described_class.injectable?(ActionMailer::Base.new)).to be false
+    end
+
+    it 'controller が nil のとき false を返す' do
+      expect(described_class.injectable?(nil)).to be false
+    end
+
+    it 'controller が request を持たないとき false を返す' do
+      expect(described_class.injectable?(controller_class.new(nil))).to be false
+    end
+
+    it 'ActionMailer が未ロードでも落ちない' do
+      hide_const('ActionMailer::Base') if defined?(ActionMailer::Base)
+      expect { described_class.injectable?(controller_class.new(injectable_request)) }.not_to raise_error
+    end
+  end
+
   describe '.augment_template' do
     subject(:augmented) { described_class.augment_template(source, key) }
 
