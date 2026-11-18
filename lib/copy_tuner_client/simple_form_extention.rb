@@ -14,7 +14,11 @@ if defined?(SimpleForm)
     def label_translation_with_copyray_comment
       source = label_translation_without_copyray_comment
 
-      if !CopyTunerClient.configuration.disable_copyray_comment_injection && object.class.respond_to?(:lookup_ancestors)
+      # NOTE: translate と同じ判定で注入可否を決める。jQuery で画面を差し替える JS 応答などは
+      # CopyrayMiddleware の書き換え対象外で、注入するとマーカーが除去されずに画面に出るため。
+      if !CopyTunerClient.configuration.disable_copyray_comment_injection &&
+         object.class.respond_to?(:lookup_ancestors) &&
+         template.__send__(:copyray_injectable?)
         attributes_scope = "#{object.class.i18n_scope}.attributes"
         defaults =
           object.class.lookup_ancestors.map do |klass|
