@@ -10,6 +10,8 @@ describe 'CopyTunerClient' do
   def build_client(config = {})
     config[:logger] ||= FakeLogger.new
     config[:download_cache_dir] = download_cache_dir
+    # FakeCopyTunerApp.add_project は既定で api_key と同値の s3_path_token で登録するので、明示指定がなければ揃える
+    config[:s3_path_token] ||= config[:api_key]
     default_config = CopyTunerClient::Configuration.new.to_hash
     default_config[:s3_host] = 'copy-tuner.com'
     CopyTunerClient::Client.new(default_config.update(config))
@@ -99,15 +101,21 @@ describe 'CopyTunerClient' do
       expect { client.upload({}) }.to raise_error(CopyTunerClient::ConnectionError)
     end
 
-    it 'ダウンロード時に404エラーが発生した場合はInvalidApiKeyになること' do
-      client = build_client(api_key: 'bogus')
+    it 'ダウンロード時に存在しないパスで403エラーが発生した場合はトークン値を含まないInvalidS3PathTokenになること' do
+      client = build_client(api_key: 'xyz123', s3_path_token: 'bogus')
       expect { client.download {} }
-        .to raise_error(CopyTunerClient::InvalidApiKey)
+        .to raise_error(CopyTunerClient::InvalidS3PathToken, 'Invalid s3_path_token (403)')
+    end
+
+    it 'ダウンロード時に404エラーが発生した場合もInvalidS3PathTokenになること' do
+      client = build_client(api_key: 'xyz123', s3_path_token: 'not_found')
+      expect { client.download {} }
+        .to raise_error(CopyTunerClient::InvalidS3PathToken, 'Invalid s3_path_token (404)')
     end
 
     it 'アップロード時に404エラーが発生した場合はInvalidApiKeyになること' do
       client = build_client(api_key: 'bogus')
-      expect { client.upload({}) }.to raise_error(CopyTunerClient::InvalidApiKey)
+      expect { client.upload({}) }.to raise_error(CopyTunerClient::InvalidApiKey, 'Invalid API key: bogus')
     end
   end
 
@@ -238,6 +246,33 @@ describe 'CopyTunerClient' do
                                              'key.two' => 'expected two',
                                            })
     expect(logger).to have_entry(:info, 'Deployed')
+  end
+
+  describe 'api_key と s3_path_token が別値のプロジェクト' do
+    let!(:project) do
+      FakeCopyTunerApp.add_project('api-key-1', s3_path_token: 's3-token-1').tap do |p|
+        p.update('draft' => { 'key.one' => 'draft one' }, 'published' => { 'key.one' => 'published one' })
+      end
+    end
+
+    it 'ダウンロードは s3_path_token のパスから取得すること' do
+      client = build_client(api_key: 'api-key-1', s3_path_token: 's3-token-1')
+      downloaded = nil
+      client.download { |blurbs| downloaded = blurbs }
+      expect(downloaded).to eq('key.one' => 'published one')
+    end
+
+    it 'アップロードは s3_path_token を設定していても api_key のパスを使うこと' do
+      client = build_client(api_key: 'api-key-1', s3_path_token: 's3-token-1')
+      client.upload('key.two' => 'uploaded')
+      expect(project.reload.draft).to include('key.two' => 'uploaded')
+    end
+
+    it 'deploy は s3_path_token を設定していても api_key のパスを使うこと' do
+      client = build_client(api_key: 'api-key-1', s3_path_token: 's3-token-1')
+      client.deploy
+      expect(project.reload.published).to eq('key.one' => 'draft one')
+    end
   end
 
   it 'deploy時にエラーが発生した場合は例外が発生すること' do

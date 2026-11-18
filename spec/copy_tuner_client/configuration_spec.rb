@@ -19,6 +19,7 @@ shared_context 'stubbed configuration' do
     # NOTE: apply は project_id 必須になったため、未設定だと raise する。applied 系テストは
     #       project_id 自体を検証しないので適当な値を補っておく
     configuration.project_id ||= 1
+    configuration.s3_path_token ||= 'token'
     apply
   end
 end
@@ -93,6 +94,7 @@ describe CopyTunerClient::Configuration do
   it { is_expected.to have_config_option(:port).overridable }
   it { is_expected.to have_config_option(:development_environments).overridable }
   it { is_expected.to have_config_option(:api_key).overridable }
+  it { is_expected.to have_config_option(:s3_path_token).overridable.default(nil) }
   it { is_expected.to have_config_option(:polling_delay).overridable.default(300) }
   it { is_expected.to have_config_option(:framework).overridable }
   it { is_expected.to have_config_option(:middleware).overridable }
@@ -327,6 +329,34 @@ describe CopyTunerClient::Configuration do
     it 'project_id を設定すると project_url がそれを使った URL を返すこと' do
       config.project_id = 77
       expect(config.project_url).to include('/projects/77')
+    end
+  end
+
+  describe 's3_path_token の必須化' do
+    let(:config) do
+      config = described_class.new
+      config.api_key = 'abc123'
+      config.project_id = 1
+      config
+    end
+
+    it 's3_path_token が nil のとき apply が ArgumentError を出すこと' do
+      config.s3_path_token = nil
+      expect { config.apply }.to raise_error(ArgumentError, 's3_path_token is required')
+    end
+
+    it 's3_path_token が空文字のとき apply が ArgumentError を出すこと' do
+      config.s3_path_token = ''
+      expect { config.apply }.to raise_error(ArgumentError, 's3_path_token is required')
+    end
+
+    it 'api_key が設定されていても s3_path_token へフォールバックしないこと' do
+      expect(config.s3_path_token).to be_nil
+    end
+
+    it 's3_path_token が to_hash に含まれること' do
+      config.s3_path_token = 'token'
+      expect(config.to_hash[:s3_path_token]).to eq('token')
     end
   end
 

@@ -13,7 +13,7 @@ module CopyTunerClient
   class Configuration # rubocop:disable Metrics/ClassLength
     # These options will be present in the Hash returned by {#to_hash}.
     OPTIONS = %i[
-      api_key development_environments environment_name host
+      api_key s3_path_token development_environments environment_name host
       http_open_timeout http_read_timeout client_name client_url
       client_version port protocol proxy_host proxy_pass
       proxy_port proxy_user secure polling_delay sync_interval
@@ -156,6 +156,9 @@ module CopyTunerClient
     # @return [Integer] The project id
     attr_accessor :project_id
 
+    # @return [String] The token used in the S3 path when downloading translations (required)
+    attr_accessor :s3_path_token
+
     # @return [Pathname] The directory to cache downloaded files
     attr_accessor :download_cache_dir
 
@@ -183,6 +186,7 @@ module CopyTunerClient
       self.ignored_key_handler = ->(e) { raise e }
       self.local_first_key_regexp = nil
       self.project_id = nil
+      self.s3_path_token = nil
       self.download_cache_dir = Pathname.new(Dir.pwd).join('tmp', 'cache', 'copy_tuner_client')
       self.middleware_position = default_middleware_position
 
@@ -258,6 +262,7 @@ module CopyTunerClient
     def apply # rubocop:disable Metrics/AbcSize
       # NOTE: project_id は必須。未設定なら apply 時点で明示的に失敗させる
       validate_project_id!
+      validate_s3_path_token!
 
       self.locales ||= default_locales
 
@@ -420,6 +425,12 @@ module CopyTunerClient
     # apply（起動時の全体検証）と project_url（apply を経ない経路へのセーフネット）の両方から呼ぶ。
     def validate_project_id!
       raise ArgumentError, 'project_id is required' if project_id.nil?
+    end
+
+    # s3_path_token は必須。api_key へのフォールバックはしない
+    # （設定漏れを gem 更新時に起動で検知し、api_key のローテーションと独立に扱えるようにするため）。
+    def validate_s3_path_token!
+      raise ArgumentError, 's3_path_token is required' if s3_path_token.nil? || s3_path_token.empty?
     end
 
     def default_port
