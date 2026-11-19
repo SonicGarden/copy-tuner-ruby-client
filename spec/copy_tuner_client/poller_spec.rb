@@ -57,6 +57,21 @@ describe CopyTunerClient::Poller do
     expect(cache['test.key']).to be_nil
   end
 
+  it 's3_path_token が不正な場合はポーリングを停止すること' do
+    failure = 'Invalid s3_path_token (403)'
+    logger = FakeLogger.new
+
+    allow(cache).to receive(:download).and_raise(CopyTunerClient::InvalidS3PathToken.new(failure))
+    poller = build_poller(logger:)
+
+    cache['upload.key'] = 'upload'
+    poller.start
+    wait_for_next_sync
+
+    expect(logger).to have_entry(:error, failure)
+    expect(poller.stop).to be false
+  end
+
   it 'stops polling with an invalid api key' do
     failure = 'server is napping'
     logger = FakeLogger.new

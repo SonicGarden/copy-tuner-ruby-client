@@ -21,8 +21,8 @@ class FakeCopyTunerApp < Sinatra::Base
     ENV.fetch('COPY_TUNER_PORT', 3002).to_i
   end
 
-  def self.add_project(api_key)
-    Project.create api_key
+  def self.add_project(api_key, s3_path_token: api_key)
+    Project.create api_key, s3_path_token:
   end
 
   def self.reset
@@ -33,25 +33,31 @@ class FakeCopyTunerApp < Sinatra::Base
     Project.find api_key
   end
 
-  def with_project(api_key)
-    if api_key == 'raise_error'
-      halt 500, { error: 'Blah ha' }.to_json
-    elsif (project = Project.find(api_key))
-      yield project
-    else
-      halt 404, { error: 'No such project' }.to_json
+  def with_project(key, finder: :find, missing_status: 404)
+    case key
+    when 'raise_error' then halt 500, { error: 'Blah ha' }.to_json
+    when 'not_found' then halt 404, { error: 'No such project' }.to_json
     end
+
+    project = Project.public_send(finder, key)
+    halt missing_status, { error: 'No such project' }.to_json unless project
+    yield project
   end
 
-  get '/api/v2/projects/:api_key/published_blurbs.json' do |api_key|
-    with_project(api_key) do |project|
+  # 本番の S3/CloudFront は存在しないパスに 404 ではなく 403 を返すので合わせる
+  def with_project_by_s3_path_token(s3_path_token, &)
+    with_project(s3_path_token, finder: :find_by_s3_path_token, missing_status: 403, &)
+  end
+
+  get '/api/v2/projects/:s3_path_token/published_blurbs.json' do |s3_path_token|
+    with_project_by_s3_path_token(s3_path_token) do |project|
       etag project.etag
       project.published.to_json
     end
   end
 
-  get '/api/v2/projects/:api_key/draft_blurbs.json' do |api_key|
-    with_project(api_key) do |project|
+  get '/api/v2/projects/:s3_path_token/draft_blurbs.json' do |s3_path_token|
+    with_project_by_s3_path_token(s3_path_token) do |project|
       etag project.etag
       project.draft.to_json
     end
@@ -82,19 +88,27 @@ class FakeCopyTunerApp < Sinatra::Base
   end
 
   class Project
-    attr_reader :draft, :published, :api_key
+    attr_reader :draft, :published, :api_key, :s3_path_token
 
     MUTEX = Mutex.new
 
-    def self.create(api_key)
-      project = Project.new('api_key' => api_key)
+    def self.create(api_key, s3_path_token: api_key)
+      project = Project.new('api_key' => api_key, 's3_path_token' => s3_path_token)
       save project
       project
     end
 
     def self.find(api_key)
+      find_by { |data| data[api_key] }
+    end
+
+    def self.find_by_s3_path_token(s3_path_token)
+      find_by { |data| data.values.find { |h| h['s3_path_token'] == s3_path_token } }
+    end
+
+    def self.find_by
       open_project_data do |data|
-        if (project_hash = data[api_key])
+        if (project_hash = yield(data))
           Project.new project_hash.dup
         end
       end
@@ -132,6 +146,7 @@ class FakeCopyTunerApp < Sinatra::Base
 
     def initialize(attrs)
       @api_key = attrs['api_key']
+      @s3_path_token = attrs['s3_path_token']
       @draft = attrs.fetch('draft', {})
       @etag = attrs.fetch('etag', 1)
       @published = attrs.fetch('published', {})
@@ -140,6 +155,7 @@ class FakeCopyTunerApp < Sinatra::Base
     def to_hash
       {
         'api_key' => @api_key,
+        's3_path_token' => @s3_path_token,
         'etag' => @etag,
         'draft' => @draft,
         'published' => @published,

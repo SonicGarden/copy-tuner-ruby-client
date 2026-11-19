@@ -17,6 +17,8 @@ Create config/initializers/copy_tuner.rb
 CopyTunerClient.configure do |config|
   config.api_key = 'YOUR-API-KEY'
   config.project_id = 77
+  # 必須。プロジェクト設定画面の「S3パストークン」の値（翻訳の download にのみ使われる）
+  config.s3_path_token = 'YOUR-S3-PATH-TOKEN'
   config.host = 'COPY-TUNER-HOST-NAME'
 
   # I18n keys and messages will be sent to server if the locale matches

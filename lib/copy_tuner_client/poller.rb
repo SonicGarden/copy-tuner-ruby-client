@@ -85,8 +85,10 @@ module CopyTunerClient
         timeout = polling_delay
       end
       logger.info 'stop poller thread'
-    rescue InvalidApiKey => e
-      # キーが不正なら張り直しても同じ結果になるので、以後の再開を止める
+    rescue InvalidCredential => e
+      # キーが不正なら張り直しても同じ結果になるので、以後の再開を止める。
+      # S3 の 403/404（InvalidS3PathToken）も同様に扱う: サーバはプロジェクト作成直後に JSON を書き出し、
+      # 削除するのはアーカイブ時だけなので、正しいトークンで再試行して回復するケースは実運用上ない
       @aborted = true
       logger.error(e.message)
     rescue StandardError => e
