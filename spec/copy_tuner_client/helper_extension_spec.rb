@@ -82,50 +82,17 @@ describe CopyTunerClient::HelperExtension do
     expect(view.translate('views.foo', name: 'World')).to eq 'Hello, World'
   end
 
-  context 'injection guard by rendering context' do
-    it 'injects the marker when request.format is :html' do
+  # NOTE: 注入可否の判定そのものは Copyray.injectable? の spec で検証済みなので、
+  # ここでは translate がその結果に従うことだけを見る。
+  context '注入ガード' do
+    it 'Copyray.injectable? が true のときマーカーを注入する' do
+      allow(CopyTunerClient::Copyray).to receive(:injectable?).with(view.controller).and_return(true)
       expect(view.translate('some.key', name: 'World')).to eq '⟦CT:some.key⟧Hello, World'
     end
 
-    %i[json text csv pdf].each do |format|
-      it "does not inject the marker when request.format is :#{format}" do
-        view.controller = controller_class.new(injectable_request(format))
-        expect(view.translate('some.key', name: 'World')).to eq 'Hello, World'
-      end
-    end
-
-    it 'format が html でも env にフラグが無ければ注入しない' do
-      view.controller = controller_class.new(request_class.new(format_class.new(:html), {}))
+    it 'Copyray.injectable? が false のときマーカーを注入しない' do
+      allow(CopyTunerClient::Copyray).to receive(:injectable?).with(view.controller).and_return(false)
       expect(view.translate('some.key', name: 'World')).to eq 'Hello, World'
-    end
-
-    it 'request.env が nil でも落ちずに注入しない' do
-      view.controller = controller_class.new(request_class.new(format_class.new(:html), nil))
-      expect(view.translate('some.key', name: 'World')).to eq 'Hello, World'
-    end
-  end
-
-  context 'injection guard by controller' do
-    it 'does not inject the marker when rendered by a mailer' do
-      stub_const('ActionMailer::Base', Class.new)
-      view.controller = ActionMailer::Base.new
-      expect(view.translate('some.key', name: 'World')).to eq 'Hello, World'
-    end
-
-    it 'does not inject the marker when controller is nil' do
-      view.controller = nil
-      expect(view.translate('some.key', name: 'World')).to eq 'Hello, World'
-    end
-
-    it 'does not inject the marker when the controller has no request' do
-      view.controller = controller_class.new(nil)
-      expect(view.translate('some.key', name: 'World')).to eq 'Hello, World'
-    end
-
-    it 'does not raise when ActionMailer is not loaded' do
-      hide_const('ActionMailer::Base') if defined?(ActionMailer::Base)
-      view.controller = controller_class.new(injectable_request)
-      expect { view.translate('some.key', name: 'World') }.not_to raise_error
     end
   end
 

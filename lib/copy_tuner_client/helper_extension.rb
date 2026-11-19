@@ -23,13 +23,9 @@ module CopyTunerClient
         # 使われる。HTML 以外の経路（メール本文・render :json・CSV/PDF など）ではコメントが文字列として
         # 出力に混入してしまうため、それらの経路には注入しない。default 引数による初期値登録は維持する
         # 必要があるため、このガードは初期値登録（上の I18n.t 呼び出し）より後に置く。
-        return source unless copyray_injectable?
+        return source unless CopyTunerClient::Copyray.injectable?(controller)
 
-        if CopyTunerClient.configuration.disable_copyray_comment_injection
-          source
-        else
-          CopyTunerClient::Copyray.augment_template(source, copyray_scope_key(key, options))
-        end
+        CopyTunerClient::Copyray.augment_template(source, copyray_scope_key(key, options))
       end
 
       def copyray_scope_key(key, options)
@@ -40,33 +36,6 @@ module CopyTunerClient
         I18n.normalize_keys(nil, key, options[:scope], separator).compact.join(separator)
       end
       private :copyray_scope_key
-
-      # NOTE: HTML 以外の経路（メール本文・render :json・CSV/PDF など）ではマーカーが文字列として
-      # 出力に混入するため注入しない。判定には controller.request.format を使い、@current_template.format /
-      # lookup_context.formats のような ActionView の内部実装には依存させない（Rails バージョン間で壊れうるため）。
-      def copyray_injectable?
-        current_controller = controller
-        return false if current_controller.nil?
-
-        # NOTE: mailer は request を持たず request.format で判定できない。かつメール本文への
-        # マーカー混入は実害が大きいため、controller の型で明示除外する。
-        return false if defined?(ActionMailer::Base) && current_controller.is_a?(ActionMailer::Base)
-
-        request = current_controller.request
-        return false unless passes_copyray_middleware?(request)
-
-        # NOTE: middleware を通っても render json: などは rewritable? に弾かれ書き換えられないため、
-        # format が html でない経路には注入しない。
-        request.format&.html? || false
-      end
-      private :copyray_injectable?
-
-      # NOTE: format が html でも出力が CopyrayMiddleware を通らない経路（ApplicationController.renderer や
-      # render_to_string）ではマーカーが除去されずに残るため、middleware が立てた印がある場合に限り注入する。
-      def passes_copyray_middleware?(request)
-        request&.env&.[](CopyTunerClient::Copyray::ENV_KEY)
-      end
-      private :passes_copyray_middleware?
     end
     private_constant :CopyrayCommentInjection
 

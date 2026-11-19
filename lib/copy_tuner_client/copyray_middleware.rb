@@ -84,7 +84,7 @@ module CopyTunerClient
     end
 
     def rewritable?(status, headers)
-      # NOTE: マーカーの注入側（copyray_injectable?）はステータスを見ないので、除去側もステータスで絞らない
+      # NOTE: マーカーの注入側（Copyray.injectable?）はステータスを見ないので、除去側もステータスで絞らない
       # （絞るとリダイレクトやエラーページ（429 など）でマーカーが画面に露出する）。
       # ボディを持たないステータスは書き換えで Content-Length が付くと Rack の仕様違反になるので除外する。
       !Rack::Utils::STATUS_WITH_NO_ENTITY_BODY.key?(status) &&

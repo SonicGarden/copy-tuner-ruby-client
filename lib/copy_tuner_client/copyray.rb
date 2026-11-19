@@ -7,6 +7,31 @@ module CopyTunerClient
     # 「この描画の出力が middleware を通るか」で判定するため、middleware が env にこの印を立てる。
     ENV_KEY = 'copy_tuner.copyray_injectable'.freeze
 
+    # NOTE: HTML 以外の経路（メール本文・render :json・CSV/PDF など）ではマーカーが文字列として
+    # 出力に混入するため注入しない。判定には controller.request.format を使い、@current_template.format /
+    # lookup_context.formats のような ActionView の内部実装には依存させない（Rails バージョン間で壊れうるため）。
+    def self.injectable?(controller)
+      return false if CopyTunerClient.configuration.disable_copyray_comment_injection
+      return false if controller.nil?
+
+      # NOTE: mailer は request を持たず request.format で判定できない。かつメール本文への
+      # マーカー混入は実害が大きいため、controller の型で明示除外する。
+      return false if defined?(ActionMailer::Base) && controller.is_a?(ActionMailer::Base)
+
+      rewritable_request?(controller.request)
+    end
+
+    def self.rewritable_request?(request)
+      # NOTE: format が html でも出力が CopyrayMiddleware を通らない経路（ApplicationController.renderer や
+      # render_to_string）ではマーカーが除去されずに残るため、middleware が立てた印がある場合に限り注入する。
+      return false unless request&.env&.[](ENV_KEY)
+
+      # NOTE: middleware を通っても render json: などは rewritable? に弾かれ書き換えられないため、
+      # format が html でない経路には注入しない。
+      request.format&.html? || false
+    end
+    private_class_method :rewritable_request?
+
     # This:
     #   message
     # Becomes:
